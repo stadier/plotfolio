@@ -21,7 +21,7 @@ export default function ManualBoundaryDrawer({
 }: ManualBoundaryDrawerProps) {
 	const map = useMap();
 	const [points, setPoints] = useState<{ lat: number; lng: number }[]>(
-		existingBoundary?.coordinates.map(c => ({ lat: c.lat, lng: c.lng })) || []
+		existingBoundary?.coordinates.map((c) => ({ lat: c.lat, lng: c.lng })) || []
 	);
 	const [isDrawing, setIsDrawing] = useState(false);
 	const [markers, setMarkers] = useState<L.Marker[]>([]);
@@ -76,9 +76,7 @@ export default function ManualBoundaryDrawer({
 				const newLat = e.target.getLatLng().lat;
 				const newLng = e.target.getLatLng().lng;
 				setPoints((prev) =>
-					prev.map((p, i) =>
-						i === index ? { lat: newLat, lng: newLng } : p
-					)
+					prev.map((p, i) => (i === index ? { lat: newLat, lng: newLng } : p))
 				);
 			});
 
@@ -160,8 +158,11 @@ export default function ManualBoundaryDrawer({
 			boundaries: points.map((p, i) => {
 				const nextIndex = (i + 1) % points.length;
 				const nextPoint = points[nextIndex];
-				const distance = map.distance([p.lat, p.lng], [nextPoint.lat, nextPoint.lng]);
-				
+				const distance = map.distance(
+					[p.lat, p.lng],
+					[nextPoint.lat, nextPoint.lng]
+				);
+
 				return {
 					from: String.fromCharCode(65 + i),
 					to: String.fromCharCode(65 + nextIndex),
@@ -171,7 +172,8 @@ export default function ManualBoundaryDrawer({
 			measurements: [],
 			bearings: [],
 			area: calculateArea(points),
-			registrationNumber: existingBoundary?.registrationNumber || `MANUAL-${Date.now()}`,
+			registrationNumber:
+				existingBoundary?.registrationNumber || `MANUAL-${Date.now()}`,
 			surveyDate: new Date(),
 			surveyor: "Manual Entry",
 		};
@@ -206,7 +208,10 @@ export default function ManualBoundaryDrawer({
 							</p>
 						</div>
 					) : (
-						<p>Click "Start Drawing" to begin marking your boundary points on the map.</p>
+						<p>
+							Click "Start Drawing" to begin marking your boundary points on the
+							map.
+						</p>
 					)}
 				</div>
 

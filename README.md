@@ -78,11 +78,13 @@ All documentation is located in the [`/docs`](./docs) folder:
 ## Database
 
 This project uses **MongoDB Atlas** for data persistence:
+
 - Property management with full CRUD operations
 - Survey document storage and boundary data
 - Real-time property tracking and status updates
 
 Configure your MongoDB connection in `.env.local`:
+
 ```bash
 MONGODB_URI=your_mongodb_connection_string
 MONGODB_DB=plotfolio

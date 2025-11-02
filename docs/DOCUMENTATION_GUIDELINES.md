@@ -7,14 +7,18 @@ All documentation files **MUST** be placed in the `/docs` directory to keep the 
 ## 📝 File Organization
 
 ### User Documentation
+
 Place user-facing guides in `/docs`:
+
 - Tutorials and how-to guides
 - Feature documentation
 - Quick start guides
 - User manuals
 
 ### Developer Documentation
+
 Place technical documentation in `/docs`:
+
 - API documentation
 - Architecture guides
 - Component documentation
@@ -22,6 +26,7 @@ Place technical documentation in `/docs`:
 - Contributing guides
 
 ### Examples:
+
 ```
 docs/
 ├── README.md                          # Documentation index
@@ -35,17 +40,20 @@ docs/
 ## ✍️ Writing Documentation
 
 ### Format
+
 - Use Markdown (`.md`) format
 - Include clear headings and sections
 - Add code examples where applicable
 - Include visual diagrams for complex concepts
 
 ### Naming Convention
+
 - Use UPPERCASE for main documentation files (e.g., `README.md`, `CONTRIBUTING.md`)
 - Use descriptive names (e.g., `BOUNDARY_REGISTRATION_GUIDE.md`)
 - Separate words with underscores or hyphens
 
 ### Content Guidelines
+
 1. **Start with a clear title** - Use H1 (`#`) for main title
 2. **Add a brief description** - Explain what the document covers
 3. **Use sections** - Break content into logical sections
@@ -56,6 +64,7 @@ docs/
 ## 🔗 Linking Documentation
 
 When referencing documentation:
+
 - From root: `[Guide](./docs/GUIDE.md)`
 - From docs: `[Other Guide](./OTHER_GUIDE.md)`
 - From src: `[Guide](../docs/GUIDE.md)`
@@ -82,11 +91,13 @@ When referencing documentation:
 ## 📸 Images and Assets
 
 If documentation requires images:
+
 1. Create `/docs/assets` folder
 2. Organize by documentation file
 3. Reference with relative paths
 
 Example:
+
 ```markdown
 ![Diagram](./assets/boundary-registration/diagram.png)
 ```
@@ -94,6 +105,7 @@ Example:
 ## 🔄 Updating Documentation
 
 When making changes:
+
 1. Update the relevant `.md` file
 2. Update "Last updated" date if present
 3. Update `/docs/README.md` if structure changes

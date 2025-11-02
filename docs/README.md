@@ -5,10 +5,12 @@ Welcome to the Plotfolio documentation directory. All project documentation file
 ## 📖 Available Documentation
 
 ### User Guides
+
 - **[Boundary Registration Guide](./BOUNDARY_REGISTRATION_GUIDE.md)** - Complete guide on how to register land boundaries using all three methods (Survey Upload, Manual Drawing, API Integration)
 - **[Quick Start: Boundaries](./QUICK_START_BOUNDARIES.md)** - Visual quick-start guide with diagrams and step-by-step instructions for boundary registration
 
 ### Developer Documentation
+
 - **[Documentation Guidelines](./DOCUMENTATION_GUIDELINES.md)** - Guidelines for creating and organizing documentation
 - Coming soon: API Reference
 - Coming soon: Component Architecture
@@ -17,10 +19,12 @@ Welcome to the Plotfolio documentation directory. All project documentation file
 ## 🚀 Quick Links
 
 ### For Users
+
 - **New to Plotfolio?** Start with [Quick Start: Boundaries](./QUICK_START_BOUNDARIES.md)
 - **Need detailed info?** See [Boundary Registration Guide](./BOUNDARY_REGISTRATION_GUIDE.md)
 
 ### For Developers
+
 - **API Endpoints**: See inline documentation in `/src/app/api/`
 - **Component Structure**: See `/src/components/`
 - **Type Definitions**: See `/src/types/property.ts`
@@ -43,6 +47,7 @@ docs/
 ## 📝 Contributing to Documentation
 
 When adding new documentation:
+
 1. Create your `.md` file in this `docs/` directory
 2. Add it to the list above
 3. Update the structure diagram
@@ -58,4 +63,4 @@ When adding new documentation:
 
 ---
 
-*Last updated: November 2025*
+_Last updated: November 2025_
