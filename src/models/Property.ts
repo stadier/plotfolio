@@ -62,6 +62,20 @@ const SurveyDataSchema = new Schema<SurveyData>({
 	surveyor: { type: String },
 });
 
+// Grid Cell Schema
+const GridCellSchema = new Schema({
+	lat: { type: Number, required: true },
+	lng: { type: Number, required: true },
+	gridSize: { type: Number, required: true },
+});
+
+// Property Grid Schema
+const PropertyGridSchema = new Schema({
+	cells: [GridCellSchema],
+	gridSize: { type: Number, required: true },
+	color: { type: String },
+});
+
 // Property Document Schema
 const PropertyDocumentSchema = new Schema({
 	id: { type: String, required: true },
@@ -107,6 +121,7 @@ const PropertySchema = new Schema<Property & Document>(
 		taxId: { type: String },
 		owner: { type: PropertyOwnerSchema, required: true },
 		surveyData: { type: SurveyDataSchema },
+		propertyGrid: { type: PropertyGridSchema },
 	},
 	{
 		timestamps: true,

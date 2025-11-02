@@ -131,6 +131,26 @@ const sampleProperties: Property[] = [
 			type: "individual",
 		},
 	},
+	{
+		id: "7",
+		name: "My Property",
+		address: "8°55'54.1\"N 7°19'27.7\"E",
+		coordinates: { lat: 8.9317, lng: 7.3244 },
+		area: 500,
+		propertyType: PropertyType.RESIDENTIAL,
+		purchaseDate: new Date("2025-11-02"),
+		purchasePrice: 0,
+		currentValue: 0,
+		documents: [],
+		status: PropertyStatus.OWNED,
+		description: "My personal property",
+		owner: {
+			id: "owner-1",
+			name: "Property Owner",
+			email: "owner@example.com",
+			type: "individual",
+		},
+	},
 ];
 
 export async function POST() {

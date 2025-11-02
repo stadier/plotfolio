@@ -10,7 +10,8 @@ export class PropertyAPI {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 			const data = await response.json();
-			return data.properties || [];
+			// API returns array directly, not wrapped in object
+			return Array.isArray(data) ? data : [];
 		} catch (error) {
 			console.error("Error fetching properties:", error);
 			return [];

@@ -1,36 +1,41 @@
 {
-  "name": "plotfolio-workspace",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@types/leaflet": "^1.9.21",
-    "clsx": "^2.1.1",
-    "leaflet": "^1.9.4",
-    "lucide-react": "^0.552.0",
-    "mongodb": "^6.20.0",
-    "mongoose": "^8.19.2",
-    "next": "16.0.1",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "react-leaflet": "^5.0.0",
-    "recharts": "^3.3.0",
-    "tailwind-merge": "^3.3.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+	"name": "plotfolio-workspace",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"dev:webpack": "next dev --webpack",
+		"dev:mapbox": "next dev --webpack",
+		"build": "next build",
+		"start": "next start",
+		"lint": "eslint"
+	},
+	"dependencies": {
+		"@types/leaflet": "^1.9.21",
+		"@types/mapbox-gl": "^3.4.1",
+		"clsx": "^2.1.1",
+		"leaflet": "^1.9.4",
+		"lucide-react": "^0.552.0",
+		"mapbox-gl": "^3.16.0",
+		"mongodb": "^6.20.0",
+		"mongoose": "^8.19.2",
+		"next": "16.0.1",
+		"react": "19.2.0",
+		"react-dom": "19.2.0",
+		"react-leaflet": "^5.0.0",
+		"react-map-gl": "^8.1.0",
+		"recharts": "^3.3.0",
+		"tailwind-merge": "^3.3.1"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4",
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"babel-plugin-react-compiler": "1.0.0",
+		"eslint": "^9",
+		"eslint-config-next": "16.0.1",
+		"tailwindcss": "^4",
+		"typescript": "^5"
+	}
 }

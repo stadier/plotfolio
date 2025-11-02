@@ -4,11 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		await connectDB();
-		const property = await PropertyService.getPropertyById(params.id);
+		const { id } = await params;
+		const property = await PropertyService.getPropertyById(id);
 
 		if (!property) {
 			return NextResponse.json(
@@ -29,12 +30,18 @@ export async function GET(
 
 export async function PUT(
 	request: NextRequest,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		await connectDB();
+		const { id } = await params;
 		const updates = await request.json();
-		const updated = await PropertyService.updateProperty(params.id, updates);
+		console.log("PUT /api/properties/[id] - ID:", id);
+		console.log(
+			"PUT /api/properties/[id] - Updates:",
+			JSON.stringify(updates, null, 2)
+		);
+		const updated = await PropertyService.updateProperty(id, updates);
 
 		if (!updated) {
 			return NextResponse.json(
@@ -55,11 +62,12 @@ export async function PUT(
 
 export async function DELETE(
 	request: NextRequest,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		await connectDB();
-		const deleted = await PropertyService.deleteProperty(params.id);
+		const { id } = await params;
+		const deleted = await PropertyService.deleteProperty(id);
 
 		if (!deleted) {
 			return NextResponse.json(

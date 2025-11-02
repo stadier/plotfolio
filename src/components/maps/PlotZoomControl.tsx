@@ -6,6 +6,8 @@ interface PlotZoomControlProps {
 	minZoom?: number;
 	maxZoom?: number;
 	plotViewZoom?: number;
+	onGridToggle?: () => void;
+	showGrid?: boolean;
 	className?: string;
 }
 
@@ -13,6 +15,8 @@ export default function PlotZoomControl({
 	minZoom = 12,
 	maxZoom = 19,
 	plotViewZoom = 16,
+	onGridToggle,
+	showGrid = false,
 	className = "",
 }: PlotZoomControlProps) {
 	const map = useMap();
@@ -41,9 +45,16 @@ export default function PlotZoomControl({
 		map.setZoom(plotViewZoom);
 	};
 
+	const handleGridToggle = () => {
+		if (onGridToggle) {
+			onGridToggle();
+		}
+	};
+
 	return (
 		<div
-			className={`absolute top-4 left-4 z-50 flex flex-col gap-2 ${className}`}
+			className={`absolute top-4 left-4 flex flex-col gap-2 ${className}`}
+			style={{ zIndex: 1000 }}
 		>
 			<div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
 				<button
@@ -55,11 +66,17 @@ export default function PlotZoomControl({
 				</button>
 
 				<button
-					onClick={handlePlotView}
-					className="flex items-center justify-center w-10 h-10 hover:bg-gray-100 transition-colors border-b border-gray-200"
-					title="Plot View (Optimal Zoom)"
+					onClick={handleGridToggle}
+					className={`flex items-center justify-center w-10 h-10 transition-colors border-b border-gray-200 ${
+						showGrid ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-100"
+					}`}
+					title={showGrid ? "Hide Grid" : "Show Grid"}
 				>
-					<Grid3X3 className="w-4 h-4 text-green-600" />
+					<Grid3X3
+						className={`w-4 h-4 ${
+							showGrid ? "text-green-600" : "text-gray-600"
+						}`}
+					/>
 				</button>
 
 				<button

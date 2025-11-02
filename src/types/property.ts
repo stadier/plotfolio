@@ -1,3 +1,15 @@
+export interface GridCell {
+	lat: number;
+	lng: number;
+	gridSize: number; // Size in meters
+}
+
+export interface PropertyGrid {
+	cells: GridCell[];
+	gridSize: number;
+	color?: string;
+}
+
 export interface Property {
 	id: string;
 	name: string;
@@ -19,6 +31,7 @@ export interface Property {
 	taxId?: string;
 	owner: PropertyOwner;
 	surveyData?: SurveyData; // Custom plot boundaries from survey documents
+	propertyGrid?: PropertyGrid; // Grid cells defining property boundaries
 }
 
 export interface PropertyOwner {
