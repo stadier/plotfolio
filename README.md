@@ -41,17 +41,32 @@ You can start editing the page by modifying `src/app/page.tsx`. The page auto-up
 ## Project Structure
 
 ```
-src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable UI components
-│   ├── ui/             # Base UI components
-│   ├── maps/           # Map-related components
-│   ├── property/       # Property management components
-│   └── dashboard/      # Dashboard components
-├── lib/                # Utility functions and configurations
-├── types/              # TypeScript type definitions
-└── hooks/              # Custom React hooks
+plotfolio-workspace/
+├── docs/                # 📚 Documentation (guides, tutorials, API docs)
+├── src/
+│   ├── app/            # Next.js App Router pages & API routes
+│   │   └── api/        # REST API endpoints
+│   ├── components/     # Reusable UI components
+│   │   ├── layout/     # Layout components (Header, Sidebar)
+│   │   ├── maps/       # Map-related components (Leaflet)
+│   │   ├── property/   # Property management components
+│   │   ├── survey/     # Survey document components
+│   │   └── dashboard/  # Dashboard components
+│   ├── lib/            # Utility functions and configurations
+│   │   ├── api.ts      # API client utilities
+│   │   ├── mongodb.ts  # MongoDB connection
+│   │   └── mongoose.ts # Mongoose setup
+│   ├── models/         # Database models (Mongoose schemas)
+│   └── types/          # TypeScript type definitions
+└── .env.local          # Environment variables (MongoDB, etc.)
 ```
+
+## 📚 Documentation
+
+All documentation is located in the [`/docs`](./docs) folder:
+
+- **[Boundary Registration Guide](./docs/BOUNDARY_REGISTRATION_GUIDE.md)** - Complete guide on registering land boundaries
+- **[Quick Start: Boundaries](./docs/QUICK_START_BOUNDARIES.md)** - Visual quick-start guide with diagrams
 
 ## Development
 
@@ -59,3 +74,16 @@ src/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+
+## Database
+
+This project uses **MongoDB Atlas** for data persistence:
+- Property management with full CRUD operations
+- Survey document storage and boundary data
+- Real-time property tracking and status updates
+
+Configure your MongoDB connection in `.env.local`:
+```bash
+MONGODB_URI=your_mongodb_connection_string
+MONGODB_DB=plotfolio
+```

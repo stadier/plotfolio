@@ -17,6 +17,14 @@ const CustomPlotBoundary = dynamic(
 	}
 );
 
+// Dynamically import manual boundary drawer
+const ManualBoundaryDrawer = dynamic(
+	() => import("@/components/maps/ManualBoundaryDrawer"),
+	{
+		ssr: false,
+	}
+);
+
 // Dynamically import map component to avoid SSR issues
 const PropertyMap = dynamic(() => import("@/components/maps/PropertyMap"), {
 	ssr: false,
@@ -37,6 +45,7 @@ export default function Home() {
 	const [properties, setProperties] = useState<Property[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [isDrawingBoundary, setIsDrawingBoundary] = useState(false);
 
 	// Default viewport for Abuja, Nigeria
 	const [viewport, setViewport] = useState({
@@ -238,16 +247,26 @@ export default function Home() {
 									<h2 className="text-lg font-semibold text-gray-900">
 										Property Map - Abuja FCT
 									</h2>
-									<button
-										onClick={handleBoundaryToggle}
-										className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-											isBoundaryVisible
-												? "bg-blue-100 border-blue-300 text-blue-700"
-												: "bg-gray-100 border-gray-300 text-gray-700"
-										}`}
-									>
-										{isBoundaryVisible ? "Hide" : "Show"} Boundaries
-									</button>
+									<div className="flex gap-2">
+										{selectedProperty && !isDrawingBoundary && (
+											<button
+												onClick={() => setIsDrawingBoundary(true)}
+												className="px-3 py-2 text-sm rounded-lg border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+											>
+												✏️ Draw Boundary
+											</button>
+										)}
+										<button
+											onClick={handleBoundaryToggle}
+											className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+												isBoundaryVisible
+													? "bg-blue-100 border-blue-300 text-blue-700"
+													: "bg-gray-100 border-gray-300 text-gray-700"
+											}`}
+										>
+											{isBoundaryVisible ? "Hide" : "Show"} Boundaries
+										</button>
+									</div>
 								</div>
 							</div>
 							<div className="h-96 lg:h-[calc(100vh-12rem)] relative">
@@ -262,6 +281,17 @@ export default function Home() {
 									<CustomPlotBoundary
 										surveyData={[selectedProperty.surveyData]}
 										selectedPlotId={selectedProperty.id}
+									/>
+								)}
+								{isDrawingBoundary && selectedProperty && (
+									<ManualBoundaryDrawer
+										propertyId={selectedProperty.id}
+										existingBoundary={selectedProperty.surveyData}
+										onBoundaryComplete={(surveyData) => {
+											handleSurveyUpload(selectedProperty.id, surveyData);
+											setIsDrawingBoundary(false);
+										}}
+										onCancel={() => setIsDrawingBoundary(false)}
 									/>
 								)}
 							</div>
