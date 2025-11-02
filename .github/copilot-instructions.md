@@ -7,6 +7,7 @@ Plotfolio is a modern property management application for Nigerian land plots, b
 ## Code Style and Standards
 
 ### General Guidelines
+
 - Use TypeScript for all new files with strict type checking
 - Follow Next.js 16 App Router conventions
 - Use functional components with React hooks
@@ -14,6 +15,7 @@ Plotfolio is a modern property management application for Nigerian land plots, b
 - Add meaningful comments for complex logic
 
 ### File Organization
+
 - Place all API routes in `/src/app/api/`
 - Place all components in `/src/components/` organized by feature
 - Place all types in `/src/types/`
@@ -22,6 +24,7 @@ Plotfolio is a modern property management application for Nigerian land plots, b
 - **Place ALL documentation in `/docs/` directory** - NO markdown files in root except README.md
 
 ### Component Structure
+
 ```typescript
 "use client"; // Only if needed for client components
 
@@ -42,6 +45,7 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 ```
 
 ### TypeScript Guidelines
+
 - Use interfaces for object shapes
 - Use enums for fixed sets of values
 - Export types from `/src/types/property.ts`
@@ -51,12 +55,14 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 ## Architecture Patterns
 
 ### Database Layer
+
 - Use Mongoose for MongoDB interactions
 - Define schemas in `/src/models/`
 - Use `PropertyService` class for business logic
 - Always handle database errors gracefully
 
 ### API Routes
+
 - Follow REST conventions (GET, POST, PUT, DELETE)
 - Return proper HTTP status codes
 - Use NextResponse for responses
@@ -64,6 +70,7 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 - Connect to database at start of handler
 
 ### Component Patterns
+
 - Use dynamic imports for map components (avoid SSR issues)
 - Implement loading states for async operations
 - Use controlled components for forms
@@ -72,23 +79,28 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 ## Feature-Specific Guidelines
 
 ### Property Management
+
 - Properties must have coordinates, area, and status
 - Support PropertyType enum: RESIDENTIAL, COMMERCIAL, etc.
 - Support PropertyStatus enum: OWNED, FOR_SALE, DEVELOPMENT, etc.
 
 ### Boundary Registration
+
 Three methods supported:
+
 1. **Survey Document Upload** - AI extraction of boundaries
 2. **Manual Drawing** - Interactive map-based drawing
 3. **API Integration** - Programmatic boundary submission
 
 ### Map Components
+
 - Use Leaflet with React Leaflet wrapper
 - Always use dynamic imports with `ssr: false`
 - Center on Abuja, Nigeria by default (9.0765°N, 7.4951°E)
 - Support zoom levels 10-18 for property visualization
 
 ### Survey Data
+
 - Store coordinates as `{ point: string, lat: number, lng: number }[]`
 - Store boundaries as `{ from: string, to: string, distance: number }[]`
 - Calculate area using Shoelace formula
@@ -97,11 +109,13 @@ Three methods supported:
 ## MongoDB Integration
 
 ### Connection
+
 - Use connection pooling via `/src/lib/mongoose.ts`
 - Handle connection errors gracefully
 - Check connection state before operations
 
 ### Schema Design
+
 - Use Mongoose schemas with TypeScript types
 - Include timestamps (createdAt, updatedAt)
 - Add indexes for frequently queried fields
@@ -110,7 +124,9 @@ Three methods supported:
 ## Documentation Rules
 
 ### Critical Documentation Rule
+
 **When a user provides a command with "(instructions)" in parentheses:**
+
 1. Recognize this as a directive to codify the command
 2. Add the rule/pattern to this copilot-instructions.md file
 3. Place the rule in the appropriate section
@@ -118,12 +134,14 @@ Three methods supported:
 5. Commit the change to the instructions file
 
 Example:
+
 ```
 User: "create a docs folder and make sure all mds always go there (instructions)"
 → Add rule: "Place ALL documentation in /docs/ directory"
 ```
 
 ### Documentation Standards
+
 - **ALL markdown files MUST go in `/docs/` directory**
 - Only exception: `README.md` in root
 - Follow naming convention: UPPERCASE for main docs (README.md, CONTRIBUTING.md)
@@ -131,7 +149,9 @@ User: "create a docs folder and make sure all mds always go there (instructions)
 - Reference docs from main README when user-facing
 
 ### Creating Documentation
+
 When creating new documentation:
+
 1. Create file in `/docs/` directory
 2. Use clear, descriptive filename
 3. Include proper sections and examples
@@ -141,6 +161,7 @@ When creating new documentation:
 ## API Endpoints
 
 ### Properties
+
 - `GET /api/properties` - List all properties
 - `GET /api/properties/[id]` - Get single property
 - `POST /api/properties` - Create property
@@ -148,14 +169,17 @@ When creating new documentation:
 - `DELETE /api/properties/[id]` - Delete property
 
 ### Survey Data
+
 - `POST /api/properties/[id]/survey` - Add survey data to property
 
 ### Seeding
+
 - `POST /api/seed` - Seed database with sample properties
 
 ## Environment Variables
 
 Required in `.env.local`:
+
 ```bash
 MONGODB_URI=mongodb+srv://...
 MONGODB_DB=plotfolio
@@ -172,16 +196,19 @@ MONGODB_DB=plotfolio
 ## Nigerian Land Plot Specifics
 
 ### Typical Dimensions
+
 - Residential plots: 600-1000 sqm
 - Plot shapes: Usually rectangular or irregular polygons
 - Common locations: Abuja (Maitama, Gwarinpa, Jahi, Kubwa, Wuye)
 
 ### Coordinate System
+
 - Use decimal degrees (not DMS)
 - Latitude range: ~6° to 14°N (Nigeria bounds)
 - Longitude range: ~3° to 15°E (Nigeria bounds)
 
 ### Legal Documents
+
 - Certificate of Occupancy (C of O)
 - Survey plans with bearings and distances
 - Deed of assignment
@@ -190,42 +217,42 @@ MONGODB_DB=plotfolio
 ## Common Patterns
 
 ### Error Handling
+
 ```typescript
 try {
-  // Operation
+	// Operation
 } catch (error) {
-  console.error('Descriptive message:', error);
-  return NextResponse.json(
-    { error: 'User-friendly message' },
-    { status: 500 }
-  );
+	console.error("Descriptive message:", error);
+	return NextResponse.json({ error: "User-friendly message" }, { status: 500 });
 }
 ```
 
 ### Loading States
+
 ```typescript
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState<string | null>(null);
 
 useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      // Fetch data
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
+	const fetchData = async () => {
+		try {
+			setLoading(true);
+			setError(null);
+			// Fetch data
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "An error occurred");
+		} finally {
+			setLoading(false);
+		}
+	};
+	fetchData();
 }, []);
 ```
 
 ### API Client
+
 ```typescript
-import { PropertyAPI } from '@/lib/api';
+import { PropertyAPI } from "@/lib/api";
 
 const properties = await PropertyAPI.getAllProperties();
 const property = await PropertyAPI.getProperty(id);
@@ -259,6 +286,7 @@ await PropertyAPI.updateProperty(id, updates);
 ## Git Commit Convention
 
 Use conventional commit messages:
+
 - `feat:` - New features
 - `fix:` - Bug fixes
 - `docs:` - Documentation changes
@@ -280,6 +308,7 @@ This signals that the command should become a permanent rule/pattern in this fil
 5. Commit the updated instructions file
 
 Example patterns:
+
 - "create X folder and make sure Y always go there (instructions)" → Add file organization rule
 - "always use Z when doing W (instructions)" → Add code pattern rule
 - "validate X before Y (instructions)" → Add validation rule
