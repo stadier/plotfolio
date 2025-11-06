@@ -12,6 +12,8 @@ Welcome to the Plotfolio documentation directory. All project documentation file
 ### Developer Documentation
 
 - **[Documentation Guidelines](./DOCUMENTATION_GUIDELINES.md)** - Guidelines for creating and organizing documentation
+- **[AI Boundary Detection](./AI_BOUNDARY_DETECTION.md)** - AI-powered boundary refinement system documentation
+- **[Mapbox Integration](./MAPBOX_INTEGRATION.md)** - Mapbox map integration guide
 - Coming soon: API Reference
 - Coming soon: Component Architecture
 - Coming soon: Database Schema

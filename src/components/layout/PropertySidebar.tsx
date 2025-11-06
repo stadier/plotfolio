@@ -111,9 +111,21 @@ export default function PropertySidebar({
 							>
 								<div className="flex items-start justify-between">
 									<div className="flex-1 min-w-0">
-										<h3 className="font-medium text-gray-900 truncate">
-											{property.name}
-										</h3>
+										<div className="flex items-center gap-2">
+											<h3 className="font-medium text-gray-900 truncate">
+												{property.name}
+											</h3>
+											{property.surveyData &&
+												property.surveyData.coordinates &&
+												property.surveyData.coordinates.length >= 3 && (
+													<span
+														className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+														title="Boundary mapped"
+													>
+														📍
+													</span>
+												)}
+										</div>
 										<p className="text-sm text-gray-600 truncate mt-1">
 											{property.address}
 										</p>
@@ -128,6 +140,14 @@ export default function PropertySidebar({
 											<span className="text-xs text-gray-500">
 												{property.area} sqm
 											</span>
+											{property.surveyData && (
+												<span
+													className="text-xs text-purple-600 font-medium"
+													title="Boundary area"
+												>
+													{property.surveyData.area.toFixed(0)} m² boundary
+												</span>
+											)}
 										</div>
 										<div className="mt-2">
 											<div className="text-sm font-medium text-gray-900">

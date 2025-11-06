@@ -9,22 +9,12 @@ import { Property, SurveyData } from "@/types/property";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 
-// Dynamically import map components to avoid SSR issues
-const PropertyMap = dynamic(() => import("@/components/maps/PropertyMap"), {
+// Dynamically import unified map component to avoid SSR issues
+const PlotfolioMap = dynamic(() => import("@/components/maps/PlotfolioMap"), {
 	ssr: false,
 	loading: () => (
 		<div className="h-full bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
 			<div className="text-gray-600">Loading map...</div>
-		</div>
-	),
-});
-
-// Mapbox - requires webpack mode (npm run dev:webpack)
-const MapboxMap = dynamic(() => import("@/components/maps/MapboxMap"), {
-	ssr: false,
-	loading: () => (
-		<div className="h-full bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
-			<div className="text-gray-600">Loading Mapbox...</div>
 		</div>
 	),
 });
@@ -44,13 +34,12 @@ export default function Home() {
 	const [isDrawingBoundary, setIsDrawingBoundary] = useState(false);
 	const [isSelectingGrid, setIsSelectingGrid] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
-	const [mapType, setMapType] = useState<"leaflet" | "mapbox">("leaflet");
+	const [mapType, setMapType] = useState<"leaflet" | "mapbox" | "google">(
+		"google"
+	);
 	const [mapLayerType, setMapLayerType] = useState<
 		"standard" | "satellite" | "terrain" | "hybrid"
 	>("standard");
-	const [mapboxStyleType, setMapboxStyleType] = useState<
-		"streets" | "satellite" | "outdoors" | "satellite-streets"
-	>("streets");
 
 	// Default viewport for Abuja, Nigeria
 	const [viewport, setViewport] = useState({
@@ -145,12 +134,18 @@ export default function Home() {
 		surveyData: SurveyData
 	) => {
 		try {
+			console.log("🔄 Uploading survey data to database...");
+			console.log("Property ID:", propertyId);
+			console.log("Survey data:", surveyData);
+
 			// Find the property and update it with survey data
 			const updatedProperty = await PropertyAPI.updateProperty(propertyId, {
 				surveyData: surveyData,
 			});
 
 			if (updatedProperty) {
+				console.log("✅ Property updated successfully:", updatedProperty);
+
 				// Update local state
 				setProperties((prev) =>
 					prev.map((p) => (p.id === propertyId ? updatedProperty : p))
@@ -163,9 +158,13 @@ export default function Home() {
 				if (selectedProperty?.id === propertyId) {
 					setSelectedProperty(updatedProperty);
 				}
+
+				console.log("✅ Boundary saved to property!");
+			} else {
+				console.error("❌ Failed to update property - no response");
 			}
 		} catch (error) {
-			console.error("Error uploading survey:", error);
+			console.error("❌ Error uploading survey:", error);
 		}
 	};
 
@@ -204,6 +203,36 @@ export default function Home() {
 			setIsSelectingGrid(false);
 		} catch (error) {
 			console.error("Error saving property grid:", error);
+		}
+	};
+
+	const handleDeleteGrid = async () => {
+		if (!selectedProperty) return;
+
+		const confirmDelete = window.confirm(
+			"Are you sure you want to delete this property grid?"
+		);
+		if (!confirmDelete) return;
+
+		try {
+			// Remove grid by setting it to null
+			const updatedProperty = await PropertyAPI.updateProperty(
+				selectedProperty.id,
+				{ propertyGrid: null }
+			);
+
+			if (updatedProperty) {
+				// Update local state
+				setProperties((prev) =>
+					prev.map((p) => (p.id === selectedProperty.id ? updatedProperty : p))
+				);
+				setFilteredProperties((prev) =>
+					prev.map((p) => (p.id === selectedProperty.id ? updatedProperty : p))
+				);
+				setSelectedProperty(updatedProperty);
+			}
+		} catch (error) {
+			console.error("Error deleting property grid:", error);
 		}
 	};
 
@@ -279,27 +308,45 @@ export default function Home() {
 										>
 											🚀 Mapbox
 										</button>
+										<button
+											onClick={() => setMapType("google")}
+											className={`px-3 py-2 text-sm transition-colors border-l border-gray-300 ${
+												mapType === "google"
+													? "bg-purple-100 text-purple-700 font-medium"
+													: "bg-white text-gray-700 hover:bg-gray-50"
+											}`}
+										>
+											🌎 Google
+										</button>
 									</div>
 
 									{selectedProperty &&
 										!isDrawingBoundary &&
 										!isSelectingGrid &&
-										mapType === "leaflet" && (
-											<>
-												<button
-													onClick={() => setIsDrawingBoundary(true)}
-													className="px-3 py-2 text-sm rounded-lg border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-												>
-													✏️ Draw Boundary
-												</button>
-												<button
-													onClick={() => setIsSelectingGrid(true)}
-													className="px-3 py-2 text-sm rounded-lg border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
-												>
-													⊞ Select Grid
-												</button>
-											</>
+										(mapType === "leaflet" || mapType === "google") && (
+											<button
+												onClick={() => setIsDrawingBoundary(true)}
+												className="px-3 py-2 text-sm rounded-lg border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+											>
+												✏️ Draw Boundary
+											</button>
 										)}
+									{selectedProperty && !isSelectingGrid && (
+										<button
+											onClick={() => setIsSelectingGrid(true)}
+											className="px-3 py-2 text-sm rounded-lg border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+										>
+											⊞ Select Grid
+										</button>
+									)}
+									{selectedProperty?.propertyGrid && !isSelectingGrid && (
+										<button
+											onClick={handleDeleteGrid}
+											className="px-3 py-2 text-sm rounded-lg border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+										>
+											🗑️ Delete Grid
+										</button>
+									)}
 									<button
 										onClick={handleBoundaryToggle}
 										className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
@@ -324,7 +371,7 @@ export default function Home() {
 							</div>
 						</div>
 						<div className="relative" style={{ height: "calc(100% - 5rem)" }}>
-							{/* Map View Switcher - Only for Leaflet */}
+							{/* Map View Switcher */}
 							{isMounted && mapType === "leaflet" && (
 								<div
 									className="absolute top-4 right-4"
@@ -336,8 +383,22 @@ export default function Home() {
 									/>
 								</div>
 							)}
-							{isMounted && mapType === "leaflet" && (
-								<PropertyMap
+							{isMounted && mapType === "mapbox" && (
+								<div
+									className="absolute top-4 right-4"
+									style={{ zIndex: 1000 }}
+								>
+									<MapboxViewSwitcher
+										currentView={mapLayerType}
+										onViewChange={setMapLayerType}
+									/>
+								</div>
+							)}
+							{/* Unified Map Component */}
+							{isMounted && (
+								<PlotfolioMap
+									provider={mapType}
+									viewMode={mapLayerType}
 									properties={filteredProperties}
 									selectedProperty={selectedProperty}
 									onPropertyClick={handlePropertySelect}
@@ -349,43 +410,13 @@ export default function Home() {
 									onGridToggle={handleGridToggle}
 									isDrawingBoundary={isDrawingBoundary}
 									isSelectingGrid={isSelectingGrid}
-									onBoundaryComplete={(surveyData) => {
+									onBoundaryComplete={(surveyData: SurveyData) => {
 										handleSurveyUpload(selectedProperty!.id, surveyData);
 										setIsDrawingBoundary(false);
 									}}
 									onDrawingCancel={() => setIsDrawingBoundary(false)}
 									onGridComplete={handleGridSelection}
 									onGridCancel={() => setIsSelectingGrid(false)}
-									layerType={mapLayerType}
-								/>
-							)}
-							{/* Mapbox View Switcher */}
-							{isMounted && mapType === "mapbox" && (
-								<div
-									className="absolute top-4 right-4"
-									style={{ zIndex: 1000 }}
-								>
-									<MapboxViewSwitcher
-										currentView={mapboxStyleType}
-										onViewChange={setMapboxStyleType}
-									/>
-								</div>
-							)}{" "}
-							{isMounted && mapType === "mapbox" && (
-								<MapboxMap
-									properties={filteredProperties}
-									selectedProperty={selectedProperty}
-									onPropertyClick={handlePropertySelect}
-									viewport={viewport}
-									onViewportChange={handleViewportChange}
-									showCustomBoundaries={isBoundaryVisible}
-									isDrawingBoundary={isDrawingBoundary}
-									onBoundaryComplete={(surveyData) => {
-										handleSurveyUpload(selectedProperty!.id, surveyData);
-										setIsDrawingBoundary(false);
-									}}
-									onDrawingCancel={() => setIsDrawingBoundary(false)}
-									mapStyle={mapboxStyleType}
 								/>
 							)}
 						</div>

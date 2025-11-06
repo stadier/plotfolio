@@ -126,6 +126,48 @@ export default function ManualBoundaryDrawer({
 		setIsDrawing(false);
 	};
 
+	const [isRefining, setIsRefining] = useState(false);
+
+	const handleRefineWithAI = async () => {
+		if (points.length < 3) {
+			alert("Please add at least 3 points before refining with AI");
+			return;
+		}
+
+		setIsRefining(true);
+		try {
+			const mapBounds = map.getBounds();
+			const center = map.getCenter();
+
+			const response = await fetch("/api/boundaries/refine", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					points,
+					coordinates: { lat: center.lat, lng: center.lng },
+					bounds: {
+						north: mapBounds.getNorth(),
+						south: mapBounds.getSouth(),
+						east: mapBounds.getEast(),
+						west: mapBounds.getWest(),
+					},
+				}),
+			});
+
+			if (!response.ok) throw new Error("Failed to refine boundary");
+
+			const data = await response.json();
+			if (data.success && data.surveyData) {
+				onBoundaryComplete(data.surveyData);
+			}
+		} catch (error) {
+			console.error("Error refining boundary:", error);
+			alert("Failed to refine boundary with AI. Please try again.");
+		} finally {
+			setIsRefining(false);
+		}
+	};
+
 	const handleSave = () => {
 		if (points.length < 3) {
 			alert("Please add at least 3 points to create a boundary");
@@ -252,13 +294,33 @@ export default function ManualBoundaryDrawer({
 								Clear All
 							</button>
 
+							<div className="border-t border-gray-200 pt-2 space-y-2">
+								<button
+									onClick={handleRefineWithAI}
+									disabled={points.length < 3 || isRefining}
+									className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+								>
+									{isRefining ? (
+										<>
+											<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+											Refining with AI...
+										</>
+									) : (
+										<>✨ AI Refine Boundary</>
+									)}
+								</button>
+								<p className="text-xs text-purple-600 text-center">
+									AI will detect actual property edges from satellite imagery
+								</p>
+							</div>
+
 							<button
 								onClick={handleSave}
 								className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
 								disabled={points.length < 3}
 							>
 								<Save className="w-4 h-4" />
-								Save Boundary ({points.length} points)
+								Save As-Is ({points.length} points)
 							</button>
 						</>
 					)}
@@ -266,12 +328,20 @@ export default function ManualBoundaryDrawer({
 
 				{/* Instructions */}
 				<div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-					<p className="font-medium mb-1">Tips:</p>
+					<p className="font-medium mb-1">How it works:</p>
 					<ul className="list-disc list-inside space-y-1">
-						<li>Add at least 3 points to create a boundary</li>
+						<li>Click to add rough boundary points (3+)</li>
+						<li>
+							Use{" "}
+							<span className="font-semibold text-purple-600">AI Refine</span>{" "}
+							to detect actual edges
+						</li>
+						<li>
+							Or{" "}
+							<span className="font-semibold text-green-600">Save As-Is</span>{" "}
+							to use manual points
+						</li>
 						<li>Drag markers to adjust positions</li>
-						<li>Points will be connected automatically</li>
-						<li>Click "Save" when finished</li>
 					</ul>
 				</div>
 			</div>

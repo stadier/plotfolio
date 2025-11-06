@@ -1,35 +1,36 @@
 "use client";
 
-import { MapboxStyleType } from "@/components/maps/MapboxMap";
 import { Globe, Map as MapIcon, Mountain, Satellite } from "lucide-react";
 
+export type MapViewMode = "standard" | "satellite" | "terrain" | "hybrid";
+
 interface MapboxViewSwitcherProps {
-	currentView: MapboxStyleType;
-	onViewChange: (view: MapboxStyleType) => void;
+	currentView: MapViewMode;
+	onViewChange: (view: MapViewMode) => void;
 	className?: string;
 }
 
 const MAPBOX_VIEWS = [
 	{
-		type: "streets" as MapboxStyleType,
+		type: "standard" as MapViewMode,
 		label: "Streets",
 		icon: MapIcon,
 		description: "Standard street map",
 	},
 	{
-		type: "satellite" as MapboxStyleType,
+		type: "satellite" as MapViewMode,
 		label: "Satellite",
 		icon: Satellite,
 		description: "Satellite imagery",
 	},
 	{
-		type: "outdoors" as MapboxStyleType,
-		label: "Outdoors",
+		type: "terrain" as MapViewMode,
+		label: "Terrain",
 		icon: Mountain,
 		description: "Outdoor/terrain map",
 	},
 	{
-		type: "satellite-streets" as MapboxStyleType,
+		type: "hybrid" as MapViewMode,
 		label: "Hybrid",
 		icon: Globe,
 		description: "Satellite with streets",
