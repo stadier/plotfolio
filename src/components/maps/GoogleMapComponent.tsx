@@ -15,6 +15,7 @@ import {
 	useMap,
 } from "@vis.gl/react-google-maps";
 import { useCallback, useEffect, useRef, useState } from "react";
+import AdministrativeBoundaries from "./AdministrativeBoundaries";
 import GoogleMapsBoundaryDrawer from "./GoogleMapsBoundaryDrawer";
 import GoogleMapsGridSelector from "./GoogleMapsGridSelector";
 
@@ -283,7 +284,10 @@ interface GoogleMapComponentProps {
 	showCustomBoundaries?: boolean;
 	showGrid?: boolean;
 	showPropertyGrids?: boolean;
+	showStateBorders?: boolean;
 	onGridToggle?: () => void;
+	onRegionHover?: (regionName: string | null) => void;
+	onRegionClick?: (regionName: string) => void;
 	className?: string;
 	isDrawingBoundary?: boolean;
 	isSelectingGrid?: boolean;
@@ -319,6 +323,9 @@ export default function GoogleMapComponent({
 	showCustomBoundaries = false,
 	showGrid = false,
 	showPropertyGrids = false,
+	showStateBorders = true,
+	onRegionHover,
+	onRegionClick,
 	isDrawingBoundary = false,
 	isSelectingGrid = false,
 	onBoundaryComplete,
@@ -380,7 +387,7 @@ export default function GoogleMapComponent({
 					defaultCenter={center}
 					defaultZoom={viewport.zoom || 13}
 					gestureHandling="greedy"
-					disableDefaultUI={false}
+					disableDefaultUI={true}
 					onCameraChanged={handleCameraChange}
 					style={{ width: "100%", height: "100%" }}
 					clickableIcons={true}
@@ -390,6 +397,11 @@ export default function GoogleMapComponent({
 				>
 					<MapTypeController mapTypeId={currentMapTypeId} />
 					<ViewportController viewport={viewport} />
+					<AdministrativeBoundaries
+						showBorders={showStateBorders}
+						onRegionHover={onRegionHover}
+						onRegionClick={onRegionClick}
+					/>
 					<GridOverlay viewport={viewport} showGrid={showGrid} />
 					<PropertyGridOverlay
 						properties={properties}
@@ -439,18 +451,36 @@ export default function GoogleMapComponent({
 							}
 							onCloseClick={() => setSelectedMarker(null)}
 						>
-							<div className="p-2">
-								<h3 className="font-bold text-sm">
+							<div className="bg-gray-800 text-white p-4 rounded-lg shadow-lg min-w-[200px] border-0 relative">
+								{/* Custom close button */}
+								<button
+									onClick={() => setSelectedMarker(null)}
+									className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md transition-colors duration-200"
+									title="Close tooltip"
+								>
+									×
+								</button>
+								<h3 className="font-bold text-sm text-white mb-2 pr-4">
 									{properties.find((p) => p.id === selectedMarker)?.name}
 								</h3>
-								<p className="text-xs text-gray-600">
-									{properties.find((p) => p.id === selectedMarker)?.address}
+								<p className="text-xs text-gray-300 mb-1">
+									{properties
+										.find((p) => p.id === selectedMarker)
+										?.coordinates.lat?.toFixed(6)}
+									°N{" "}
+									{properties
+										.find((p) => p.id === selectedMarker)
+										?.coordinates.lng?.toFixed(6)}
+									°E
 								</p>
-								<p className="text-xs text-gray-500 mt-1">
+								<p className="text-xs text-gray-300">
 									{properties
 										.find((p) => p.id === selectedMarker)
 										?.area.toLocaleString()}{" "}
 									m²
+								</p>
+								<p className="text-xs text-gray-400 mt-2 italic">
+									Click × or outside to dismiss
 								</p>
 							</div>
 						</InfoWindow>

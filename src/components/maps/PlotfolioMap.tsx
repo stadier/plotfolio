@@ -43,7 +43,10 @@ interface PlotfolioMapProps {
 	showCustomBoundaries?: boolean;
 	showGrid?: boolean;
 	showPropertyGrids?: boolean;
+	showStateBorders?: boolean;
 	onGridToggle?: () => void;
+	onRegionHover?: (regionName: string | null) => void;
+	onRegionClick?: (regionName: string) => void;
 
 	// Drawing/editing modes
 	isDrawingBoundary?: boolean;
@@ -69,7 +72,10 @@ export default function PlotfolioMap({
 	showCustomBoundaries = false,
 	showGrid = false,
 	showPropertyGrids = false,
+	showStateBorders = true,
 	onGridToggle,
+	onRegionHover,
+	onRegionClick,
 	isDrawingBoundary = false,
 	isSelectingGrid = false,
 	onBoundaryComplete,
@@ -88,7 +94,10 @@ export default function PlotfolioMap({
 		showCustomBoundaries,
 		showGrid,
 		showPropertyGrids,
+		showStateBorders,
 		onGridToggle,
+		onRegionHover,
+		onRegionClick,
 		isDrawingBoundary,
 		isSelectingGrid,
 		onBoundaryComplete,
