@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
 	reactCompiler: true,
 	transpilePackages: ["react-map-gl", "mapbox-gl"],
 
+	// Turbopack config (empty to silence webpack config warning in Next.js 16)
+	turbopack: {},
+
 	// Webpack config for Mapbox compatibility
 	// Only applies when running with: npm run dev:webpack or npm run dev:mapbox
 	webpack: (config, { isServer }) => {
