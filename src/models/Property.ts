@@ -122,10 +122,13 @@ const PropertySchema = new Schema<Property & Document>(
 		owner: { type: PropertyOwnerSchema, required: true },
 		surveyData: { type: SurveyDataSchema },
 		propertyGrid: { type: PropertyGridSchema },
+		boughtFrom: { type: String },
+		witnesses: [{ type: String }],
+		signatures: [{ type: String }],
 	},
 	{
 		timestamps: true,
-	}
+	},
 );
 
 // Survey Document Schema
@@ -141,7 +144,7 @@ const SurveyDocumentSchema = new Schema(
 	},
 	{
 		timestamps: true,
-	}
+	},
 );
 
 // Create models
@@ -179,7 +182,7 @@ export class PropertyService {
 
 	static async updateProperty(
 		id: string,
-		updates: Partial<Property>
+		updates: Partial<Property>,
 	): Promise<Property | null> {
 		const updated = await PropertyModel.findOneAndUpdate({ id }, updates, {
 			new: true,
@@ -198,7 +201,7 @@ export class PropertyService {
 
 	static async updateSurveyData(
 		propertyId: string,
-		surveyData: SurveyData
+		surveyData: SurveyData,
 	): Promise<Property | null> {
 		return this.updateProperty(propertyId, {
 			surveyData,

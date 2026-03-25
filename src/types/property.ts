@@ -32,6 +32,10 @@ export interface Property {
 	owner: PropertyOwner;
 	surveyData?: SurveyData; // Custom plot boundaries from survey documents
 	propertyGrid?: PropertyGrid; // Grid cells defining property boundaries
+	// Transaction details
+	boughtFrom?: string; // Seller / previous owner name
+	witnesses?: string[]; // Names of witnesses on the transaction
+	signatures?: string[]; // Names of signatories on the transaction
 }
 
 export interface PropertyOwner {
@@ -77,6 +81,8 @@ export enum DocumentType {
 	TAX_DOCUMENT = "tax_document",
 	LEASE = "lease",
 	CONTRACT = "contract",
+	CONTRACT_OF_SALE = "contract_of_sale",
+	CERTIFICATE_OF_OCCUPANCY = "certificate_of_occupancy",
 	PERMIT = "permit",
 	OTHER = "other",
 }

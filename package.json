@@ -3,11 +3,11 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "next dev -p 4000",
-		"dev:webpack": "next dev --webpack -p 4000",
-		"dev:mapbox": "next dev --webpack -p 4000",
+		"dev": "next dev -p 4600",
+		"dev:webpack": "next dev --webpack -p 4600",
+		"dev:mapbox": "next dev --webpack -p 4600",
 		"build": "next build",
-		"start": "next start -p 4000",
+		"start": "next start -p 4600",
 		"lint": "eslint"
 	},
 	"dependencies": {

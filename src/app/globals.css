@@ -1,29 +1,53 @@
 @import "tailwindcss";
 @import "mapbox-gl/dist/mapbox-gl.css";
 
-:root {
-	--background: #ffffff;
-	--foreground: #171717;
-}
-
 @theme inline {
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-	--font-sans: var(--font-geist-sans);
-	--font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-	:root {
-		--background: #0a0a0a;
-		--foreground: #ededed;
-	}
+	/* Design system colors */
+	--color-primary: #000e24;
+	--color-primary-container: #00234b;
+	--color-on-primary: #ffffff;
+	--color-secondary: #3b6934;
+	--color-secondary-container: #b9eeab;
+	--color-on-secondary-container: #3f6d38;
+	--color-on-secondary: #ffffff;
+	--color-background: #f8f9fa;
+	--color-surface: #f8f9fa;
+	--color-surface-bright: #f8f9fa;
+	--color-surface-dim: #d9dadb;
+	--color-surface-container-lowest: #ffffff;
+	--color-surface-container-low: #f3f4f5;
+	--color-surface-container: #edeeef;
+	--color-surface-container-high: #e7e8e9;
+	--color-surface-container-highest: #e1e3e4;
+	--color-on-surface: #191c1d;
+	--color-on-surface-variant: #43474e;
+	--color-outline: #74777f;
+	--color-outline-variant: #c4c6d0;
+	--color-on-background: #191c1d;
+	--color-error: #ba1a1a;
+	--color-inverse-surface: #2e3132;
+	--color-inverse-on-surface: #f0f1f2;
+	/* Fonts */
+	--font-headline: var(--font-manrope), "Manrope", sans-serif;
+	--font-body: var(--font-inter), "Inter", sans-serif;
+	--font-label: var(--font-inter), "Inter", sans-serif;
+	--font-sans: var(--font-inter), "Inter", sans-serif;
 }
 
 body {
-	background: var(--background);
-	color: var(--foreground);
-	font-family: Arial, Helvetica, sans-serif;
+	background: #f8f9fa;
+	color: #191c1d;
+	font-family: var(--font-inter), "Inter", sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+
+.glass-search {
+	background: rgba(255, 255, 255, 0.8);
+	backdrop-filter: blur(12px);
+}
+
+.signature-gradient {
+	background: linear-gradient(135deg, #000e24 0%, #00234b 100%);
 }
 
 /* Custom styles for Google Maps InfoWindow to match the dark overlay style */

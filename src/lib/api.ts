@@ -24,8 +24,7 @@ export class PropertyAPI {
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
-			const data = await response.json();
-			return data.property || null;
+			return await response.json();
 		} catch (error) {
 			console.error("Error fetching property:", error);
 			return null;
@@ -33,7 +32,7 @@ export class PropertyAPI {
 	}
 
 	static async createProperty(
-		property: Omit<Property, "id">
+		property: Omit<Property, "id">,
 	): Promise<Property | null> {
 		try {
 			const response = await fetch(`${API_BASE_URL}/properties`, {
@@ -48,8 +47,7 @@ export class PropertyAPI {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
-			const data = await response.json();
-			return data.property || null;
+			return await response.json();
 		} catch (error) {
 			console.error("Error creating property:", error);
 			return null;
@@ -58,7 +56,7 @@ export class PropertyAPI {
 
 	static async updateProperty(
 		id: string,
-		updates: Partial<Property>
+		updates: Partial<Property>,
 	): Promise<Property | null> {
 		try {
 			const response = await fetch(`${API_BASE_URL}/properties/${id}`, {
@@ -73,8 +71,7 @@ export class PropertyAPI {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
-			const data = await response.json();
-			return data.property || null;
+			return await response.json();
 		} catch (error) {
 			console.error("Error updating property:", error);
 			return null;

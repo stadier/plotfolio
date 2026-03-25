@@ -1,0 +1,526 @@
+<!doctype html>
+
+<html class="light" lang="en"
+	><head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+			rel="stylesheet"
+		/>
+		<script id="tailwind-config">
+			tailwind.config = {
+				darkMode: "class",
+				theme: {
+					extend: {
+						colors: {
+							tertiary: "#020f16",
+							"on-error-container": "#93000a",
+							"surface-container-low": "#f3f4f5",
+							"surface-container-highest": "#e1e3e4",
+							secondary: "#3b6934",
+							background: "#f8f9fa",
+							"surface-bright": "#f8f9fa",
+							"on-surface": "#191c1d",
+							"inverse-surface": "#2e3132",
+							"tertiary-fixed": "#d5e5ee",
+							"surface-tint": "#455f8a",
+							"surface-variant": "#e1e3e4",
+							"error-container": "#ffdad6",
+							error: "#ba1a1a",
+							"on-secondary-container": "#3f6d38",
+							"on-background": "#191c1d",
+							"on-tertiary": "#ffffff",
+							"surface-container-high": "#e7e8e9",
+							"inverse-primary": "#adc7f8",
+							"secondary-fixed": "#bcf0ae",
+							"primary-container": "#00234b",
+							"primary-fixed": "#d6e3ff",
+							"secondary-fixed-dim": "#a1d494",
+							"on-primary-container": "#718bb9",
+							"on-error": "#ffffff",
+							"on-secondary-fixed": "#002201",
+							"on-primary-fixed-variant": "#2c4771",
+							"surface-container-lowest": "#ffffff",
+							surface: "#f8f9fa",
+							"outline-variant": "#c4c6d0",
+							"on-tertiary-fixed-variant": "#3a4950",
+							"surface-dim": "#d9dadb",
+							"surface-container": "#edeeef",
+							"tertiary-fixed-dim": "#b9c9d2",
+							"on-primary-fixed": "#001b3d",
+							outline: "#74777f",
+							"on-surface-variant": "#43474e",
+							"on-secondary-fixed-variant": "#23501e",
+							"on-primary": "#ffffff",
+							primary: "#000e24",
+							"inverse-on-surface": "#f0f1f2",
+							"on-tertiary-fixed": "#0f1d24",
+							"primary-fixed-dim": "#adc7f8",
+							"on-secondary": "#ffffff",
+							"on-tertiary-container": "#7d8d95",
+							"tertiary-container": "#17252c",
+							"secondary-container": "#b9eeab",
+						},
+						fontFamily: {
+							headline: ["Manrope"],
+							body: ["Inter"],
+							label: ["Inter"],
+						},
+						borderRadius: {
+							DEFAULT: "0.125rem",
+							lg: "0.25rem",
+							xl: "0.5rem",
+							full: "0.75rem",
+						},
+					},
+				},
+			};
+		</script>
+		<style>
+			.material-symbols-outlined {
+				font-variation-settings:
+					"FILL" 0,
+					"wght" 400,
+					"GRAD" 0,
+					"opsz" 24;
+			}
+			.glass-search {
+				background: rgba(255, 255, 255, 0.8);
+				backdrop-filter: blur(12px);
+			}
+			.signature-gradient {
+				background: linear-gradient(135deg, #000e24 0%, #00234b 100%);
+			}
+		</style>
+	</head>
+	<body class="bg-background font-body text-on-background antialiased">
+		<!-- TopNavBar -->
+		<header
+			class="fixed top-0 w-full z-50 bg-white dark:bg-[#000e24] shadow-sm dark:shadow-none"
+		>
+			<div
+				class="flex items-center justify-between px-8 py-4 w-full max-w-none"
+			>
+				<div
+					class="text-2xl font-bold tracking-tighter text-[#000e24] dark:text-white font-headline"
+					>Plotfolio</div
+				>
+				<nav class="hidden md:flex items-center gap-8">
+					<a
+						class="text-slate-500 dark:text-slate-400 hover:text-[#000e24] dark:hover:text-white transition-colors font-headline font-semibold text-sm tracking-tight"
+						href="#"
+						>Dashboard</a
+					>
+					<a
+						class="text-[#000e24] dark:text-white border-b-2 border-[#000e24] dark:border-white pb-1 font-headline font-semibold text-sm tracking-tight"
+						href="#"
+						>Marketplace</a
+					>
+					<a
+						class="text-slate-500 dark:text-slate-400 hover:text-[#000e24] dark:hover:text-white transition-colors font-headline font-semibold text-sm tracking-tight"
+						href="#"
+						>Portfolio</a
+					>
+					<a
+						class="text-slate-500 dark:text-slate-400 hover:text-[#000e24] dark:hover:text-white transition-colors font-headline font-semibold text-sm tracking-tight"
+						href="#"
+						>Profile</a
+					>
+				</nav>
+				<div class="flex items-center gap-4">
+					<button
+						class="p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all rounded-full"
+					>
+						<span class="material-symbols-outlined text-on-surface"
+							>notifications</span
+						>
+					</button>
+					<button
+						class="p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all rounded-full"
+					>
+						<span class="material-symbols-outlined text-on-surface"
+							>settings</span
+						>
+					</button>
+					<img
+						alt="User profile avatar"
+						class="w-10 h-10 rounded-full object-cover"
+						data-alt="Close-up portrait of a professional man in a dark suit with a clean neutral background and soft studio lighting"
+						src="https://lh3.googleusercontent.com/aida-public/AB6AXuB47Z54fZ6LP_WQjSyQt8dbKOn1RKlsQY3NwmljMixGxSIRRh4wgmpQkTKtJLp85XbZCW5FRdCg8iKrEmN3NGiKdIZmKXjki82-psV1Gp75_PcEmCBzNmGbvdFsN-I_UQJ8M0JzfoOPs07ZcL5ZnCZKz7txBSaqS-NE4-W1jNb24z5NUnNnHblMELZgefdWxT2T434RFNUOmzsPxs8gX7AdehhKoET3LfrFsvi6ci5d6YujpOyOOX3ejSGmQ_I60RlmcqTF3m6sVrrN"
+					/>
+				</div>
+			</div>
+			<div class="bg-[#f5f5f5] dark:bg-[#1a2638] h-[1px] w-full"></div>
+		</header>
+		<div class="flex pt-20 h-screen overflow-hidden">
+			<!-- SideNavBar -->
+			<aside
+				class="hidden md:flex flex-col h-full w-64 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#000e24] pt-8 pb-8 px-4"
+			>
+				<div class="mb-8 px-4">
+					<h2
+						class="font-headline text-xs font-bold uppercase tracking-widest text-[#3b6934] dark:text-[#4ade80] mb-1"
+						>Property Categories</h2
+					>
+					<p class="text-[10px] text-slate-500 uppercase tracking-tighter"
+						>Filter by asset class</p
+					>
+				</div>
+				<nav class="flex-1 flex flex-col gap-2">
+					<a
+						class="bg-white dark:bg-[#1a2638] text-[#000e24] dark:text-white font-bold rounded-lg shadow-sm px-4 py-3 flex items-center gap-3 transition-all"
+						href="#"
+					>
+						<span
+							class="material-symbols-outlined"
+							style="font-variation-settings: &quot;FILL&quot; 1"
+							>home_work</span
+						>
+						<span class="font-label text-xs uppercase tracking-widest"
+							>Residential</span
+						>
+					</a>
+					<a
+						class="text-slate-600 dark:text-slate-400 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+						href="#"
+					>
+						<span class="material-symbols-outlined">business</span>
+						<span class="font-label text-xs uppercase tracking-widest"
+							>Commercial</span
+						>
+					</a>
+					<a
+						class="text-slate-600 dark:text-slate-400 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+						href="#"
+					>
+						<span class="material-symbols-outlined">factory</span>
+						<span class="font-label text-xs uppercase tracking-widest"
+							>Industrial</span
+						>
+					</a>
+					<a
+						class="text-slate-600 dark:text-slate-400 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+						href="#"
+					>
+						<span class="material-symbols-outlined">agriculture</span>
+						<span class="font-label text-xs uppercase tracking-widest"
+							>Agricultural</span
+						>
+					</a>
+					<a
+						class="text-slate-600 dark:text-slate-400 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+						href="#"
+					>
+						<span class="material-symbols-outlined">map</span>
+						<span class="font-label text-xs uppercase tracking-widest"
+							>Strategic Land</span
+						>
+					</a>
+				</nav>
+				<div class="mt-auto pt-6 flex flex-col gap-4">
+					<button
+						class="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest py-3 rounded-md shadow-lg active:scale-95 transition-transform"
+					>
+						Create Alert
+					</button>
+					<div
+						class="flex flex-col gap-2 border-t border-slate-200 dark:border-slate-800 pt-4"
+					>
+						<a
+							class="text-slate-500 flex items-center gap-3 px-4 py-2 text-xs hover:text-primary transition-colors"
+							href="#"
+						>
+							<span class="material-symbols-outlined text-sm">help</span>
+							Help Center
+						</a>
+						<a
+							class="text-slate-500 flex items-center gap-3 px-4 py-2 text-xs hover:text-primary transition-colors"
+							href="#"
+						>
+							<span class="material-symbols-outlined text-sm">gavel</span>
+							Legal
+						</a>
+					</div>
+				</div>
+			</aside>
+			<!-- Main Content -->
+			<main class="flex-1 overflow-y-auto bg-surface-container-low px-8 py-8">
+				<!-- Search & Filter Shell -->
+				<div
+					class="glass-search p-6 rounded-xl shadow-sm mb-12 flex flex-wrap items-center gap-6"
+				>
+					<div class="flex-1 min-w-[300px] relative">
+						<span
+							class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline"
+							>search</span
+						>
+						<input
+							class="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-md py-3 pl-12 pr-4 focus:ring-primary focus:ring-2 transition-all font-body text-sm"
+							placeholder="Search by location, plot ID, or owner..."
+							type="text"
+						/>
+					</div>
+					<div class="flex items-center gap-4">
+						<div class="flex flex-col">
+							<label
+								class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1"
+								>Price Range</label
+							>
+							<select
+								class="bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-md py-2 px-4 text-xs font-semibold focus:ring-primary"
+							>
+								<option>$50k - $250k</option>
+								<option>$250k - $1M</option>
+								<option>$1M+</option>
+							</select>
+						</div>
+						<div class="flex flex-col">
+							<label
+								class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1"
+								>Lot Size</label
+							>
+							<select
+								class="bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-md py-2 px-4 text-xs font-semibold focus:ring-primary"
+							>
+								<option>1 - 5 Acres</option>
+								<option>5 - 20 Acres</option>
+								<option>20+ Acres</option>
+							</select>
+						</div>
+						<button
+							class="mt-5 flex items-center gap-2 px-4 py-2 text-xs font-bold text-primary hover:bg-slate-100 rounded-md transition-all"
+						>
+							<span class="material-symbols-outlined text-sm">tune</span>
+							More Filters
+						</button>
+					</div>
+				</div>
+				<!-- Page Header -->
+				<div class="mb-12 flex justify-between items-end">
+					<div>
+						<h1
+							class="font-headline text-4xl font-extrabold tracking-tighter text-primary mb-2"
+							>Available Land Opportunities</h1
+						>
+						<p class="text-on-surface-variant font-body"
+							>Browse 142 premium plots curated for strategic growth and
+							residential development.</p
+						>
+					</div>
+					<div class="flex gap-2">
+						<button class="p-2 bg-surface-container-lowest shadow-sm rounded-md"
+							><span class="material-symbols-outlined">grid_view</span></button
+						>
+						<button class="p-2 text-slate-400"
+							><span class="material-symbols-outlined">list</span></button
+						>
+					</div>
+				</div>
+				<!-- Property Grid (Asymmetric Intent) -->
+				<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+					<!-- Card 1: Oak Ridge Valley (Large Feature) -->
+					<div
+						class="lg:col-span-8 group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-transparent hover:border-outline-variant/20"
+					>
+						<div class="relative h-[450px]">
+							<img
+								alt="Oak Ridge Valley"
+								class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+								data-alt="Wide panoramic shot of rolling green hills and scattered oak trees at dawn with golden sunlight filtering through the mist"
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuBybKZEBH0vRqnP20oTYIDJ-Quo8zncNpGv9TcgUt_qTRDQyc5dh3UYc7BtqsH1XHDU5j1ebEMm3rDVpnU8kxFDy4DSLVxXNtBy0_pADKtuKlTNL3owlkA2rUaCNkUMEZMUW4ZNW_lXLnN4oGNGFXA75lAU76ok_lbI7jIHQqaC1ShCpCcH4u5sjl1sWnoM6rl_Os55x6zkDLEcVfackYVbb46lOYGw3MtXqdK0tE36sz3ULaFM2l696FBXPAsOseL0V_cI-NTe-taa"
+							/>
+							<div class="absolute top-6 left-6 flex gap-2">
+								<span
+									class="bg-secondary text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+									>Available</span
+								>
+								<span
+									class="bg-white/80 backdrop-blur-md text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+									>12.5 Acres</span
+								>
+							</div>
+						</div>
+						<div class="p-8 flex justify-between items-center">
+							<div>
+								<h3
+									class="font-headline text-2xl font-bold tracking-tight text-primary mb-1"
+									>Oak Ridge Valley</h3
+								>
+								<p
+									class="text-on-surface-variant text-sm flex items-center gap-1"
+								>
+									<span class="material-symbols-outlined text-sm"
+										>location_on</span
+									>
+									Napa Valley, CA
+								</p>
+							</div>
+							<div class="text-right">
+								<p
+									class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest"
+									>Starting Bid</p
+								>
+								<p class="font-headline text-3xl font-extrabold text-primary"
+									>$1,240,000</p
+								>
+								<button
+									class="mt-4 signature-gradient text-white px-8 py-3 rounded-md font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform"
+									>Bid Now</button
+								>
+							</div>
+						</div>
+					</div>
+					<!-- Card 2: Highland Plateau -->
+					<div
+						class="lg:col-span-4 group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+					>
+						<div class="relative h-[300px]">
+							<img
+								alt="Highland Plateau"
+								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+								data-alt="Rugged mountain plateau landscape with sparse vegetation and dramatic grey rock formations under a cloudy sky"
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWvOjhfy7lGUP1miBbtTdq5OmOQxoM6c_6ErZGO3KF1wwDHIgBPniuOfwYcDwYJUJbmvpqL0iBeSIxbCvHSQnB3HmptkoC16EU8zRDJjTvceuG0-SRWY4GB23NzMRLJ_JC2-HEwOkQqiABT8fb6V4RgZB7sj8JXcGYCOH-XqPiwq010uoVt2G-n4FWk308OH2gXIWgT-VN8Rki9Pp0_x0XAHUTx8he-WEWkZO_Rv18sdk8HjnTxF2lyj14UxlBC9nOXGFueln5c6QC"
+							/>
+							<div class="absolute top-4 left-4">
+								<span
+									class="bg-secondary text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+									>High Growth</span
+								>
+							</div>
+						</div>
+						<div class="p-6">
+							<div class="flex justify-between items-start mb-6">
+								<div>
+									<h3
+										class="font-headline text-lg font-bold tracking-tight text-primary"
+										>Highland Plateau</h3
+									>
+									<p class="text-on-surface-variant text-xs">Asheville, NC</p>
+								</div>
+								<span class="text-primary font-bold text-sm">4.2 Acres</span>
+							</div>
+							<div
+								class="flex items-center justify-between pt-4 border-t border-slate-100"
+							>
+								<p class="font-headline text-xl font-extrabold text-primary"
+									>$450,000</p
+								>
+								<button
+									class="bg-secondary-container text-on-secondary-container px-4 py-2 rounded-md font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-transform"
+									>Bid Now</button
+								>
+							</div>
+						</div>
+					</div>
+					<!-- Card 3: Emerald Woods (Slightly Offset/Smaller) -->
+					<div
+						class="lg:col-span-4 lg:col-start-2 group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+					>
+						<div class="relative h-[300px]">
+							<img
+								alt="Emerald Woods"
+								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+								data-alt="Dense lush forest interior with sunlight beams piercing through high canopy onto a green fern-covered floor"
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3ySgpwC3r3hEXsxmq_7Wn882H4gj8y_ZO6gbrhbS_605dYV6jfDB3Im6KjRqMU2UpxIuJXe3KUpyqS8g5mhAZnIi48yiccCcY4EoprLEZZICd3hXSx0odU2NDyFJlGypUv5WZHf8GsXrb-1H6AuANfNhhYUdZbyq4LOEqLKaJ8UhN4LZok-sRdUjHwUoVLDrMzUj6lYTzgJBvyKeY7vN9NEVzHFBvz0nh3CWEF9PfCIV6ppNM8DXQvS31bprg3BjnsEZ1LW3R1fTp"
+							/>
+						</div>
+						<div class="p-6">
+							<div class="flex justify-between items-start mb-6">
+								<div>
+									<h3
+										class="font-headline text-lg font-bold tracking-tight text-primary"
+										>Emerald Woods</h3
+									>
+									<p class="text-on-surface-variant text-xs"
+										>Olympic Peninsula, WA</p
+									>
+								</div>
+								<span class="text-primary font-bold text-sm">8.1 Acres</span>
+							</div>
+							<div
+								class="flex items-center justify-between pt-4 border-t border-slate-100"
+							>
+								<p class="font-headline text-xl font-extrabold text-primary"
+									>$725,000</p
+								>
+								<button
+									class="bg-secondary-container text-on-secondary-container px-4 py-2 rounded-md font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-transform"
+									>Bid Now</button
+								>
+							</div>
+						</div>
+					</div>
+					<!-- Card 4: Riverfront Basin -->
+					<div
+						class="lg:col-span-6 group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+					>
+						<div class="relative h-[300px]">
+							<img
+								alt="Riverfront Basin"
+								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+								data-alt="Peaceful wide river winding through a valley of grassy banks and wildflowers under a clear blue sky"
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWUFG5nXiMSVZBycpV3FroL2A650RMSUOKZxLUvucwpmzjpw85Bmy1UnwBS80KQ_voDDZD5_7jdPbIBbaZCfiEXTbhoNbhLVj7U9w1g5wDQda31FIlElw1rFfJast31RT3Lk5PL3zokCFmZmVPqFNp5jf2qU6Qxg1YKTLcr4ePvdbNmUzLrE1S-xT5556jl5uoVrromFWH-FplaQWGctvDszDf0UBWDNfBF07EOE8Buq-RE9m_DmO53Qhvvigm6X7Irj6quZFMejwx"
+							/>
+						</div>
+						<div class="p-6">
+							<div class="flex justify-between items-start mb-6">
+								<div>
+									<h3
+										class="font-headline text-lg font-bold tracking-tight text-primary"
+										>Riverfront Basin</h3
+									>
+									<p class="text-on-surface-variant text-xs"
+										>Austin, TX Outskirts</p
+									>
+								</div>
+								<span class="text-primary font-bold text-sm">15.0 Acres</span>
+							</div>
+							<div
+								class="flex items-center justify-between pt-4 border-t border-slate-100"
+							>
+								<p class="font-headline text-xl font-extrabold text-primary"
+									>$1,890,000</p
+								>
+								<button
+									class="bg-secondary-container text-on-secondary-container px-4 py-2 rounded-md font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-transform"
+									>Bid Now</button
+								>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- More Content Indicator -->
+				<div class="mt-16 flex flex-col items-center gap-4">
+					<button
+						class="bg-surface-container-lowest border border-outline-variant/30 text-primary px-12 py-4 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-white hover:shadow-md transition-all"
+					>
+						Load More Opportunities
+					</button>
+					<p
+						class="text-[10px] text-slate-400 font-bold uppercase tracking-widest"
+						>Displaying 4 of 142 items</p
+					>
+				</div>
+			</main>
+		</div>
+		<!-- Floating Map Action Button (Only relevant for discovery) -->
+		<button
+			class="fixed bottom-8 right-8 signature-gradient text-white flex items-center gap-3 px-6 py-4 rounded-full shadow-2xl z-40 hover:scale-105 transition-transform"
+		>
+			<span class="material-symbols-outlined">map</span>
+			<span class="font-headline font-bold text-xs uppercase tracking-widest"
+				>Interactive Map</span
+			>
+		</button>
+	</body></html
+>
