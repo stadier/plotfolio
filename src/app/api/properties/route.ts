@@ -2,16 +2,21 @@ import connectDB from "@/lib/mongoose";
 import { PropertyService } from "@/models/Property";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
 	try {
 		await connectDB();
+		const { searchParams } = new URL(request.url);
+		const status = searchParams.get("status");
 		const properties = await PropertyService.getAllProperties();
-		return NextResponse.json(properties);
+		const filtered = status
+			? properties.filter((p) => p.status === status)
+			: properties;
+		return NextResponse.json(filtered);
 	} catch (error) {
 		console.error("Error fetching properties:", error);
 		return NextResponse.json(
 			{ error: "Failed to fetch properties" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }
@@ -26,7 +31,7 @@ export async function POST(request: NextRequest) {
 		console.error("Error creating property:", error);
 		return NextResponse.json(
 			{ error: "Failed to create property" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }

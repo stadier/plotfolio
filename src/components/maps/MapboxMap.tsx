@@ -106,7 +106,7 @@ export default function MapboxMap({
 				}
 			}
 		},
-		[onViewportChange]
+		[onViewportChange],
 	);
 
 	const createMarkerColor = (property: Property, isSelected: boolean) => {
@@ -162,32 +162,55 @@ export default function MapboxMap({
 							setPopupInfo(property);
 						}}
 					>
-						<div
-							className="cursor-pointer transition-transform hover:scale-110"
-							style={{
-								width: selectedProperty?.id === property.id ? "30px" : "24px",
-								height: selectedProperty?.id === property.id ? "30px" : "24px",
-								backgroundColor: createMarkerColor(
-									property,
-									selectedProperty?.id === property.id
-								),
-								border: `${
-									selectedProperty?.id === property.id ? "3px" : "2px"
-								} solid ${
-									selectedProperty?.id === property.id ? "#3B82F6" : "white"
-								}`,
-								borderRadius: "4px",
-								boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								fontSize: "10px",
-								fontWeight: "bold",
-								color: "white",
-							}}
-						>
-							{property.id}
-						</div>
+						{property.images && property.images.length > 0 ? (
+							<div
+								className="cursor-pointer transition-transform hover:scale-110"
+								style={{
+									width: selectedProperty?.id === property.id ? "56px" : "48px",
+									height:
+										selectedProperty?.id === property.id ? "56px" : "48px",
+									border: `${selectedProperty?.id === property.id ? "3px" : "2px"} solid ${selectedProperty?.id === property.id ? "#3B82F6" : "white"}`,
+									borderRadius: "10px",
+									boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+									overflow: "hidden",
+									background: "white",
+								}}
+							>
+								<img
+									src={property.images[0]}
+									alt=""
+									style={{ width: "100%", height: "100%", objectFit: "cover" }}
+								/>
+							</div>
+						) : (
+							<div
+								className="cursor-pointer transition-transform hover:scale-110"
+								style={{
+									width: selectedProperty?.id === property.id ? "30px" : "24px",
+									height:
+										selectedProperty?.id === property.id ? "30px" : "24px",
+									backgroundColor: createMarkerColor(
+										property,
+										selectedProperty?.id === property.id,
+									),
+									border: `${
+										selectedProperty?.id === property.id ? "3px" : "2px"
+									} solid ${
+										selectedProperty?.id === property.id ? "#3B82F6" : "white"
+									}`,
+									borderRadius: "4px",
+									boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+									fontSize: "10px",
+									fontWeight: "bold",
+									color: "white",
+								}}
+							>
+								{property.id}
+							</div>
+						)}
 					</Marker>
 				))}
 

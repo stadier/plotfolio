@@ -168,12 +168,39 @@ export default function PropertyMap({
 	const currentLayer = TILE_LAYERS[layerType];
 	const createCustomIcon = (
 		property: Property,
-		isSelected: boolean = false
+		isSelected: boolean = false,
 	) => {
 		const color = getPropertyTypeColor(property.propertyType);
-		const size = isSelected ? 30 : 24;
+		const hasImage = property.images && property.images.length > 0;
+		const size = hasImage ? (isSelected ? 56 : 48) : isSelected ? 30 : 24;
 		const borderColor = isSelected ? "#3B82F6" : "white";
 		const borderWidth = isSelected ? 3 : 2;
+
+		if (hasImage) {
+			return L.divIcon({
+				className: "custom-property-marker",
+				html: `
+					<div style="
+						width: ${size}px;
+						height: ${size}px;
+						border: ${borderWidth}px solid ${borderColor};
+						border-radius: 10px;
+						box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+						overflow: hidden;
+						background: white;
+						${isSelected ? "transform: scale(1.1);" : ""}
+					">
+						<img src="${property.images![0]}" style="
+							width: 100%;
+							height: 100%;
+							object-fit: cover;
+						" alt="" />
+					</div>
+				`,
+				iconSize: [size, size],
+				iconAnchor: [size / 2, size / 2],
+			});
+		}
 
 		return L.divIcon({
 			className: "custom-property-marker",
@@ -261,7 +288,7 @@ export default function PropertyMap({
 						selectedPlotId={selectedProperty?.surveyData?.plotNumber}
 						onPlotClick={(surveyData) => {
 							const property = properties.find(
-								(p) => p.surveyData?.plotNumber === surveyData.plotNumber
+								(p) => p.surveyData?.plotNumber === surveyData.plotNumber,
 							);
 							if (property) onPropertyClick?.(property);
 						}}
@@ -274,7 +301,7 @@ export default function PropertyMap({
 						position={[property.coordinates.lat, property.coordinates.lng]}
 						icon={createCustomIcon(
 							property,
-							selectedProperty?.id === property.id
+							selectedProperty?.id === property.id,
 						)}
 						eventHandlers={{
 							click: () => onPropertyClick?.(property),

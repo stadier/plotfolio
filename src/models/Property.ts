@@ -1,9 +1,12 @@
 import {
+	AccessRequestStatus,
+	DocumentAccessLevel,
 	DocumentType,
 	Property,
 	PropertyOwner,
 	PropertyStatus,
 	PropertyType,
+	PropertyVisibility,
 	SurveyData,
 } from "@/types/property";
 import mongoose, { Document, Schema } from "mongoose";
@@ -12,6 +15,10 @@ import mongoose, { Document, Schema } from "mongoose";
 const PropertyOwnerSchema = new Schema<PropertyOwner>({
 	id: { type: String, required: true },
 	name: { type: String, required: true },
+	username: { type: String, required: true },
+	displayName: { type: String, required: true },
+	avatar: { type: String },
+	banner: { type: String },
 	email: { type: String, required: true },
 	phone: { type: String },
 	type: {
@@ -19,6 +26,8 @@ const PropertyOwnerSchema = new Schema<PropertyOwner>({
 		enum: ["individual", "company", "trust"],
 		required: true,
 	},
+	joinDate: { type: String },
+	salesCount: { type: Number, default: 0 },
 });
 
 // Survey Data Schema
@@ -52,7 +61,7 @@ const SurveyBearingSchema = new Schema({
 
 const SurveyDataSchema = new Schema<SurveyData>({
 	plotNumber: { type: String },
-	area: { type: Number, required: true },
+	area: { type: Number, default: 0 },
 	coordinates: [SurveyCoordinateSchema],
 	boundaries: [PlotBoundarySchema],
 	measurements: [SurveyMeasurementSchema],
@@ -87,41 +96,78 @@ const PropertyDocumentSchema = new Schema({
 	},
 	url: { type: String, required: true },
 	uploadDate: { type: Date, default: Date.now },
-	size: { type: Number },
+	size: { type: Number, default: 0 },
+	accessLevel: {
+		type: String,
+		enum: Object.values(DocumentAccessLevel),
+		default: DocumentAccessLevel.PUBLIC,
+	},
 });
+
+// Document Access Request Schema
+const DocumentAccessRequestSchema = new Schema(
+	{
+		id: { type: String, required: true, unique: true },
+		propertyId: { type: String, required: true, index: true },
+		documentId: { type: String, required: true },
+		requesterId: { type: String, required: true, index: true },
+		requesterName: { type: String, required: true },
+		requesterEmail: { type: String, required: true },
+		requesterAvatar: { type: String },
+		ownerId: { type: String, required: true, index: true },
+		status: {
+			type: String,
+			enum: Object.values(AccessRequestStatus),
+			default: AccessRequestStatus.PENDING,
+		},
+		message: { type: String },
+		responseMessage: { type: String },
+	},
+	{
+		timestamps: true,
+	},
+);
 
 // Main Property Schema
 const PropertySchema = new Schema<Property & Document>(
 	{
 		id: { type: String, required: true, unique: true },
 		name: { type: String, required: true },
-		address: { type: String, required: true },
+		address: { type: String },
 		coordinates: {
-			lat: { type: Number, required: true },
-			lng: { type: Number, required: true },
+			lat: { type: Number, default: 0 },
+			lng: { type: Number, default: 0 },
 		},
-		area: { type: Number, required: true },
+		area: { type: Number, default: 0 },
 		propertyType: {
 			type: String,
 			enum: Object.values(PropertyType),
-			required: true,
 		},
-		purchaseDate: { type: Date, required: true },
-		purchasePrice: { type: Number, required: true },
-		currentValue: { type: Number },
+		purchaseDate: { type: Date },
+		purchasePrice: { type: Number, default: 0 },
+		currentValue: { type: Number, default: 0 },
 		documents: [PropertyDocumentSchema],
 		status: {
 			type: String,
 			enum: Object.values(PropertyStatus),
-			required: true,
 		},
 		description: { type: String },
 		images: [{ type: String }],
 		zoning: { type: String },
 		taxId: { type: String },
-		owner: { type: PropertyOwnerSchema, required: true },
+		owner: { type: PropertyOwnerSchema },
+		state: { type: String },
+		city: { type: String },
+		country: { type: String },
 		surveyData: { type: SurveyDataSchema },
 		propertyGrid: { type: PropertyGridSchema },
+		conditions: [{ type: String }],
+		visibility: {
+			type: String,
+			enum: Object.values(PropertyVisibility),
+			default: PropertyVisibility.PRIVATE,
+		},
+		quantity: { type: Number, default: 1 },
 		boughtFrom: { type: String },
 		witnesses: [{ type: String }],
 		signatures: [{ type: String }],
@@ -154,14 +200,41 @@ export const PropertyModel =
 export const SurveyDocumentModel =
 	mongoose.models.SurveyDocument ||
 	mongoose.model("SurveyDocument", SurveyDocumentSchema);
+export const DocumentAccessRequestModel =
+	mongoose.models.DocumentAccessRequest ||
+	mongoose.model("DocumentAccessRequest", DocumentAccessRequestSchema);
+
+// Ensure numeric fields always default to 0 (handles existing docs missing values)
+function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
+	prop.area = prop.area || 0;
+	prop.purchasePrice = prop.purchasePrice || 0;
+	prop.currentValue = prop.currentValue || 0;
+	prop.quantity = prop.quantity || 1;
+	prop.visibility = prop.visibility || PropertyVisibility.PRIVATE;
+	if (prop.coordinates) {
+		prop.coordinates.lat = prop.coordinates.lat || 0;
+		prop.coordinates.lng = prop.coordinates.lng || 0;
+	}
+	if (prop.documents) {
+		prop.documents = prop.documents.map((doc: any) => ({
+			...doc,
+			size: doc.size || 0,
+			accessLevel: doc.accessLevel || DocumentAccessLevel.PUBLIC,
+		}));
+	}
+	if (prop.surveyData) {
+		prop.surveyData.area = prop.surveyData.area || 0;
+	}
+	return prop;
+}
 
 // Helper functions for database operations
 export class PropertyService {
 	static async getAllProperties(): Promise<Property[]> {
 		const properties = await PropertyModel.find({}).lean();
 		return properties.map((prop) => {
-			const { _id, __v, createdAt, updatedAt, ...cleanProp } = prop as any;
-			return cleanProp;
+			const { _id, __v, ...cleanProp } = prop as any;
+			return sanitizeProperty(cleanProp);
 		}) as Property[];
 	}
 
@@ -169,15 +242,15 @@ export class PropertyService {
 		const property = await PropertyModel.findOne({ id }).lean();
 		if (!property) return null;
 
-		const { _id, __v, createdAt, updatedAt, ...cleanProp } = property as any;
-		return cleanProp as Property;
+		const { _id, __v, ...cleanProp } = property as any;
+		return sanitizeProperty(cleanProp) as Property;
 	}
 
 	static async createProperty(property: Property): Promise<Property> {
 		const created = await PropertyModel.create(property);
 		const obj = created.toObject();
-		const { _id, __v, createdAt, updatedAt, ...cleanProp } = obj as any;
-		return cleanProp as Property;
+		const { _id, __v, ...cleanProp } = obj as any;
+		return sanitizeProperty(cleanProp) as Property;
 	}
 
 	static async updateProperty(
@@ -190,8 +263,8 @@ export class PropertyService {
 
 		if (!updated) return null;
 
-		const { _id, __v, createdAt, updatedAt, ...cleanProp } = updated as any;
-		return cleanProp as Property;
+		const { _id, __v, ...cleanProp } = updated as any;
+		return sanitizeProperty(cleanProp) as Property;
 	}
 
 	static async deleteProperty(id: string): Promise<boolean> {

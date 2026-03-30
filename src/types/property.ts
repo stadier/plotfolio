@@ -30,20 +30,48 @@ export interface Property {
 	zoning?: string;
 	taxId?: string;
 	owner: PropertyOwner;
+	// Location classification
+	state?: string;
+	city?: string;
+	country?: string;
 	surveyData?: SurveyData; // Custom plot boundaries from survey documents
 	propertyGrid?: PropertyGrid; // Grid cells defining property boundaries
+	conditions?: string[]; // Physical state tags — enum values or custom strings
+	visibility?: PropertyVisibility; // Profile/search visibility — defaults to private
+	quantity?: number; // Number of identical units (e.g. 10 plots in the same location)
 	// Transaction details
 	boughtFrom?: string; // Seller / previous owner name
 	witnesses?: string[]; // Names of witnesses on the transaction
 	signatures?: string[]; // Names of signatories on the transaction
+	// Timestamps from Mongoose
+	createdAt?: string;
+	updatedAt?: string;
 }
 
 export interface PropertyOwner {
 	id: string;
 	name: string;
+	username: string;
+	displayName: string;
+	avatar?: string; // profile picture URL
+	banner?: string; // profile banner/cover image URL
 	email: string;
 	phone?: string;
 	type: "individual" | "company" | "trust";
+	joinDate?: string; // ISO date string
+	salesCount?: number;
+}
+
+export enum DocumentAccessLevel {
+	PUBLIC = "public", // Anyone can view
+	REQUEST_REQUIRED = "request_required", // Must request access
+	PRIVATE = "private", // Only owner can view
+}
+
+export enum AccessRequestStatus {
+	PENDING = "pending",
+	APPROVED = "approved",
+	DENIED = "denied",
 }
 
 export interface PropertyDocument {
@@ -53,6 +81,23 @@ export interface PropertyDocument {
 	url: string;
 	uploadDate: Date;
 	size: number;
+	accessLevel: DocumentAccessLevel;
+}
+
+export interface DocumentAccessRequest {
+	id: string;
+	propertyId: string;
+	documentId: string;
+	requesterId: string;
+	requesterName: string;
+	requesterEmail: string;
+	requesterAvatar?: string;
+	ownerId: string;
+	status: AccessRequestStatus;
+	message?: string;
+	responseMessage?: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export enum PropertyType {
@@ -72,6 +117,26 @@ export enum PropertyStatus {
 	DEVELOPMENT = "development",
 }
 
+export enum PropertyVisibility {
+	PRIVATE = "private", // Only visible to the owner (default)
+	PUBLIC = "public", // Visible on profile and in searches
+}
+
+export enum PropertyCondition {
+	BUSH = "bush",
+	CLEARED = "cleared",
+	FOUNDATION = "foundation",
+	HAS_STRUCTURE = "has_structure",
+	FENCED = "fenced",
+	PAVED = "paved",
+	WATERLOGGED = "waterlogged",
+	ROCKY = "rocky",
+	UNDER_CONSTRUCTION = "under_construction",
+	FINISHED = "finished",
+	RENOVATED = "renovated",
+	NEEDS_REPAIR = "needs_repair",
+}
+
 export enum DocumentType {
 	DEED = "deed",
 	TITLE = "title",
@@ -83,6 +148,8 @@ export enum DocumentType {
 	CONTRACT = "contract",
 	CONTRACT_OF_SALE = "contract_of_sale",
 	CERTIFICATE_OF_OCCUPANCY = "certificate_of_occupancy",
+	BUILDING_PERMIT = "building_permit",
+	INSPECTION_REPORT = "inspection_report",
 	PERMIT = "permit",
 	OTHER = "other",
 }
@@ -107,6 +174,7 @@ export interface MapViewport {
 export interface PropertyFilter {
 	propertyType?: PropertyType[];
 	status?: PropertyStatus[];
+	conditions?: string[];
 	priceRange?: {
 		min: number;
 		max: number;

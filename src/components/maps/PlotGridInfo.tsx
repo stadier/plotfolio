@@ -41,7 +41,7 @@ export default function PlotGridInfo({ className = "" }: PlotGridInfoProps) {
 
 			<div className="text-xs text-gray-600 space-y-1">
 				<p>• Each grid cell ≈ 900 sqm (30m × 30m)</p>
-				<p>• Typical Nigerian residential plots: 600-1000 sqm</p>
+				<p>• Typical residential plots: 600-1000 sqm</p>
 				<p>• Grid appears at zoom level 13+</p>
 				<p>
 					• Use <span className="font-mono bg-gray-100 px-1 rounded">⊞</span>{" "}

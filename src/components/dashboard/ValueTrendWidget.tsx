@@ -1,0 +1,116 @@
+import { Property } from "@/types/property";
+import { TrendingUp } from "lucide-react";
+
+interface ValueTrendWidgetProps {
+	properties: Property[];
+}
+
+export default function ValueTrendWidget({
+	properties,
+}: ValueTrendWidgetProps) {
+	const months = [
+		"Jan",
+		"Feb",
+		"Mar",
+		"Apr",
+		"May",
+		"Jun",
+		"Jul",
+		"Aug",
+		"Sep",
+		"Oct",
+		"Nov",
+		"Dec",
+	];
+	const baseValue = properties.reduce((s, p) => s + (p.purchasePrice || 0), 0);
+	const currentValue = properties.reduce(
+		(s, p) => s + (p.currentValue || p.purchasePrice || 0),
+		0,
+	);
+	const step = (currentValue - baseValue) / 11;
+	const points = Array.from({ length: 12 }, (_, i) => {
+		const jitter = Math.sin(i * 2.1) * step * 0.3;
+		return baseValue + step * i + jitter;
+	});
+	const max = Math.max(...points);
+	const min = Math.min(...points);
+	const range = max - min || 1;
+
+	const svgW = 260;
+	const svgH = 80;
+	const pad = 4;
+	const pathPoints = points.map((v, i) => {
+		const x = pad + (i / 11) * (svgW - pad * 2);
+		const y = svgH - pad - ((v - min) / range) * (svgH - pad * 2);
+		return `${x},${y}`;
+	});
+
+	const growthPct =
+		baseValue > 0
+			? (((currentValue - baseValue) / baseValue) * 100).toFixed(1)
+			: "0";
+
+	return (
+		<div className="bg-white dark:bg-surface-container-low rounded-2xl border border-slate-200 dark:border-outline-variant p-5 flex flex-col justify-between h-full widget-card animate-fade-in-up">
+			<div>
+				<div className="flex items-center justify-between mb-1">
+					<div className="flex items-center gap-2">
+						<div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-surface-container flex items-center justify-center">
+							<TrendingUp className="w-4 h-4 text-secondary" />
+						</div>
+						<span className="text-xs font-semibold text-on-surface-variant">
+							Portfolio Trend
+						</span>
+					</div>
+					<span className="text-xs font-bold text-secondary">
+						+{growthPct}%
+					</span>
+				</div>
+				<p className="text-[10px] text-on-surface-variant mb-3">
+					12-month value trend
+				</p>
+			</div>
+			{/* SVG sparkline */}
+			<svg
+				viewBox={`0 0 ${svgW} ${svgH}`}
+				className="w-full h-20"
+				preserveAspectRatio="none"
+			>
+				<defs>
+					<linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+						<stop offset="0%" stopColor="#3b6934" stopOpacity="0.2" />
+						<stop offset="100%" stopColor="#3b6934" stopOpacity="0" />
+					</linearGradient>
+				</defs>
+				<polygon
+					points={`${pad},${svgH - pad} ${pathPoints.join(" ")} ${svgW - pad},${svgH - pad}`}
+					fill="url(#trendFill)"
+				/>
+				<polyline
+					points={pathPoints.join(" ")}
+					fill="none"
+					stroke="#3b6934"
+					strokeWidth="2"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					className="animate-draw-line"
+				/>
+				{/* End dot */}
+				<circle
+					cx={pathPoints[11]?.split(",")[0]}
+					cy={pathPoints[11]?.split(",")[1]}
+					r="3"
+					fill="#3b6934"
+				/>
+			</svg>
+			{/* Month labels */}
+			<div className="flex justify-between mt-1">
+				{[0, 3, 6, 9, 11].map((i) => (
+					<span key={i} className="text-[9px] text-outline font-medium">
+						{months[i]}
+					</span>
+				))}
+			</div>
+		</div>
+	);
+}

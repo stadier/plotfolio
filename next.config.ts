@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
 	reactCompiler: true,
 	transpilePackages: ["react-map-gl", "mapbox-gl"],
 
+	images: {
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "api.dicebear.com",
+			},
+		],
+	},
+
 	// Turbopack config (empty to silence webpack config warning in Next.js 16)
 	turbopack: {},
 

@@ -1,66 +1,85 @@
 "use client";
 
-import { Bell, Settings } from "lucide-react";
+import UserAvatar from "@/components/ui/UserAvatar";
+import { Bell, Briefcase, ShoppingBag } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const topNavItems = [
-	{ name: "Dashboard", href: "/" },
-	{ name: "Properties", href: "/properties" },
-	{ name: "Map View", href: "/map" },
-	{ name: "Portfolio", href: "/portfolio" },
-];
-
 export default function Header() {
 	const pathname = usePathname();
+	const isMarketplace = pathname.startsWith("/marketplace");
 
 	return (
-		<header className="fixed top-0 w-full z-50 bg-white shadow-sm">
+		<header className="fixed top-0 w-full z-50 bg-white dark:bg-surface-container-low border-b border-slate-200 dark:border-outline-variant">
 			<div className="flex items-center justify-between px-8 py-4 w-full">
 				{/* Logo */}
-				<div className="text-2xl font-bold tracking-tighter text-primary font-headline">
-					Plotfolio
-				</div>
+				<Link href="/" className="flex items-center gap-2.5">
+					<Image
+						src="/plotfolio-logo.svg"
+						alt="Plotfolio"
+						width={32}
+						height={32}
+						className="w-8 h-8"
+					/>
+					<span className="text-2xl font-bold tracking-tighter text-primary font-headline">
+						Plotfolio
+					</span>
+				</Link>
 
-				{/* Top nav links */}
-				<nav className="hidden md:flex items-center gap-8">
-					{topNavItems.map((item) => {
-						const isActive =
-							item.href === "/"
-								? pathname === "/"
-								: pathname.startsWith(item.href);
-						return (
-							<Link
-								key={item.href}
-								href={item.href}
-								className={`font-headline font-semibold text-sm tracking-tight transition-colors ${
-									isActive
-										? "text-primary border-b-2 border-primary pb-1"
-										: "text-slate-500 hover:text-primary"
-								}`}
-							>
-								{item.name}
-							</Link>
-						);
-					})}
-				</nav>
+				{/* Portfolio / Marketplace switcher */}
+				<div className="hidden md:flex items-center bg-slate-100 dark:bg-surface-container rounded-full p-1">
+					<Link
+						href="/portfolio"
+						className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+							!isMarketplace
+								? "bg-primary text-on-primary shadow-sm"
+								: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
+						}`}
+					>
+						<Briefcase className="w-4 h-4" />
+						Portfolio
+					</Link>
+					<Link
+						href="/marketplace"
+						className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+							isMarketplace
+								? "bg-primary text-on-primary shadow-sm"
+								: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
+						}`}
+					>
+						<ShoppingBag className="w-4 h-4" />
+						Marketplace
+					</Link>
+				</div>
 
 				{/* Actions */}
 				<div className="flex items-center gap-3">
-					<button className="p-2 hover:bg-slate-50 transition-all rounded-full">
+					<button className="p-2 hover:bg-slate-50 dark:hover:bg-surface-container transition-all rounded-full icon-btn-hover">
 						<Bell className="w-5 h-5 text-on-surface" />
 					</button>
-					<button className="p-2 hover:bg-slate-50 transition-all rounded-full">
-						<Settings className="w-5 h-5 text-on-surface" />
-					</button>
-					{/* Avatar placeholder */}
-					<div className="w-9 h-9 rounded-full signature-gradient flex items-center justify-center text-white text-sm font-bold font-headline shrink-0">
-						U
-					</div>
+					{/* User avatar + name */}
+					<UserAvatar
+						name="Property Owner"
+						displayName="Property Owner"
+						username="plotfolio_user"
+						avatar="https://api.dicebear.com/9.x/initials/svg?seed=PO&backgroundColor=1e3a5f"
+						ownerId="owner-1"
+						size="md"
+						showLabel
+						className="hidden sm:flex"
+					/>
+					<UserAvatar
+						name="Property Owner"
+						avatar="https://api.dicebear.com/9.x/initials/svg?seed=PO&backgroundColor=1e3a5f"
+						ownerId="owner-1"
+						size="md"
+						className="sm:hidden"
+					/>
 				</div>
 			</div>
 			{/* Divider */}
-			<div className="bg-[#f5f5f5] h-px w-full" />
+			<div className="bg-[#f5f5f5] dark:bg-outline-variant h-px w-full" />
 		</header>
 	);
 }

@@ -1,3 +1,4 @@
+import ThemeProvider from "@/components/ThemeProvider";
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
@@ -17,7 +18,7 @@ const inter = Inter({
 export const metadata: Metadata = {
 	title: "Plotfolio — Property Portfolio Management",
 	description:
-		"Manage your Nigerian land plots with interactive maps, survey document integration, and portfolio tracking.",
+		"Manage your properties with interactive maps, survey document integration, and portfolio tracking.",
 };
 
 export default function RootLayout({
@@ -26,12 +27,12 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<body
 				className={`${manrope.variable} ${inter.variable} antialiased`}
 				suppressHydrationWarning
 			>
-				{children}
+				<ThemeProvider>{children}</ThemeProvider>
 			</body>
 		</html>
 	);

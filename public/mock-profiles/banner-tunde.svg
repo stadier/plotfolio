@@ -1,0 +1,14 @@
+<svg width="1200" height="400" viewBox="0 0 1200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="400" fill="#2d6a4f"/>
+  <rect x="0" y="0" width="1200" height="400" fill="url(#grad-tunde)"/>
+  <circle cx="200" cy="80" r="200" fill="#3a8062" fill-opacity="0.5"/>
+  <circle cx="1060" cy="320" r="230" fill="#1e5038" fill-opacity="0.6"/>
+  <circle cx="560" cy="500" r="250" fill="#357a5a" fill-opacity="0.3"/>
+  <path d="M0 270 Q380 200 760 260 Q1000 300 1200 240V400H0Z" fill="#1e5038" fill-opacity="0.5"/>
+  <defs>
+    <linearGradient id="grad-tunde" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2d6a4f"/>
+      <stop offset="100%" stop-color="#1a4530"/>
+    </linearGradient>
+  </defs>
+</svg>

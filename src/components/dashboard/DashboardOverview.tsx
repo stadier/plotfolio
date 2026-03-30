@@ -13,34 +13,41 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
 	// Calculate summary statistics
 	const totalValue = properties.reduce(
-		(sum, property) => sum + (property.currentValue || property.purchasePrice),
-		0
+		(sum, property) =>
+			sum + (property.currentValue || property.purchasePrice || 0),
+		0,
 	);
 
 	const totalArea = properties.reduce(
-		(sum, property) => sum + property.area,
-		0
+		(sum, property) => sum + (property.area || 0),
+		0,
 	);
 
 	const totalProperties = properties.length;
 
 	const ownedProperties = properties.filter(
-		(p) => p.status === PropertyStatus.OWNED
+		(p) => p.status === PropertyStatus.OWNED,
 	).length;
 
 	const averageValue = totalProperties > 0 ? totalValue / totalProperties : 0;
 
 	// Property type distribution
-	const typeDistribution = properties.reduce((acc, property) => {
-		acc[property.propertyType] = (acc[property.propertyType] || 0) + 1;
-		return acc;
-	}, {} as Record<PropertyType, number>);
+	const typeDistribution = properties.reduce(
+		(acc, property) => {
+			acc[property.propertyType] = (acc[property.propertyType] || 0) + 1;
+			return acc;
+		},
+		{} as Record<PropertyType, number>,
+	);
 
 	// Status distribution
-	const statusDistribution = properties.reduce((acc, property) => {
-		acc[property.status] = (acc[property.status] || 0) + 1;
-		return acc;
-	}, {} as Record<PropertyStatus, number>);
+	const statusDistribution = properties.reduce(
+		(acc, property) => {
+			acc[property.status] = (acc[property.status] || 0) + 1;
+			return acc;
+		},
+		{} as Record<PropertyStatus, number>,
+	);
 
 	const stats = [
 		{
@@ -76,11 +83,14 @@ export default function DashboardOverview({
 	return (
 		<div className={`space-y-6 ${className}`}>
 			{/* Key Metrics */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+			<div className="flex flex-wrap items-start gap-6">
 				{stats.map((stat, index) => {
 					const Icon = stat.icon;
 					return (
-						<div key={index} className="bg-white rounded-lg shadow-md p-6">
+						<div
+							key={index}
+							className="w-full sm:w-[280px] max-w-sm bg-white dark:bg-surface-container-low rounded-lg shadow-md p-6 card-hover animate-fade-in-up"
+						>
 							<div className="flex items-center justify-between">
 								<div>
 									<p className="text-sm font-medium text-gray-600">

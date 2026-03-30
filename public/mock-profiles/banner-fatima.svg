@@ -1,0 +1,14 @@
+<svg width="1200" height="400" viewBox="0 0 1200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="400" fill="#4a1942"/>
+  <rect x="0" y="0" width="1200" height="400" fill="url(#grad-fatima)"/>
+  <circle cx="150" cy="100" r="200" fill="#5e2255" fill-opacity="0.5"/>
+  <circle cx="1000" cy="320" r="240" fill="#380f34" fill-opacity="0.6"/>
+  <circle cx="650" cy="-60" r="220" fill="#5a1e50" fill-opacity="0.3"/>
+  <path d="M0 300 Q400 220 800 280 Q1000 300 1200 250V400H0Z" fill="#380f34" fill-opacity="0.5"/>
+  <defs>
+    <linearGradient id="grad-fatima" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4a1942"/>
+      <stop offset="100%" stop-color="#2e0e2a"/>
+    </linearGradient>
+  </defs>
+</svg>

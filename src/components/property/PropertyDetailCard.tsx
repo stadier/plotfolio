@@ -1,3 +1,4 @@
+import UserAvatar from "@/components/ui/UserAvatar";
 import { formatArea, formatCurrency } from "@/lib/utils";
 import { Property, PropertyStatus, SurveyData } from "@/types/property";
 import {
@@ -64,7 +65,7 @@ export default function PropertyDetailCard({
 
 	return (
 		<div
-			className={`bg-white rounded-xl border border-gray-200 p-6 ${className}`}
+			className={`bg-white rounded-xl border border-gray-200 p-6 animate-fade-in-up ${className}`}
 		>
 			{/* Header */}
 			<div className="flex items-start justify-between mb-6">
@@ -75,7 +76,7 @@ export default function PropertyDetailCard({
 						</h2>
 						<span
 							className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-								property.status
+								property.status,
 							)}`}
 						>
 							{getStatusText(property.status)}
@@ -86,7 +87,7 @@ export default function PropertyDetailCard({
 				{onClose && (
 					<button
 						onClick={onClose}
-						className="p-2 hover:bg-gray-100 rounded-lg"
+						className="p-2 hover:bg-gray-100 rounded-lg icon-btn-hover"
 					>
 						<X className="w-5 h-5 text-gray-400" />
 					</button>
@@ -170,22 +171,21 @@ export default function PropertyDetailCard({
 				<div className="border-t border-gray-200 pt-4">
 					<p className="text-sm font-medium text-gray-900 mb-3">Owner</p>
 					<div className="flex items-center gap-3">
-						<div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
-							<span className="text-sm font-medium text-white">
-								{property.owner.name.charAt(0).toUpperCase()}
-							</span>
-						</div>
-						<div className="flex-1">
-							<p className="text-sm font-medium text-gray-900">
-								{property.owner.name}
-							</p>
-							<p className="text-sm text-gray-600">{property.owner.email}</p>
-						</div>
+						<UserAvatar
+							name={property.owner.name}
+							displayName={property.owner.displayName}
+							username={property.owner.username}
+							avatar={property.owner.avatar}
+							ownerId={property.owner.id}
+							size="lg"
+							showLabel
+							className="flex-1"
+						/>
 						<div className="flex items-center gap-2">
-							<button className="p-2 hover:bg-gray-100 rounded-full">
+							<button className="p-2 hover:bg-gray-100 rounded-full icon-btn-hover">
 								<Phone className="w-4 h-4 text-gray-400" />
 							</button>
-							<button className="p-2 hover:bg-gray-100 rounded-full">
+							<button className="p-2 hover:bg-gray-100 rounded-full icon-btn-hover">
 								<MessageCircle className="w-4 h-4 text-gray-400" />
 							</button>
 						</div>

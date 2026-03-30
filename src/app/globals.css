@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "mapbox-gl/dist/mapbox-gl.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
 	/* Design system colors */
 	--color-primary: #000e24;
@@ -35,19 +37,56 @@
 }
 
 body {
-	background: #f8f9fa;
-	color: #191c1d;
+	background: var(--color-background);
+	color: var(--color-on-background);
 	font-family: var(--font-inter), "Inter", sans-serif;
 	-webkit-font-smoothing: antialiased;
+}
+
+/* ── Dark mode token overrides ─────────────────────────────────────────────── */
+.dark {
+	--color-primary: #a0c4ff;
+	--color-primary-container: #003466;
+	--color-on-primary: #001c3a;
+	--color-secondary: #8ed883;
+	--color-secondary-container: #1e4d1a;
+	--color-on-secondary-container: #b9eeab;
+	--color-on-secondary: #1a3d15;
+	--color-background: #0d1117;
+	--color-surface: #0d1117;
+	--color-surface-bright: #252a31;
+	--color-surface-dim: #0d1117;
+	--color-surface-container-lowest: #080c10;
+	--color-surface-container-low: #151b23;
+	--color-surface-container: #1c2229;
+	--color-surface-container-high: #272d36;
+	--color-surface-container-highest: #333a44;
+	--color-on-surface: #e2e6ea;
+	--color-on-surface-variant: #8b949e;
+	--color-outline: #6e7681;
+	--color-outline-variant: #2d333b;
+	--color-on-background: #e2e6ea;
+	--color-error: #ffb4ab;
+	--color-inverse-surface: #e2e6ea;
+	--color-inverse-on-surface: #2e3132;
+
+	background: #0d1117;
+	color: #e2e6ea;
 }
 
 .glass-search {
 	background: rgba(255, 255, 255, 0.8);
 	backdrop-filter: blur(12px);
 }
+.dark .glass-search {
+	background: rgba(13, 17, 23, 0.8);
+}
 
 .signature-gradient {
 	background: linear-gradient(135deg, #000e24 0%, #00234b 100%);
+}
+.dark .signature-gradient {
+	background: linear-gradient(135deg, #00234b 0%, #003466 100%);
 }
 
 /* Custom styles for Google Maps InfoWindow to match the dark overlay style */
@@ -83,4 +122,193 @@ body {
 
 .gm-style .gm-style-iw button img {
 	filter: invert(1) !important;
+}
+
+/* ── Subtle animations ──────────────────────────────────────────────────────── */
+
+@keyframes fade-in-up {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes scale-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes progress-fill {
+	from {
+		width: 0%;
+	}
+}
+
+@keyframes draw-line {
+	from {
+		stroke-dashoffset: 500;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+.animate-fade-in-up {
+	opacity: 1;
+}
+[data-animate] .animate-fade-in-up {
+	animation: fade-in-up 0.5s ease-out both;
+}
+
+.animate-fade-in {
+	opacity: 1;
+}
+[data-animate] .animate-fade-in {
+	animation: fade-in 0.4s ease-out both;
+}
+
+.animate-scale-in {
+	opacity: 1;
+}
+[data-animate] .animate-scale-in {
+	animation: scale-in 0.4s ease-out both;
+}
+
+.animate-progress-fill {
+	/* always active – not an entrance animation */
+	animation: progress-fill 0.8s ease-out both;
+}
+
+.animate-draw-line {
+	stroke-dasharray: 500;
+}
+[data-animate] .animate-draw-line {
+	animation: draw-line 1.2s ease-out both;
+}
+
+/* Map slide transitions */
+@keyframes slide-left {
+	from {
+		opacity: 0;
+		transform: translateX(40px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+@keyframes slide-right {
+	from {
+		opacity: 0;
+		transform: translateX(-40px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+.animate-slide-left {
+	animation: slide-left 0.35s ease-out both;
+}
+.animate-slide-right {
+	animation: slide-right 0.35s ease-out both;
+}
+
+/* Stagger delays for child elements */
+[data-animate] .stagger-1 {
+	animation-delay: 0.05s;
+}
+[data-animate] .stagger-2 {
+	animation-delay: 0.1s;
+}
+[data-animate] .stagger-3 {
+	animation-delay: 0.15s;
+}
+[data-animate] .stagger-4 {
+	animation-delay: 0.2s;
+}
+[data-animate] .stagger-5 {
+	animation-delay: 0.25s;
+}
+[data-animate] .stagger-6 {
+	animation-delay: 0.3s;
+}
+
+/* Card hover lift effect */
+.card-hover {
+	transition:
+		transform 0.2s ease,
+		box-shadow 0.2s ease;
+}
+.card-hover:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.dark .card-hover:hover {
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Button press effect */
+.btn-press {
+	transition:
+		transform 0.15s ease,
+		box-shadow 0.15s ease,
+		background-color 0.15s ease;
+}
+.btn-press:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.btn-press:active {
+	transform: translateY(0) scale(0.97);
+	box-shadow: none;
+}
+
+/* Icon button hover */
+.icon-btn-hover {
+	transition:
+		transform 0.15s ease,
+		background-color 0.15s ease;
+}
+.icon-btn-hover:hover {
+	transform: scale(1.08);
+}
+.icon-btn-hover:active {
+	transform: scale(0.95);
+}
+
+/* Widget card base – hover + entrance */
+.widget-card {
+	transition:
+		transform 0.2s ease,
+		box-shadow 0.2s ease,
+		border-color 0.2s ease;
+}
+.widget-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+	border-color: #c4c6d0;
+}
+.dark .widget-card:hover {
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+	border-color: #43474e;
 }

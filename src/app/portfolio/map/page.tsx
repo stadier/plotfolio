@@ -20,7 +20,7 @@ import {
 	Zap,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // Dynamically import unified map component to avoid SSR issues
 const PlotfolioMap = dynamic(() => import("@/components/maps/PlotfolioMap"), {
@@ -70,13 +70,13 @@ export default function Home() {
 	const [hoveredState, setHoveredState] = useState<string | null>(null);
 	const [selectedState, setSelectedState] = useState<string | null>(null);
 
-	// Default viewport for Abuja, Nigeria
+	// Default viewport
 	const [viewport, setViewport] = useState({
-		center: [9.0765, 7.4951] as [number, number],
-		zoom: 12,
+		center: [20, 0] as [number, number],
+		zoom: 3,
 		bounds: [
-			[8.9, 7.3],
-			[9.2, 7.7],
+			[-60, -180],
+			[80, 180],
 		] as [[number, number], [number, number]],
 	});
 
@@ -215,31 +215,29 @@ export default function Home() {
 		setIsStateBordersVisible(!isStateBordersVisible);
 	};
 
-	// State bounds for Nigeria's states (approximate)
-	const stateBounds: {
-		[key: string]: { center: [number, number]; zoom: number };
-	} = {
-		Lagos: { center: [6.5244, 3.3792], zoom: 10 },
-		"Abuja FCT": { center: [9.0765, 7.4951], zoom: 11 },
-		Rivers: { center: [4.8156, 6.9778], zoom: 9 },
-		Kano: { center: [12.0022, 8.592], zoom: 9 },
-		Kaduna: { center: [10.6086, 7.4165], zoom: 9 },
-		Oyo: { center: [8.1555, 3.947], zoom: 9 },
-		Niger: { center: [9.6137, 6.5569], zoom: 8 },
-		Kwara: { center: [8.9669, 4.581], zoom: 9 },
-		Ogun: { center: [7.1608, 3.3476], zoom: 10 },
-		Anambra: { center: [6.2209, 6.9937], zoom: 10 },
-		Enugu: { center: [6.5244, 7.5102], zoom: 10 },
-		Imo: { center: [5.4873, 7.0261], zoom: 10 },
-		Abia: { center: [5.4527, 7.5248], zoom: 10 },
-		"Cross River": { center: [6.0445, 8.6753], zoom: 9 },
-		"Akwa Ibom": { center: [4.9056, 7.8564], zoom: 9 },
-		Delta: { center: [5.6804, 6.0366], zoom: 9 },
-		Edo: { center: [6.335, 5.6037], zoom: 9 },
-		Bayelsa: { center: [4.7719, 6.0699], zoom: 10 },
-		Plateau: { center: [9.2182, 9.5179], zoom: 9 },
-		Benue: { center: [7.3298, 8.7362], zoom: 9 },
-	};
+	// Region bounds — dynamically built from property locations
+	const regionBounds = useMemo(() => {
+		const bounds: {
+			[key: string]: { center: [number, number]; zoom: number };
+		} = {};
+		if (!properties) return bounds;
+		const stateMap = new Map<string, { lats: number[]; lngs: number[] }>();
+		for (const p of properties) {
+			const state = p.state || "Other";
+			if (!p.coordinates?.lat || !p.coordinates?.lng) continue;
+			if (!stateMap.has(state)) stateMap.set(state, { lats: [], lngs: [] });
+			stateMap.get(state)!.lats.push(p.coordinates.lat);
+			stateMap.get(state)!.lngs.push(p.coordinates.lng);
+		}
+		for (const [state, coords] of stateMap) {
+			const avgLat =
+				coords.lats.reduce((a, b) => a + b, 0) / coords.lats.length;
+			const avgLng =
+				coords.lngs.reduce((a, b) => a + b, 0) / coords.lngs.length;
+			bounds[state] = { center: [avgLat, avgLng], zoom: 12 };
+		}
+		return bounds;
+	}, [properties]);
 
 	const handleStateHover = (stateName: string | null) => {
 		setHoveredState(stateName);
@@ -247,7 +245,7 @@ export default function Home() {
 
 	const handleStateClick = (stateName: string) => {
 		setSelectedState(stateName);
-		const stateInfo = stateBounds[stateName];
+		const stateInfo = regionBounds[stateName];
 		if (stateInfo) {
 			setViewport({
 				center: stateInfo.center,
@@ -732,7 +730,7 @@ export default function Home() {
 									</span>
 									<span className="text-xs font-medium text-green-600">
 										{selectedProperty.currentValue &&
-											`₦${selectedProperty.currentValue.toLocaleString()}`}
+											`$${selectedProperty.currentValue.toLocaleString()}`}
 									</span>
 								</div>
 							</div>

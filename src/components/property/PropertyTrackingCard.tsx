@@ -1,3 +1,4 @@
+import UserAvatar from "@/components/ui/UserAvatar";
 import { formatArea, formatCurrency } from "@/lib/utils";
 import { Property, PropertyStatus } from "@/types/property";
 import { MessageCircle, MoreHorizontal, Phone } from "lucide-react";
@@ -61,7 +62,7 @@ export default function PropertyTrackingCard({
 						</h3>
 						<span
 							className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-								property.status
+								property.status,
 							)}`}
 						>
 							{getStatusText(property.status)}
@@ -100,7 +101,7 @@ export default function PropertyTrackingCard({
 							</span>
 							<span className="text-xs font-medium text-gray-900">
 								{formatCurrency(
-									property.currentValue || property.purchasePrice
+									property.currentValue || property.purchasePrice,
 								)}
 							</span>
 						</div>
@@ -111,19 +112,16 @@ export default function PropertyTrackingCard({
 			{/* Owner/Contact Info */}
 			{property.owner && (
 				<div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100">
-					<div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
-						<span className="text-xs font-medium text-white">
-							{property.owner.name.charAt(0).toUpperCase()}
-						</span>
-					</div>
-					<div className="flex-1 min-w-0">
-						<p className="text-xs font-medium text-gray-900 truncate">
-							{property.owner.name}
-						</p>
-						<p className="text-xs text-gray-500 capitalize">
-							{property.owner.type}
-						</p>
-					</div>
+					<UserAvatar
+						name={property.owner.name}
+						displayName={property.owner.displayName}
+						username={property.owner.username}
+						avatar={property.owner.avatar}
+						ownerId={property.owner.id}
+						size="md"
+						showLabel
+						className="flex-1 min-w-0"
+					/>
 					<div className="flex items-center gap-2">
 						<button className="p-2 hover:bg-gray-100 rounded-full">
 							<Phone className="w-4 h-4 text-gray-400" />

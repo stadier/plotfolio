@@ -1,4 +1,9 @@
-import { Property } from "@/types/property";
+import {
+	AccessRequestStatus,
+	DocumentAccessLevel,
+	DocumentAccessRequest,
+	Property,
+} from "@/types/property";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -91,6 +96,22 @@ export class PropertyAPI {
 		}
 	}
 
+	static async getMarketplaceListings(): Promise<Property[]> {
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/properties?status=for_sale`,
+			);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const data = await response.json();
+			return Array.isArray(data) ? data : [];
+		} catch (error) {
+			console.error("Error fetching marketplace listings:", error);
+			return [];
+		}
+	}
+
 	static async seedDatabase(): Promise<boolean> {
 		try {
 			const response = await fetch(`${API_BASE_URL}/seed`, {
@@ -101,6 +122,118 @@ export class PropertyAPI {
 		} catch (error) {
 			console.error("Error seeding database:", error);
 			return false;
+		}
+	}
+
+	// --- Document Access ---
+
+	static async updateDocumentAccessLevel(
+		propertyId: string,
+		docId: string,
+		accessLevel: DocumentAccessLevel,
+	): Promise<boolean> {
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents`,
+				{
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ docId, accessLevel }),
+				},
+			);
+			return response.ok;
+		} catch (error) {
+			console.error("Error updating document access level:", error);
+			return false;
+		}
+	}
+
+	static async requestDocumentAccess(
+		propertyId: string,
+		data: {
+			documentId: string;
+			requesterId: string;
+			requesterName: string;
+			requesterEmail: string;
+			requesterAvatar?: string;
+			message?: string;
+		},
+	): Promise<DocumentAccessRequest | null> {
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents/access-requests`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				},
+			);
+			if (!response.ok) return null;
+			return await response.json();
+		} catch (error) {
+			console.error("Error requesting document access:", error);
+			return null;
+		}
+	}
+
+	static async getDocumentAccessRequests(
+		propertyId: string,
+		params: { requesterId?: string; ownerId?: string },
+	): Promise<DocumentAccessRequest[]> {
+		try {
+			const searchParams = new URLSearchParams();
+			if (params.requesterId)
+				searchParams.set("requesterId", params.requesterId);
+			if (params.ownerId) searchParams.set("ownerId", params.ownerId);
+			const response = await fetch(
+				`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents/access-requests?${searchParams}`,
+			);
+			if (!response.ok) return [];
+			return await response.json();
+		} catch (error) {
+			console.error("Error fetching access requests:", error);
+			return [];
+		}
+	}
+
+	static async respondToAccessRequest(
+		propertyId: string,
+		data: {
+			requestId: string;
+			status: AccessRequestStatus;
+			ownerId: string;
+			responseMessage?: string;
+		},
+	): Promise<DocumentAccessRequest | null> {
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents/access-requests`,
+				{
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				},
+			);
+			if (!response.ok) return null;
+			return await response.json();
+		} catch (error) {
+			console.error("Error responding to access request:", error);
+			return null;
+		}
+	}
+
+	static async getAllAccessRequestsForOwner(
+		ownerId: string,
+	): Promise<DocumentAccessRequest[]> {
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/document-requests?ownerId=${encodeURIComponent(ownerId)}`,
+			);
+			if (!response.ok) return [];
+			return await response.json();
+		} catch (error) {
+			console.error("Error fetching owner access requests:", error);
+			return [];
 		}
 	}
 }

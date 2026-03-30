@@ -337,12 +337,12 @@ export default function GoogleMapComponent({
 }: GoogleMapComponentProps) {
 	const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
 	const [currentMapTypeId, setCurrentMapTypeId] = useState(
-		getGoogleMapTypeId(mapType)
+		getGoogleMapTypeId(mapType),
 	);
 
 	const center = viewport.center
 		? { lat: viewport.center[0], lng: viewport.center[1] }
-		: { lat: 9.0765, lng: 7.4951 }; // Abuja, Nigeria
+		: { lat: 20, lng: 0 };
 
 	// Update map type when prop changes
 	useEffect(() => {
@@ -362,11 +362,11 @@ export default function GoogleMapComponent({
 					? [
 							[bounds.south, bounds.west],
 							[bounds.north, bounds.east],
-					  ]
+						]
 					: undefined,
 			});
 		},
-		[onViewportChange]
+		[onViewportChange],
 	);
 
 	const handleMarkerClick = useCallback(
@@ -376,7 +376,7 @@ export default function GoogleMapComponent({
 				onPropertyClick(property);
 			}
 		},
-		[onPropertyClick]
+		[onPropertyClick],
 	);
 
 	return (
@@ -418,23 +418,47 @@ export default function GoogleMapComponent({
 					)}
 
 					{/* Property Markers */}
-					{properties.map((property) => (
-						<AdvancedMarker
-							key={property.id}
-							position={{
-								lat: property.coordinates.lat,
-								lng: property.coordinates.lng,
-							}}
-							onClick={() => handleMarkerClick(property)}
-						>
-							<div
-								className="w-8 h-8 rounded-full border-4 border-white shadow-lg cursor-pointer transform transition-transform hover:scale-110"
-								style={{
-									backgroundColor: getPropertyTypeColor(property.propertyType),
+					{properties
+						.filter((p) => p.coordinates)
+						.map((property) => (
+							<AdvancedMarker
+								key={property.id}
+								position={{
+									lat: property.coordinates.lat,
+									lng: property.coordinates.lng,
 								}}
-							/>
-						</AdvancedMarker>
-					))}
+								onClick={() => handleMarkerClick(property)}
+							>
+								{property.images && property.images.length > 0 ? (
+									<div
+										className={`cursor-pointer transition-transform hover:scale-110 overflow-hidden bg-white ${
+											selectedProperty?.id === property.id
+												? "w-14 h-14 border-[3px] border-blue-500"
+												: "w-12 h-12 border-2 border-white"
+										}`}
+										style={{
+											borderRadius: "10px",
+											boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+										}}
+									>
+										<img
+											src={property.images[0]}
+											alt=""
+											className="w-full h-full object-cover"
+										/>
+									</div>
+								) : (
+									<div
+										className="w-8 h-8 rounded-full border-4 border-white shadow-lg cursor-pointer transform transition-transform hover:scale-110"
+										style={{
+											backgroundColor: getPropertyTypeColor(
+												property.propertyType,
+											),
+										}}
+									/>
+								)}
+							</AdvancedMarker>
+						))}
 
 					{/* Info Window for selected marker */}
 					{selectedMarker && (
@@ -446,7 +470,7 @@ export default function GoogleMapComponent({
 												.coordinates.lat,
 											lng: properties.find((p) => p.id === selectedMarker)!
 												.coordinates.lng,
-									  }
+										}
 									: center
 							}
 							onCloseClick={() => setSelectedMarker(null)}

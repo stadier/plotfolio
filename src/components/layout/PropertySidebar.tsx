@@ -28,9 +28,9 @@ function getStatusColor(status: PropertyStatus): string {
 }
 
 function formatCurrency(amount: number): string {
-	return new Intl.NumberFormat("en-NG", {
+	return new Intl.NumberFormat("en-US", {
 		style: "currency",
-		currency: "NGN",
+		currency: "USD",
 		minimumFractionDigits: 0,
 	}).format(amount);
 }
@@ -79,7 +79,7 @@ export default function PropertySidebar({
 								<button
 									key={status}
 									className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-										status
+										status,
 									)}`}
 								>
 									{status.replace("_", " ")}
@@ -132,7 +132,7 @@ export default function PropertySidebar({
 										<div className="flex items-center mt-2 space-x-2">
 											<span
 												className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-													property.status
+													property.status,
 												)}`}
 											>
 												{property.status.replace("_", " ")}

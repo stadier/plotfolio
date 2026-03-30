@@ -5,16 +5,20 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
-	return new Intl.NumberFormat("en-NG", {
+export function formatCurrency(
+	amount: number,
+	currency = "USD",
+	locale = "en-US",
+): string {
+	return new Intl.NumberFormat(locale, {
 		style: "currency",
-		currency: "NGN",
+		currency,
 	}).format(amount);
 }
 
 export function formatArea(
 	area: number,
-	unit: "sqm" | "acres" = "sqm"
+	unit: "sqm" | "acres" = "sqm",
 ): string {
 	if (unit === "acres") {
 		return `${area.toLocaleString()} acres`;
@@ -34,7 +38,7 @@ export function calculateDistance(
 	lat1: number,
 	lng1: number,
 	lat2: number,
-	lng2: number
+	lng2: number,
 ): number {
 	const R = 3959; // Earth's radius in miles
 	const dLat = toRadians(lat2 - lat1);
@@ -74,7 +78,7 @@ export function getPropertyTypeColor(type: string): string {
 
 export function debounce<T extends (...args: unknown[]) => unknown>(
 	func: T,
-	delay: number
+	delay: number,
 ): (...args: Parameters<T>) => void {
 	let timeoutId: NodeJS.Timeout;
 

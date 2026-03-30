@@ -31,9 +31,11 @@ export default function PlotGridOverlay({
 			const bounds = map.getBounds();
 
 			// Convert grid size from meters to degrees (approximate)
-			// At Abuja's latitude (~9°), 1 degree ≈ 111km
+			// 1 degree latitude ≈ 111km; adjust longitude by cos(latitude)
 			const latDegPerMeter = 1 / 111000;
-			const lngDegPerMeter = 1 / (111000 * Math.cos((9 * Math.PI) / 180));
+			const mapCenter = map.getCenter();
+			const lngDegPerMeter =
+				1 / (111000 * Math.cos((mapCenter.lat * Math.PI) / 180));
 
 			const gridLatStep = gridSize * latDegPerMeter;
 			const gridLngStep = gridSize * lngDegPerMeter;
@@ -60,7 +62,7 @@ export default function PlotGridOverlay({
 						weight: 1,
 						opacity: gridOpacity,
 						interactive: false,
-					}
+					},
 				);
 				gridLayer.addLayer(line);
 			}
@@ -81,7 +83,7 @@ export default function PlotGridOverlay({
 						weight: 1,
 						opacity: gridOpacity,
 						interactive: false,
-					}
+					},
 				);
 				gridLayer.addLayer(line);
 			}

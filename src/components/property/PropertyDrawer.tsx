@@ -1,7 +1,7 @@
 "use client";
 
 import { Property } from "@/types/property";
-import { Maximize2, X } from "lucide-react";
+import { Maximize2, Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import PropertyDetailContent, {
@@ -12,11 +12,13 @@ import PropertyDetailContent, {
 interface PropertyDrawerProps {
 	propertyId: string | null;
 	onClose: () => void;
+	onChange?: (property: Property) => void;
 }
 
 export default function PropertyDrawer({
 	propertyId,
 	onClose,
+	onChange,
 }: PropertyDrawerProps) {
 	const [property, setProperty] = useState<Property | null>(null);
 	const [loading, setLoading] = useState(false);
@@ -81,9 +83,10 @@ export default function PropertyDrawer({
 			if (res.ok) {
 				const updated = await res.json();
 				setProperty(updated);
+				onChange?.(updated);
 			}
 		},
-		[property],
+		[property, onChange],
 	);
 
 	const handleDocUploaded = useCallback((doc: Property["documents"][0]) => {
@@ -110,23 +113,23 @@ export default function PropertyDrawer({
 			{/* Backdrop */}
 			<div
 				onClick={onClose}
-				className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+				className={`fixed top-[65px] left-0 right-0 bottom-0 bg-black/30 z-40 transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
 			/>
 
 			{/* Panel */}
 			<div
 				ref={panelRef}
-				className={`fixed right-0 top-0 h-full bg-white shadow-2xl z-50 flex flex-col
+				className={`fixed right-0 top-[65px] h-[calc(100vh-65px)] bg-slate-50 dark:bg-background border-l border-slate-200 dark:border-outline-variant shadow-2xl z-40 flex flex-col
 					transition-transform duration-300 ease-in-out
-					w-full sm:w-[600px] lg:w-[680px]
+					w-full sm:w-[55vw] lg:w-[50vw]
 					${isOpen ? "translate-x-0" : "translate-x-full"}`}
 			>
 				{/* Header */}
-				<div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+				<div className="flex items-start justify-between px-6 py-4 border-b border-slate-200 dark:border-outline-variant shrink-0">
 					<div className="min-w-0 flex-1 mr-4">
 						{property ? (
 							<>
-								<h2 className="text-base font-semibold text-gray-900 truncate">
+								<h2 className="text-base font-semibold text-on-surface truncate">
 									{property.name}
 								</h2>
 								<div className="flex items-center gap-2 mt-1">
@@ -135,23 +138,33 @@ export default function PropertyDrawer({
 									>
 										{property.status.replace(/_/g, " ")}
 									</span>
-									<span className="text-sm text-gray-500">
+									<span className="text-sm text-on-surface-variant">
 										{formatCurrency(property.purchasePrice)}
 									</span>
 								</div>
 							</>
 						) : (
-							<div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+							<div className="h-5 w-40 bg-gray-200 dark:bg-surface-container rounded animate-pulse" />
 						)}
 					</div>
 					<div className="flex items-center gap-1 shrink-0">
+						{/* Edit property */}
+						<button
+							onClick={() =>
+								propertyId && router.push(`/portfolio/properties/${propertyId}`)
+							}
+							title="Edit property"
+							className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-container text-gray-500 dark:text-on-surface-variant hover:text-gray-800 dark:hover:text-on-surface transition-colors"
+						>
+							<Pencil className="w-4 h-4" />
+						</button>
 						{/* Expand to full page */}
 						<button
 							onClick={() =>
-								propertyId && router.push(`/properties/${propertyId}`)
+								propertyId && router.push(`/portfolio/properties/${propertyId}`)
 							}
 							title="Open full page"
-							className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+							className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-container text-gray-500 dark:text-on-surface-variant hover:text-gray-800 dark:hover:text-on-surface transition-colors"
 						>
 							<Maximize2 className="w-4 h-4" />
 						</button>
@@ -159,7 +172,7 @@ export default function PropertyDrawer({
 						<button
 							onClick={onClose}
 							title="Close"
-							className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+							className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-container text-gray-500 dark:text-on-surface-variant hover:text-gray-800 dark:hover:text-on-surface transition-colors"
 						>
 							<X className="w-5 h-5" />
 						</button>
@@ -173,7 +186,7 @@ export default function PropertyDrawer({
 							{[1, 2, 3].map((i) => (
 								<div
 									key={i}
-									className="h-28 bg-gray-100 rounded-xl animate-pulse"
+									className="h-28 bg-gray-100 dark:bg-surface-container rounded-xl animate-pulse"
 								/>
 							))}
 						</div>

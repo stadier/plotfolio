@@ -1,9 +1,9 @@
+import { b2, B2_BUCKET } from "@/lib/b2";
 import connectDB from "@/lib/mongoose";
 import { PropertyModel } from "@/models/Property";
-import { DocumentType } from "@/types/property";
-import { mkdirSync, writeFileSync } from "fs";
+import { DocumentAccessLevel, DocumentType } from "@/types/property";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
-import { join } from "path";
 
 // POST /api/properties/[id]/documents
 // Accepts multipart/form-data with: file, type, name
@@ -38,22 +38,30 @@ export async function POST(
 		const safeName = name.replace(/[^a-zA-Z0-9._\- ]/g, "_");
 		const timestamp = Date.now();
 		const fileName = `${timestamp}_${safeName}`;
+		const key = `uploads/${id}/${fileName}`;
 
-		// Save file to /public/uploads/[propertyId]/
-		const uploadDir = join(process.cwd(), "public", "uploads", id);
-		mkdirSync(uploadDir, { recursive: true });
-
+		// Upload to Backblaze B2
 		const buffer = Buffer.from(await file.arrayBuffer());
-		writeFileSync(join(uploadDir, fileName), buffer);
+		await b2.send(
+			new PutObjectCommand({
+				Bucket: B2_BUCKET,
+				Key: key,
+				Body: buffer,
+				ContentType: file.type || "application/octet-stream",
+			}),
+		);
+
+		const url = `https://${B2_BUCKET}.s3.us-east-005.backblazeb2.com/${key}`;
 
 		const docId = crypto.randomUUID();
 		const document = {
 			id: docId,
 			name: safeName,
 			type,
-			url: `/uploads/${id}/${fileName}`,
+			url,
 			uploadDate: new Date(),
 			size: file.size,
+			accessLevel: DocumentAccessLevel.PUBLIC,
 		};
 
 		// Append document to property in DB
@@ -85,6 +93,20 @@ export async function DELETE(
 		}
 
 		await connectDB();
+
+		// Find the document to get its URL/key before removing
+		const property = await PropertyModel.findOne(
+			{ id, "documents.id": docId },
+			{ "documents.$": 1 },
+		);
+		const doc = property?.documents?.[0];
+		if (doc?.url) {
+			// Extract the key from the B2 URL
+			const urlObj = new URL(doc.url);
+			const key = urlObj.pathname.slice(1); // remove leading /
+			await b2.send(new DeleteObjectCommand({ Bucket: B2_BUCKET, Key: key }));
+		}
+
 		await PropertyModel.updateOne(
 			{ id },
 			{ $pull: { documents: { id: docId } } },
@@ -95,6 +117,54 @@ export async function DELETE(
 		console.error("Error deleting document:", error);
 		return NextResponse.json(
 			{ error: "Failed to delete document" },
+			{ status: 500 },
+		);
+	}
+}
+
+// PATCH /api/properties/[id]/documents - Update document access level
+export async function PATCH(
+	request: NextRequest,
+	{ params }: { params: Promise<{ id: string }> },
+) {
+	try {
+		const { id } = await params;
+		const body = await request.json();
+		const { docId, accessLevel } = body;
+
+		if (!docId || !accessLevel) {
+			return NextResponse.json(
+				{ error: "docId and accessLevel are required" },
+				{ status: 400 },
+			);
+		}
+
+		if (!Object.values(DocumentAccessLevel).includes(accessLevel)) {
+			return NextResponse.json(
+				{ error: "Invalid access level" },
+				{ status: 400 },
+			);
+		}
+
+		await connectDB();
+
+		const result = await PropertyModel.updateOne(
+			{ id, "documents.id": docId },
+			{ $set: { "documents.$.accessLevel": accessLevel } },
+		);
+
+		if (result.matchedCount === 0) {
+			return NextResponse.json(
+				{ error: "Property or document not found" },
+				{ status: 404 },
+			);
+		}
+
+		return NextResponse.json({ success: true, accessLevel });
+	} catch (error) {
+		console.error("Error updating document access level:", error);
+		return NextResponse.json(
+			{ error: "Failed to update document access level" },
 			{ status: 500 },
 		);
 	}

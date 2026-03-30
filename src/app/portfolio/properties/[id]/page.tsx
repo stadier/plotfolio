@@ -96,7 +96,7 @@ export default function PropertyDetailPage({
 						{error ?? "Property not found"}
 					</div>
 					<Link
-						href="/properties"
+						href="/portfolio/properties"
 						className="text-sm text-on-surface-variant hover:text-primary transition-colors"
 					>
 						← Back to Properties
@@ -112,7 +112,7 @@ export default function PropertyDetailPage({
 			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-5 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
 					<Link
-						href="/properties"
+						href="/portfolio/properties"
 						className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors font-body"
 					>
 						<ArrowLeft className="w-4 h-4" />

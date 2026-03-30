@@ -8,6 +8,12 @@
 			"isBackground": true,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "Seed Database",
+			"type": "shell",
+			"command": "npx -y node-fetch-cli POST http://localhost:4600/api/seed 2>/dev/null || npm exec -- node -e \"fetch('http://localhost:4600/api/seed',{method:'POST'}).then(r=>r.json()).then(d=>console.log(JSON.stringify(d,null,2))).catch(e=>console.error(e))\"",
+			"isBackground": false
 		}
 	]
 }

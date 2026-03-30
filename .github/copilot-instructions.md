@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Plotfolio is a modern property management application for Nigerian land plots, built with Next.js 16, TypeScript, MongoDB, and Leaflet maps. The application enables landowners to visualize, manage, and track their property portfolios with interactive maps and survey document integration.
+Plotfolio is a modern property management application for real estate worldwide, built with Next.js 16, TypeScript, MongoDB, and Leaflet maps. The application enables property owners to visualize, manage, and track their property portfolios (land, houses, buildings, developments) with interactive maps and survey document integration.
 
 ## Code Style and Standards
 
@@ -75,14 +75,20 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 - Implement loading states for async operations
 - Use controlled components for forms
 - Lift state up when needed for sibling communication
+- **Anything potentially reusable must be componentized** (UI blocks, repeated sections, repeated controls, repeated card layouts) instead of duplicated inline
+- **Card and metric components must have a max-width** (e.g. `max-w-xs`, `max-w-xl`) — they should never stretch to fill all available space
+- **Detail panels and document upload/preview components must have a max-width and stay left-aligned/top-aligned**; on reduced space they should wrap/flex rather than stretch to fill extra width
+- **This max-width + top-left alignment rule applies to every UI component in the app**; components should only grow up to their max-width and then wrap/reflow rather than stretching to consume all horizontal space
 
 ## Feature-Specific Guidelines
 
 ### Property Management
 
 - Properties must have coordinates, area, and status
+- Properties can be land plots, houses, buildings, or any real estate
 - Support PropertyType enum: RESIDENTIAL, COMMERCIAL, etc.
 - Support PropertyStatus enum: OWNED, FOR_SALE, DEVELOPMENT, etc.
+- Support PropertyCondition enum: includes land conditions (bush, cleared, rocky) and building conditions (under_construction, finished, renovated, needs_repair)
 
 ### Boundary Registration
 
@@ -96,8 +102,9 @@ Three methods supported:
 
 - Use Leaflet with React Leaflet wrapper
 - Always use dynamic imports with `ssr: false`
-- Center on Abuja, Nigeria by default (9.0765°N, 7.4951°E)
-- Support zoom levels 10-18 for property visualization
+- Default to a global view (lat 20, lng 0, zoom 3) when no property coordinates are available
+- Support zoom levels 3-18 for property visualization
+- Google Places autocomplete for address search (no country restrictions)
 
 ### Survey Data
 
@@ -185,6 +192,24 @@ MONGODB_URI=mongodb+srv://...
 MONGODB_DB=plotfolio
 ```
 
+## Global Platform Guidelines
+
+### No Country Restrictions
+
+- This is a worldwide platform — never restrict to a specific country
+- No hardcoded country codes, currency symbols, or locale-specific formatting
+- Google Places autocomplete: no `componentRestrictions`
+- Coordinate validation: accept any valid lat/lng worldwide
+- Phone number fields: accept international formats
+- Address/location placeholders: use generic examples
+
+### Property Types
+
+- The platform supports ALL real estate: land plots, houses, apartments, commercial buildings, farms, mixed-use developments
+- Never use "land plot" exclusively — use "property" as the general term
+- PropertyCondition enum covers both land states (bush, cleared, rocky) and building states (under_construction, finished, renovated)
+- DocumentType enum includes both land docs (survey, deed) and building docs (building_permit, inspection_report)
+
 ## Testing Considerations
 
 - Test database connections before operations
@@ -193,26 +218,28 @@ MONGODB_DB=plotfolio
 - Test map rendering at different zoom levels
 - Verify survey data extraction accuracy
 
-## Nigerian Land Plot Specifics
+## Property Specifics
 
 ### Typical Dimensions
 
-- Residential plots: 600-1000 sqm
+- Residential plots: 200-2000 sqm depending on region
 - Plot shapes: Usually rectangular or irregular polygons
-- Common locations: Abuja (Maitama, Gwarinpa, Jahi, Kubwa, Wuye)
+- Buildings: Area measured in sqm or sq ft
 
 ### Coordinate System
 
 - Use decimal degrees (not DMS)
-- Latitude range: ~6° to 14°N (Nigeria bounds)
-- Longitude range: ~3° to 15°E (Nigeria bounds)
+- Accept any valid latitude (-90 to 90) and longitude (-180 to 180)
 
 ### Legal Documents
 
-- Certificate of Occupancy (C of O)
+- Title deeds
 - Survey plans with bearings and distances
-- Deed of assignment
-- Plot allocation papers
+- Certificates of Occupancy
+- Building permits
+- Inspection reports
+- Contracts of sale
+- Lease agreements
 
 ## Common Patterns
 
