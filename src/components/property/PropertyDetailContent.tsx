@@ -13,6 +13,7 @@ import {
 import {
 	Calendar,
 	Check,
+	ChevronDown,
 	Copy,
 	Download,
 	Edit3,
@@ -27,13 +28,18 @@ import {
 	Users,
 	X,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
 import {
 	AccessRequestManager,
-	DocumentAccessLevelBadge,
 	DocumentAccessLevelPicker,
 	RestrictedDocumentRow,
 } from "./DocumentAccessControl";
+
+const PropertyMiniMap = dynamic(
+	() => import("@/components/maps/PropertyMiniMap"),
+	{ ssr: false },
+);
 
 const API_BASE = "/api";
 
@@ -310,14 +316,13 @@ export function EditableTagList({
 	);
 }
 
-// ----- Document section -----
-export function DocumentSection({
-	category,
-	documents,
+// ----- Document card (book-style) -----
+function DocumentCard({
+	doc,
 	propertyId,
-	onUploaded,
+	isOwner,
 	onDeleted,
-	isOwner = true,
+	onTypeChanged,
 	onAccessLevelChanged,
 	viewerId,
 	viewerName,
@@ -326,12 +331,11 @@ export function DocumentSection({
 	accessRequests = [],
 	onAccessRequested,
 }: {
-	category: { type: DocumentType; label: string };
-	documents: Property["documents"];
+	doc: Property["documents"][0];
 	propertyId: string;
-	onUploaded: (doc: Property["documents"][0]) => void;
+	isOwner: boolean;
 	onDeleted: (docId: string) => void;
-	isOwner?: boolean;
+	onTypeChanged: (docId: string, newType: DocumentType) => void;
 	onAccessLevelChanged?: (docId: string, level: DocumentAccessLevel) => void;
 	viewerId?: string;
 	viewerName?: string;
@@ -340,11 +344,203 @@ export function DocumentSection({
 	accessRequests?: DocumentAccessRequest[];
 	onAccessRequested?: (req: DocumentAccessRequest) => void;
 }) {
+	const [typeOpen, setTypeOpen] = useState(false);
+	const typeRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		function handleClickOutside(e: MouseEvent) {
+			if (typeRef.current && !typeRef.current.contains(e.target as Node)) {
+				setTypeOpen(false);
+			}
+		}
+		if (typeOpen) document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [typeOpen]);
+
+	const accessLevel = doc.accessLevel ?? DocumentAccessLevel.PUBLIC;
+	const kind = getFileKind(doc.name, doc.url);
+	const extension = getFileExtension(doc.name, doc.url);
+	const extensionLabel =
+		kind === "pdf"
+			? "PDF"
+			: extension
+				? extension.toUpperCase().slice(0, 5)
+				: "FILE";
+
+	// Viewer mode: restricted docs show access gate
+	if (!isOwner && accessLevel === DocumentAccessLevel.REQUEST_REQUIRED) {
+		const hasApproved = accessRequests.some(
+			(r) =>
+				r.documentId === doc.id &&
+				r.requesterId === viewerId &&
+				r.status === AccessRequestStatus.APPROVED,
+		);
+		if (
+			!hasApproved &&
+			viewerId &&
+			viewerName &&
+			viewerEmail &&
+			onAccessRequested
+		) {
+			return (
+				<RestrictedDocumentRow
+					key={doc.id}
+					doc={doc}
+					propertyId={propertyId}
+					viewerId={viewerId}
+					viewerName={viewerName}
+					viewerEmail={viewerEmail}
+					viewerAvatar={viewerAvatar}
+					existingRequests={accessRequests}
+					onRequested={onAccessRequested}
+				/>
+			);
+		}
+	}
+
+	// Viewer mode: private docs hidden
+	if (!isOwner && accessLevel === DocumentAccessLevel.PRIVATE) return null;
+
+	async function handleDelete(docId: string) {
+		try {
+			const res = await fetch(
+				`${API_BASE}/properties/${propertyId}/documents?docId=${docId}`,
+				{ method: "DELETE" },
+			);
+			if (res.ok) onDeleted(docId);
+		} catch {
+			/* silent */
+		}
+	}
+
+	return (
+		<div className="w-32 flex flex-col rounded-xl border border-gray-200 dark:border-outline-variant/40 overflow-hidden bg-white dark:bg-surface-container-low group relative shrink-0">
+			{/* Thumbnail / icon area */}
+			<div className="h-40 flex flex-col items-center justify-center bg-gray-50 dark:bg-surface-container relative">
+				{kind === "image" ? (
+					<img
+						src={doc.url}
+						alt={doc.name}
+						className="h-full w-full object-cover"
+					/>
+				) : (
+					<div className="flex flex-col items-center gap-2 text-gray-400 dark:text-on-surface-variant">
+						<FileText className="w-7 h-7" />
+						<span className="text-[10px] font-semibold uppercase tracking-wide">
+							{extensionLabel}
+						</span>
+					</div>
+				)}
+				{/* Hover actions */}
+				<div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+					<a
+						href={doc.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-gray-600 dark:text-on-surface-variant hover:text-gray-900 dark:hover:text-on-surface"
+						title="Open"
+					>
+						<Download className="w-3.5 h-3.5" />
+					</a>
+					{isOwner && (
+						<>
+							<DocumentAccessLevelPicker
+								docId={doc.id}
+								propertyId={propertyId}
+								currentLevel={accessLevel}
+								onChanged={(docId, level) =>
+									onAccessLevelChanged?.(docId, level)
+								}
+							/>
+							<button
+								onClick={() => handleDelete(doc.id)}
+								className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-gray-400 hover:text-red-500"
+								title="Delete"
+							>
+								<Trash2 className="w-3.5 h-3.5" />
+							</button>
+						</>
+					)}
+				</div>
+			</div>
+
+			{/* Name */}
+			<div className="px-2 pt-1.5 pb-1">
+				<div
+					className="text-[11px] font-medium text-gray-800 dark:text-on-surface truncate"
+					title={doc.name}
+				>
+					{doc.name}
+				</div>
+				<div className="text-[10px] text-gray-400 dark:text-on-surface-variant">
+					{new Date(doc.uploadDate).toLocaleDateString("en-US", {
+						month: "short",
+						day: "numeric",
+					})}
+				</div>
+			</div>
+
+			{/* Type at bottom — clickable to change */}
+			<div className="px-2 pb-2 mt-auto relative" ref={typeRef}>
+				<button
+					onClick={() => isOwner && setTypeOpen(!typeOpen)}
+					className={`text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-surface-container-high text-gray-600 dark:text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-gray-200 dark:hover:bg-surface-container cursor-pointer" : ""}`}
+					title={
+						isOwner ? "Click to change type" : getDocumentTypeLabel(doc.type)
+					}
+				>
+					{getDocumentTypeLabel(doc.type)}
+				</button>
+				{typeOpen && (
+					<div className="absolute bottom-full left-0 mb-1 bg-white dark:bg-surface-container-high border border-gray-200 dark:border-outline-variant/40 rounded-lg shadow-lg z-30 py-1 w-48">
+						{DOCUMENT_CATEGORIES.map((cat) => (
+							<button
+								key={cat.type}
+								onClick={() => {
+									onTypeChanged(doc.id, cat.type);
+									setTypeOpen(false);
+								}}
+								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-surface-container ${doc.type === cat.type ? "font-semibold text-gray-900 dark:text-on-surface" : "text-gray-600 dark:text-on-surface-variant"}`}
+							>
+								{cat.label}
+							</button>
+						))}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+// ----- Document upload button (with type picker) -----
+function DocumentUploadButton({
+	propertyId,
+	onUploaded,
+}: {
+	propertyId: string;
+	onUploaded: (doc: Property["documents"][0]) => void;
+}) {
+	const [selectedType, setSelectedType] = useState<DocumentType>(
+		DocumentType.OTHER,
+	);
+	const [typeOpen, setTypeOpen] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const dropdownRef = useRef<HTMLDivElement>(null);
 
-	const categoryDocs = documents.filter((d) => d.type === category.type);
+	useEffect(() => {
+		function handleClickOutside(e: MouseEvent) {
+			if (
+				dropdownRef.current &&
+				!dropdownRef.current.contains(e.target as Node)
+			) {
+				setTypeOpen(false);
+			}
+		}
+		if (typeOpen) document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [typeOpen]);
 
 	async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const file = e.target.files?.[0];
@@ -354,14 +550,11 @@ export function DocumentSection({
 		try {
 			const formData = new FormData();
 			formData.append("file", file);
-			formData.append("type", category.type);
+			formData.append("type", selectedType);
 			formData.append("name", file.name);
 			const res = await fetch(
 				`${API_BASE}/properties/${propertyId}/documents`,
-				{
-					method: "POST",
-					body: formData,
-				},
+				{ method: "POST", body: formData },
 			);
 			if (!res.ok) {
 				const err = await res.json();
@@ -377,197 +570,122 @@ export function DocumentSection({
 		}
 	}
 
-	async function handleDelete(docId: string) {
-		try {
-			const res = await fetch(
-				`${API_BASE}/properties/${propertyId}/documents?docId=${docId}`,
-				{ method: "DELETE" },
-			);
-			if (res.ok) onDeleted(docId);
-		} catch {
-			/* silent */
-		}
-	}
-
 	return (
-		<div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl overflow-hidden">
-			<div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
-				<div className="flex items-center gap-2">
-					<FileText className="w-4 h-4 text-gray-500" />
-					<span className="text-sm font-semibold text-gray-800">
-						{category.label}
-					</span>
-					{categoryDocs.length > 0 && (
-						<span className="text-xs text-gray-500 bg-gray-200 rounded-full px-2 py-0.5">
-							{categoryDocs.length}
-						</span>
-					)}
-				</div>
-				{isOwner && (
-					<label
-						className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${uploading ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-gray-900 text-white hover:bg-gray-700"}`}
-					>
-						{uploading ? (
-							<>
-								<Upload className="w-3.5 h-3.5 animate-pulse" />
-								Uploading...
-							</>
-						) : (
-							<>
-								<Plus className="w-3.5 h-3.5" />
-								Upload
-							</>
-						)}
-						<input
-							ref={inputRef}
-							type="file"
-							className="hidden"
-							disabled={uploading}
-							onChange={handleFileChange}
-						/>
-					</label>
-				)}
-			</div>
-			<div className="divide-y divide-gray-100">
-				{categoryDocs.length === 0 ? (
-					<div className="px-5 py-4 text-sm text-gray-400 italic">
-						No {category.label.toLowerCase()} uploaded yet
-					</div>
-				) : (
-					categoryDocs.map((doc) => {
-						const accessLevel = doc.accessLevel ?? DocumentAccessLevel.PUBLIC;
-
-						// Viewer mode: for restricted docs, show access gate
-						if (
-							!isOwner &&
-							accessLevel === DocumentAccessLevel.REQUEST_REQUIRED
-						) {
-							// Check if viewer has approved access
-							const hasApprovedAccess = accessRequests.some(
-								(r) =>
-									r.documentId === doc.id &&
-									r.requesterId === viewerId &&
-									r.status === AccessRequestStatus.APPROVED,
-							);
-
-							if (
-								!hasApprovedAccess &&
-								viewerId &&
-								viewerName &&
-								viewerEmail &&
-								onAccessRequested
-							) {
-								return (
-									<RestrictedDocumentRow
-										key={doc.id}
-										doc={doc}
-										propertyId={propertyId}
-										viewerId={viewerId}
-										viewerName={viewerName}
-										viewerEmail={viewerEmail}
-										viewerAvatar={viewerAvatar}
-										existingRequests={accessRequests}
-										onRequested={onAccessRequested}
-									/>
-								);
-							}
-						}
-
-						// Viewer mode: private docs are completely hidden
-						if (!isOwner && accessLevel === DocumentAccessLevel.PRIVATE) {
-							return null;
-						}
-
-						const kind = getFileKind(doc.name, doc.url);
-						const extension = getFileExtension(doc.name, doc.url);
-						const extensionLabel =
-							kind === "pdf"
-								? "PDF"
-								: extension
-									? extension.toUpperCase().slice(0, 5)
-									: "FILE";
-
-						return (
-							<div
-								key={doc.id}
-								className="flex items-start justify-between px-5 py-3 gap-3"
+		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-gray-300 dark:border-outline-variant/50 bg-gray-50/50 dark:bg-surface-container/50 hover:bg-gray-100 dark:hover:bg-surface-container transition-colors">
+			{/* Type selector */}
+			<div className="relative mt-3 px-2 w-full" ref={dropdownRef}>
+				<button
+					onClick={() => setTypeOpen(!typeOpen)}
+					className="w-full flex items-center justify-center gap-1 text-[10px] text-gray-500 dark:text-on-surface-variant hover:text-gray-700 dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-white dark:bg-surface-container-high border border-gray-200 dark:border-outline-variant/40"
+				>
+					<span className="truncate">{getDocumentTypeLabel(selectedType)}</span>
+					<ChevronDown className="w-3 h-3 shrink-0" />
+				</button>
+				{typeOpen && (
+					<div className="absolute top-full left-0 mt-1 bg-white dark:bg-surface-container-high border border-gray-200 dark:border-outline-variant/40 rounded-lg shadow-lg z-30 py-1 w-48">
+						{DOCUMENT_CATEGORIES.map((cat) => (
+							<button
+								key={cat.type}
+								onClick={() => {
+									setSelectedType(cat.type);
+									setTypeOpen(false);
+								}}
+								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-surface-container ${selectedType === cat.type ? "font-semibold text-gray-900 dark:text-on-surface" : "text-gray-600 dark:text-on-surface-variant"}`}
 							>
-								<div className="flex items-start gap-3 min-w-0">
-									<div className="h-14 w-14 rounded-lg border border-gray-200 overflow-hidden shrink-0 bg-gray-50">
-										{kind === "image" ? (
-											<img
-												src={doc.url}
-												alt={doc.name}
-												className="h-full w-full object-cover"
-											/>
-										) : (
-											<div className="h-full w-full flex flex-col items-center justify-center gap-1 text-gray-500">
-												<FileText className="w-4 h-4" />
-												<span className="text-[10px] font-semibold uppercase tracking-wide">
-													{extensionLabel}
-												</span>
-											</div>
-										)}
-									</div>
-									<div className="min-w-0">
-										<div className="text-sm font-medium text-gray-800 truncate flex items-center gap-2">
-											{doc.name}
-											{isOwner && (
-												<DocumentAccessLevelBadge accessLevel={accessLevel} />
-											)}
-										</div>
-										<div className="mt-1 flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-											<span>
-												{new Date(doc.uploadDate).toLocaleDateString("en-US")}
-											</span>
-											{doc.size ? (
-												<span>{(doc.size / 1024).toFixed(1)} KB</span>
-											) : null}
-											<span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 uppercase tracking-wide">
-												{getDocumentTypeLabel(doc.type)}
-											</span>
-										</div>
-									</div>
-								</div>
-								<div className="flex items-center gap-1 ml-2 shrink-0 mt-1">
-									<a
-										href={doc.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700"
-										title="Open"
-									>
-										<Download className="w-4 h-4" />
-									</a>
-									{isOwner && (
-										<>
-											<DocumentAccessLevelPicker
-												docId={doc.id}
-												propertyId={propertyId}
-												currentLevel={accessLevel}
-												onChanged={(docId, level) =>
-													onAccessLevelChanged?.(docId, level)
-												}
-											/>
-											<button
-												onClick={() => handleDelete(doc.id)}
-												className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500"
-												title="Delete"
-											>
-												<Trash2 className="w-4 h-4" />
-											</button>
-										</>
-									)}
-								</div>
-							</div>
-						);
-					})
+								{cat.label}
+							</button>
+						))}
+					</div>
 				)}
 			</div>
+			{/* Upload area */}
+			<label className="flex-1 flex flex-col items-center justify-center cursor-pointer py-6 w-full">
+				{uploading ? (
+					<>
+						<Upload className="w-5 h-5 text-gray-400 dark:text-on-surface-variant animate-pulse" />
+						<span className="text-[10px] text-gray-400 dark:text-on-surface-variant mt-1">
+							Uploading…
+						</span>
+					</>
+				) : (
+					<>
+						<Plus className="w-5 h-5 text-gray-400 dark:text-on-surface-variant" />
+						<span className="text-[10px] text-gray-400 dark:text-on-surface-variant mt-1">
+							Upload
+						</span>
+					</>
+				)}
+				<input
+					ref={inputRef}
+					type="file"
+					className="hidden"
+					disabled={uploading}
+					onChange={handleFileChange}
+				/>
+			</label>
 			{uploadError && (
-				<div className="px-5 py-2 bg-red-50 text-red-600 text-sm border-t border-red-100">
+				<div className="px-2 pb-2 text-[10px] text-red-500 text-center">
 					{uploadError}
 				</div>
+			)}
+		</div>
+	);
+}
+
+// ----- Documents grid (only shows when docs exist or owner) -----
+export function DocumentsGrid({
+	documents,
+	propertyId,
+	onUploaded,
+	onDeleted,
+	onTypeChanged,
+	isOwner = true,
+	onAccessLevelChanged,
+	viewerId,
+	viewerName,
+	viewerEmail,
+	viewerAvatar,
+	accessRequests = [],
+	onAccessRequested,
+}: {
+	documents: Property["documents"];
+	propertyId: string;
+	onUploaded: (doc: Property["documents"][0]) => void;
+	onDeleted: (docId: string) => void;
+	onTypeChanged: (docId: string, newType: DocumentType) => void;
+	isOwner?: boolean;
+	onAccessLevelChanged?: (docId: string, level: DocumentAccessLevel) => void;
+	viewerId?: string;
+	viewerName?: string;
+	viewerEmail?: string;
+	viewerAvatar?: string;
+	accessRequests?: DocumentAccessRequest[];
+	onAccessRequested?: (req: DocumentAccessRequest) => void;
+}) {
+	const hasDocuments = documents.length > 0;
+	if (!hasDocuments && !isOwner) return null;
+
+	return (
+		<div className="flex flex-wrap gap-3 items-start">
+			{documents.map((doc) => (
+				<DocumentCard
+					key={doc.id}
+					doc={doc}
+					propertyId={propertyId}
+					isOwner={isOwner}
+					onDeleted={onDeleted}
+					onTypeChanged={onTypeChanged}
+					onAccessLevelChanged={onAccessLevelChanged}
+					viewerId={viewerId}
+					viewerName={viewerName}
+					viewerEmail={viewerEmail}
+					viewerAvatar={viewerAvatar}
+					accessRequests={accessRequests}
+					onAccessRequested={onAccessRequested}
+				/>
+			))}
+			{isOwner && (
+				<DocumentUploadButton propertyId={propertyId} onUploaded={onUploaded} />
 			)}
 		</div>
 	);
@@ -999,23 +1117,47 @@ export default function PropertyDetailContent({
 		docId: string,
 		level: DocumentAccessLevel,
 	) => {
-		// Update local property state to reflect the changed access level
 		const updatedDocs = (property.documents ?? []).map((d) =>
 			d.id === docId ? { ...d, accessLevel: level } : d,
 		);
 		onPatch({ documents: updatedDocs });
 	};
 
-	const docsCol = (
+	const handleDocTypeChanged = async (docId: string, newType: DocumentType) => {
+		try {
+			const res = await fetch(
+				`${API_BASE}/properties/${property.id}/documents`,
+				{
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ docId, type: newType }),
+				},
+			);
+			if (res.ok) {
+				const updatedDocs = (property.documents ?? []).map((d) =>
+					d.id === docId ? { ...d, type: newType } : d,
+				);
+				onPatch({ documents: updatedDocs });
+			}
+		} catch {
+			/* silent */
+		}
+	};
+
+	const docCount = property.documents?.length ?? 0;
+	const showDocsSection = docCount > 0 || isOwner;
+
+	const docsCol = showDocsSection ? (
 		<div className="w-full max-w-2xl space-y-4">
 			<div className="flex items-center justify-between">
-				<h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+				<h2 className="text-sm font-semibold text-gray-900 dark:text-on-surface uppercase tracking-wide">
 					Documents
 				</h2>
-				<span className="text-xs text-gray-500">
-					{property.documents?.length ?? 0} file
-					{(property.documents?.length ?? 0) !== 1 ? "s" : ""} total
-				</span>
+				{docCount > 0 && (
+					<span className="text-xs text-gray-500 dark:text-on-surface-variant">
+						{docCount} file{docCount !== 1 ? "s" : ""} total
+					</span>
+				)}
 			</div>
 			{isOwner && (
 				<AccessRequestManager
@@ -1024,31 +1166,42 @@ export default function PropertyDetailContent({
 					documents={property.documents ?? []}
 				/>
 			)}
-			{DOCUMENT_CATEGORIES.map((category) => (
-				<DocumentSection
-					key={category.type}
-					category={category}
-					documents={property.documents ?? []}
-					propertyId={property.id}
-					onUploaded={onDocUploaded}
-					onDeleted={onDocDeleted}
-					isOwner={isOwner}
-					onAccessLevelChanged={handleAccessLevelChanged}
-					viewerId={viewer?.id}
-					viewerName={viewer?.name}
-					viewerEmail={viewer?.email}
-					viewerAvatar={viewer?.avatar}
-					accessRequests={accessRequests}
-					onAccessRequested={onAccessRequested}
-				/>
-			))}
+			<DocumentsGrid
+				documents={property.documents ?? []}
+				propertyId={property.id}
+				onUploaded={onDocUploaded}
+				onDeleted={onDocDeleted}
+				onTypeChanged={handleDocTypeChanged}
+				isOwner={isOwner}
+				onAccessLevelChanged={handleAccessLevelChanged}
+				viewerId={viewer?.id}
+				viewerName={viewer?.name}
+				viewerEmail={viewer?.email}
+				viewerAvatar={viewer?.avatar}
+				accessRequests={accessRequests}
+				onAccessRequested={onAccessRequested}
+			/>
 		</div>
-	);
+	) : null;
+
+	const hasCoordinates =
+		property.coordinates &&
+		(property.coordinates.lat !== 0 || property.coordinates.lng !== 0);
+
+	const miniMapCol = hasCoordinates ? (
+		<PropertyMiniMap
+			lat={property.coordinates.lat}
+			lng={property.coordinates.lng}
+			propertyName={property.name}
+			mapHref="/portfolio/map"
+		/>
+	) : null;
 
 	if (layout === "stack") {
 		return (
 			<div className="flex flex-wrap items-start justify-start gap-6">
 				{summaryCol}
+				{miniMapCol}
 				{docsCol}
 			</div>
 		);
@@ -1057,6 +1210,7 @@ export default function PropertyDetailContent({
 	return (
 		<div className="flex flex-wrap items-start justify-start gap-6">
 			{summaryCol}
+			{miniMapCol}
 			{docsCol}
 		</div>
 	);

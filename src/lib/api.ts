@@ -1,3 +1,10 @@
+import type {
+	AIDocument,
+	AIDocumentType,
+	DocumentImage,
+	DocumentProcessingResult,
+	DocumentQueryResponse,
+} from "@/types/document";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -19,6 +26,22 @@ export class PropertyAPI {
 			return Array.isArray(data) ? data : [];
 		} catch (error) {
 			console.error("Error fetching properties:", error);
+			return [];
+		}
+	}
+
+	static async getMyProperties(ownerId: string): Promise<Property[]> {
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/properties?ownerId=${encodeURIComponent(ownerId)}`,
+			);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const data = await response.json();
+			return Array.isArray(data) ? data : [];
+		} catch (error) {
+			console.error("Error fetching user properties:", error);
 			return [];
 		}
 	}
@@ -233,6 +256,135 @@ export class PropertyAPI {
 			return await response.json();
 		} catch (error) {
 			console.error("Error fetching owner access requests:", error);
+			return [];
+		}
+	}
+
+	/* ── Document AI Pipeline ────────────────────────────── */
+
+	static async uploadDocument(
+		file: File,
+		userId: string,
+		options?: {
+			propertyId?: string;
+			documentType?: AIDocumentType;
+			skipIndexing?: boolean;
+		},
+	): Promise<DocumentProcessingResult | null> {
+		try {
+			const formData = new FormData();
+			formData.append("file", file);
+			formData.append("userId", userId);
+			if (options?.propertyId)
+				formData.append("propertyId", options.propertyId);
+			if (options?.documentType)
+				formData.append("documentType", options.documentType);
+			if (options?.skipIndexing) formData.append("skipIndexing", "true");
+
+			const response = await fetch(`${API_BASE_URL}/documents/upload`, {
+				method: "POST",
+				body: formData,
+			});
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			return await response.json();
+		} catch (error) {
+			console.error("Error uploading document:", error);
+			return null;
+		}
+	}
+
+	static async listDocuments(filters?: {
+		userId?: string;
+		propertyId?: string;
+		documentType?: string;
+	}): Promise<AIDocument[]> {
+		try {
+			const params = new URLSearchParams();
+			if (filters?.userId) params.set("userId", filters.userId);
+			if (filters?.propertyId) params.set("propertyId", filters.propertyId);
+			if (filters?.documentType)
+				params.set("documentType", filters.documentType);
+
+			const response = await fetch(`${API_BASE_URL}/documents?${params}`);
+			if (!response.ok) return [];
+			const data = await response.json();
+			return data.documents ?? [];
+		} catch (error) {
+			console.error("Error listing documents:", error);
+			return [];
+		}
+	}
+
+	static async getDocument(
+		id: string,
+	): Promise<{ document: AIDocument; images: DocumentImage[] } | null> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/documents/${id}`);
+			if (!response.ok) return null;
+			return await response.json();
+		} catch (error) {
+			console.error("Error fetching document:", error);
+			return null;
+		}
+	}
+
+	static async deleteDocument(id: string): Promise<boolean> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+				method: "DELETE",
+			});
+			return response.ok;
+		} catch (error) {
+			console.error("Error deleting document:", error);
+			return false;
+		}
+	}
+
+	static async reindexDocument(
+		id: string,
+	): Promise<{ chunksCreated: number } | null> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ reindex: true }),
+			});
+			if (!response.ok) return null;
+			return await response.json();
+		} catch (error) {
+			console.error("Error reindexing document:", error);
+			return null;
+		}
+	}
+
+	static async queryDocuments(
+		query: string,
+		options?: { userId?: string; propertyId?: string; limit?: number },
+	): Promise<DocumentQueryResponse | null> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/documents/query`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ query, ...options }),
+			});
+			if (!response.ok) return null;
+			return await response.json();
+		} catch (error) {
+			console.error("Error querying documents:", error);
+			return null;
+		}
+	}
+
+	static async getDocumentImages(documentId: string): Promise<DocumentImage[]> {
+		try {
+			const response = await fetch(
+				`${API_BASE_URL}/documents/${documentId}/images`,
+			);
+			if (!response.ok) return [];
+			const data = await response.json();
+			return data.images ?? [];
+		} catch (error) {
+			console.error("Error fetching document images:", error);
 			return [];
 		}
 	}

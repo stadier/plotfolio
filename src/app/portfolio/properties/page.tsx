@@ -1,11 +1,13 @@
 "use client";
 
+import { useRequireAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { PropertyAPI } from "@/lib/api";
+import { getPropertyImageUrls } from "@/lib/utils";
 import {
 	Property,
 	PropertyCondition,
@@ -61,7 +63,11 @@ const MOCK_PROPERTY_PREVIEWS: Record<string, PropertyPreviewConfig> = {
 function hydratePropertyPreview(property: Property): Property {
 	const preview = MOCK_PROPERTY_PREVIEWS[property.id];
 
-	if (!preview || (property.images?.length ?? 0) > 0) {
+	if (
+		!preview ||
+		(property.images?.length ?? 0) > 0 ||
+		(property.media?.length ?? 0) > 0
+	) {
 		return property;
 	}
 
@@ -267,7 +273,7 @@ function PropertyKindBadge({ property }: { property: Property }) {
 
 function PropertyHero({ property }: { property: Property }) {
 	const previewConfig = MOCK_PROPERTY_PREVIEWS[property.id];
-	const previewImage = property.images?.[0];
+	const previewImage = getPropertyImageUrls(property)[0];
 	const locality = getLocalityLabel(property.address);
 	const built = hasBuildingFootprint(property);
 	const areaLabel =
@@ -528,6 +534,7 @@ export default function PropertiesPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const { user, loading: authLoading } = useRequireAuth();
 
 	// Search & filter state
 	const [search, setSearch] = useState("");
@@ -538,10 +545,11 @@ export default function PropertiesPage() {
 	const animate = useAnimateOnce("properties");
 
 	useEffect(() => {
+		if (!user) return;
 		const load = async () => {
 			try {
 				setLoading(true);
-				const data = await PropertyAPI.getAllProperties();
+				const data = await PropertyAPI.getMyProperties(user.id);
 				setProperties(data.map(hydratePropertyPreview));
 			} catch {
 				setError("Failed to load properties");
@@ -550,7 +558,7 @@ export default function PropertiesPage() {
 			}
 		};
 		load();
-	}, []);
+	}, [user]);
 
 	// Filtered + sorted list
 	const filtered = useMemo(() => {
@@ -637,27 +645,33 @@ export default function PropertiesPage() {
 			label: "Properties",
 			value: String(properties.length),
 			icon: Building2,
-			iconColor: { bg: "bg-blue-50", text: "text-blue-600" },
 		},
 		{
 			label: "Portfolio Worth",
 			value: formatCurrency(totalValue),
 			icon: TrendingUp,
-			iconColor: { bg: "bg-green-50", text: "text-green-600" },
 		},
 		{
 			label: "Total Area",
 			value: `${totalArea.toLocaleString()} sqm`,
 			icon: MapPin,
-			iconColor: { bg: "bg-amber-50", text: "text-amber-600" },
 		},
 		{
 			label: "Documents",
 			value: String(totalDocs),
 			icon: FileText,
-			iconColor: { bg: "bg-purple-50", text: "text-purple-600" },
 		},
 	];
+
+	if (authLoading || !user) {
+		return (
+			<AppShell>
+				<div className="flex items-center justify-center h-[60vh]">
+					<div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+				</div>
+			</AppShell>
+		);
+	}
 
 	return (
 		<AppShell>
@@ -688,7 +702,6 @@ export default function PropertiesPage() {
 										label={stat.label}
 										value={stat.value}
 										icon={stat.icon}
-										iconColor={stat.iconColor}
 									/>
 								</div>
 							))}

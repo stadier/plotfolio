@@ -1,7 +1,8 @@
 "use client";
 
+import { useAuth } from "@/components/AuthContext";
 import UserAvatar from "@/components/ui/UserAvatar";
-import { Bell, Briefcase, ShoppingBag } from "lucide-react";
+import { Bell, Briefcase, LogOut, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,6 +10,7 @@ import { usePathname } from "next/navigation";
 export default function Header() {
 	const pathname = usePathname();
 	const isMarketplace = pathname.startsWith("/marketplace");
+	const { user, logout } = useAuth();
 
 	return (
 		<header className="fixed top-0 w-full z-50 bg-white dark:bg-surface-container-low border-b border-slate-200 dark:border-outline-variant">
@@ -29,21 +31,23 @@ export default function Header() {
 
 				{/* Portfolio / Marketplace switcher */}
 				<div className="hidden md:flex items-center bg-slate-100 dark:bg-surface-container rounded-full p-1">
-					<Link
-						href="/portfolio"
-						className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
-							!isMarketplace
-								? "bg-primary text-on-primary shadow-sm"
-								: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
-						}`}
-					>
-						<Briefcase className="w-4 h-4" />
-						Portfolio
-					</Link>
+					{user && (
+						<Link
+							href="/portfolio"
+							className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+								!isMarketplace
+									? "bg-primary text-on-primary shadow-sm"
+									: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
+							}`}
+						>
+							<Briefcase className="w-4 h-4" />
+							Portfolio
+						</Link>
+					)}
 					<Link
 						href="/marketplace"
 						className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
-							isMarketplace
+							isMarketplace || !user
 								? "bg-primary text-on-primary shadow-sm"
 								: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
 						}`}
@@ -55,27 +59,47 @@ export default function Header() {
 
 				{/* Actions */}
 				<div className="flex items-center gap-3">
-					<button className="p-2 hover:bg-slate-50 dark:hover:bg-surface-container transition-all rounded-full icon-btn-hover">
-						<Bell className="w-5 h-5 text-on-surface" />
-					</button>
+					{user && (
+						<button className="p-2 hover:bg-slate-50 dark:hover:bg-surface-container transition-all rounded-full icon-btn-hover">
+							<Bell className="w-5 h-5 text-on-surface" />
+						</button>
+					)}
 					{/* User avatar + name */}
-					<UserAvatar
-						name="Property Owner"
-						displayName="Property Owner"
-						username="plotfolio_user"
-						avatar="https://api.dicebear.com/9.x/initials/svg?seed=PO&backgroundColor=1e3a5f"
-						ownerId="owner-1"
-						size="md"
-						showLabel
-						className="hidden sm:flex"
-					/>
-					<UserAvatar
-						name="Property Owner"
-						avatar="https://api.dicebear.com/9.x/initials/svg?seed=PO&backgroundColor=1e3a5f"
-						ownerId="owner-1"
-						size="md"
-						className="sm:hidden"
-					/>
+					{user ? (
+						<>
+							<UserAvatar
+								name={user.name}
+								displayName={user.displayName}
+								username={user.username}
+								avatar={user.avatar}
+								ownerId={user.id}
+								size="md"
+								showLabel
+								className="hidden sm:flex"
+							/>
+							<UserAvatar
+								name={user.name}
+								avatar={user.avatar}
+								ownerId={user.id}
+								size="md"
+								className="sm:hidden"
+							/>
+							<button
+								onClick={logout}
+								title="Log out"
+								className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 transition-all rounded-full"
+							>
+								<LogOut className="w-4 h-4" />
+							</button>
+						</>
+					) : (
+						<Link
+							href="/login"
+							className="text-m font-bold uppercase tracking-widest text-primary hover:underline"
+						>
+							Log In
+						</Link>
+					)}
 				</div>
 			</div>
 			{/* Divider */}

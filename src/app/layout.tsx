@@ -18,7 +18,7 @@ const inter = Inter({
 export const metadata: Metadata = {
 	title: "Plotfolio — Property Portfolio Management",
 	description:
-		"Manage your properties with interactive maps, survey document integration, and portfolio tracking.",
+		"Manage your Nigerian land plots with interactive maps, survey document integration, and portfolio tracking.",
 };
 
 export default function RootLayout({

@@ -6,6 +6,7 @@ import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { PropertyAPI } from "@/lib/api";
+import { getPropertyImageUrls } from "@/lib/utils";
 import { Property, PropertyStatus, PropertyType } from "@/types/property";
 import {
 	ArrowUpDown,
@@ -56,7 +57,11 @@ const MOCK_PROPERTY_PREVIEWS: Record<string, PropertyPreviewConfig> = {
 function hydratePropertyPreview(property: Property): Property {
 	const preview = MOCK_PROPERTY_PREVIEWS[property.id];
 
-	if (!preview || (property.images?.length ?? 0) > 0) {
+	if (
+		!preview ||
+		(property.images?.length ?? 0) > 0 ||
+		(property.media?.length ?? 0) > 0
+	) {
 		return property;
 	}
 
@@ -212,7 +217,7 @@ function PropertyKindBadge({ property }: { property: Property }) {
 
 function PropertyHero({ property }: { property: Property }) {
 	const previewConfig = MOCK_PROPERTY_PREVIEWS[property.id];
-	const previewImage = property.images?.[0];
+	const previewImage = getPropertyImageUrls(property)[0];
 	const locality = getLocalityLabel(property.address);
 	const built = hasBuildingFootprint(property);
 	const areaLabel =

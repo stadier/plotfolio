@@ -4,8 +4,9 @@ import AppShell from "@/components/layout/AppShell";
 import PropertyDetailContent, {
 	getStatusColor,
 } from "@/components/property/PropertyDetailContent";
+import ShareModal from "@/components/property/ShareModal";
 import { Property } from "@/types/property";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 
@@ -24,6 +25,7 @@ export default function PropertyDetailPage({
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
+	const [shareOpen, setShareOpen] = useState(false);
 
 	useEffect(() => {
 		const load = async () => {
@@ -132,6 +134,14 @@ export default function PropertyDetailPage({
 							Saving…
 						</span>
 					)}
+					<button
+						type="button"
+						onClick={() => setShareOpen(true)}
+						className={`${saving ? "" : "ml-auto"} p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors`}
+						title="Share property"
+					>
+						<Share2 className="w-4 h-4 text-on-surface-variant" />
+					</button>
 				</div>
 			</div>
 
@@ -145,6 +155,12 @@ export default function PropertyDetailPage({
 					layout="two-col"
 				/>
 			</div>
+
+			<ShareModal
+				property={property}
+				open={shareOpen}
+				onClose={() => setShareOpen(false)}
+			/>
 		</AppShell>
 	);
 }

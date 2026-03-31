@@ -7,7 +7,11 @@ export async function GET(request: NextRequest) {
 		await connectDB();
 		const { searchParams } = new URL(request.url);
 		const status = searchParams.get("status");
-		const properties = await PropertyService.getAllProperties();
+		const ownerId = searchParams.get("ownerId");
+		let properties = await PropertyService.getAllProperties();
+		if (ownerId) {
+			properties = properties.filter((p) => p.owner?.id === ownerId);
+		}
 		const filtered = status
 			? properties.filter((p) => p.status === status)
 			: properties;

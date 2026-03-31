@@ -1,15 +1,16 @@
 "use client";
 
+import { useRequireAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
 import { PropertyAPI } from "@/lib/api";
 import { Property, SurveyData } from "@/types/property";
 import {
+	Bookmark,
 	Calendar,
 	ChevronDown,
 	ChevronUp,
 	Edit3,
 	Eye,
-	Heart,
 	Layers,
 	MapPin,
 	Minus,
@@ -36,6 +37,7 @@ export default function Home() {
 	const [selectedProperty, setSelectedProperty] = useState<Property | null>(
 		null,
 	);
+	const { user } = useRequireAuth();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
 	const [isBoundaryVisible, setIsBoundaryVisible] = useState(true);
@@ -65,6 +67,7 @@ export default function Home() {
 	const [climateRisk, setClimateRisk] = useState<
 		"none" | "flood" | "fire" | "wind" | "air" | "heat"
 	>("none");
+	const [useImageMarkers, setUseImageMarkers] = useState(true);
 
 	// State hover and selection
 	const [hoveredState, setHoveredState] = useState<string | null>(null);
@@ -98,20 +101,20 @@ export default function Home() {
 
 	// Load properties from API on component mount
 	useEffect(() => {
+		if (!user) return;
 		const loadProperties = async () => {
 			try {
 				setLoading(true);
 				setError(null);
 
-				// First try to get properties from the database
-				let propertyData = await PropertyAPI.getAllProperties();
+				let propertyData = await PropertyAPI.getMyProperties(user.id);
 
 				// If no properties exist, seed the database
 				if (propertyData.length === 0) {
 					console.log("No properties found, seeding database...");
 					const seeded = await PropertyAPI.seedDatabase();
 					if (seeded) {
-						propertyData = await PropertyAPI.getAllProperties();
+						propertyData = await PropertyAPI.getMyProperties(user.id);
 					} else {
 						throw new Error("Failed to seed database");
 					}
@@ -131,7 +134,7 @@ export default function Home() {
 		};
 
 		loadProperties();
-	}, []);
+	}, [user]);
 
 	const handlePropertySelect = (property: Property) => {
 		setSelectedProperty(property);
@@ -395,6 +398,7 @@ export default function Home() {
 						onDrawingCancel={() => setIsDrawingBoundary(false)}
 						onGridComplete={handleGridSelection}
 						onGridCancel={() => setIsSelectingGrid(false)}
+						useImageMarkers={useImageMarkers}
 						className="w-full h-full"
 					/>
 				)}
@@ -506,6 +510,15 @@ export default function Home() {
 								Map Layers
 							</h4>
 							<div className="space-y-2">
+								<label className="flex items-center space-x-2 cursor-pointer">
+									<input
+										type="checkbox"
+										checked={useImageMarkers}
+										onChange={() => setUseImageMarkers(!useImageMarkers)}
+										className="w-3 h-3 text-blue-600"
+									/>
+									<span className="text-gray-900 text-sm">Image Markers</span>
+								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
 										type="checkbox"
@@ -747,7 +760,7 @@ export default function Home() {
 										className="w-full h-32 rounded-xl object-cover"
 									/>
 									<button className="absolute top-2 right-2 w-7 h-7 bg-white/90 backdrop-blur rounded-full flex items-center justify-center">
-										<Heart className="w-3 h-3 text-gray-600" />
+										<Bookmark className="w-3 h-3 text-gray-600" />
 									</button>
 								</div>
 

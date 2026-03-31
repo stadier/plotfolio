@@ -1,6 +1,6 @@
 "use client";
 
-import { getPropertyTypeColor } from "@/lib/utils";
+import { getPropertyImageUrls, getPropertyTypeColor } from "@/lib/utils";
 import {
 	MapViewport,
 	Property,
@@ -50,6 +50,7 @@ interface PropertyMapProps {
 	onDrawingCancel?: () => void;
 	onGridComplete?: (grid: PropertyGrid) => void;
 	onGridCancel?: () => void;
+	useImageMarkers?: boolean;
 	layerType?: MapLayerType;
 }
 
@@ -163,6 +164,7 @@ export default function PropertyMap({
 	onDrawingCancel,
 	onGridComplete,
 	onGridCancel,
+	useImageMarkers = true,
 	layerType = "standard",
 }: PropertyMapProps) {
 	const currentLayer = TILE_LAYERS[layerType];
@@ -171,7 +173,8 @@ export default function PropertyMap({
 		isSelected: boolean = false,
 	) => {
 		const color = getPropertyTypeColor(property.propertyType);
-		const hasImage = property.images && property.images.length > 0;
+		const imageUrls = getPropertyImageUrls(property);
+		const hasImage = useImageMarkers && imageUrls.length > 0;
 		const size = hasImage ? (isSelected ? 56 : 48) : isSelected ? 30 : 24;
 		const borderColor = isSelected ? "#3B82F6" : "white";
 		const borderWidth = isSelected ? 3 : 2;
@@ -190,7 +193,7 @@ export default function PropertyMap({
 						background: white;
 						${isSelected ? "transform: scale(1.1);" : ""}
 					">
-						<img src="${property.images![0]}" style="
+						<img src="${imageUrls[0]}" style="
 							width: 100%;
 							height: 100%;
 							object-fit: cover;

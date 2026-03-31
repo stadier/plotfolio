@@ -2,6 +2,7 @@ import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
 	DocumentType,
+	MediaType,
 	Property,
 	PropertyOwner,
 	PropertyStatus,
@@ -28,6 +29,8 @@ const PropertyOwnerSchema = new Schema<PropertyOwner>({
 	},
 	joinDate: { type: String },
 	salesCount: { type: Number, default: 0 },
+	followerCount: { type: Number, default: 0 },
+	allowBookings: { type: Boolean, default: false },
 });
 
 // Survey Data Schema
@@ -153,6 +156,18 @@ const PropertySchema = new Schema<Property & Document>(
 		},
 		description: { type: String },
 		images: [{ type: String }],
+		media: [
+			{
+				url: { type: String, required: true },
+				type: {
+					type: String,
+					enum: Object.values(MediaType),
+					default: MediaType.IMAGE,
+				},
+				thumbnail: { type: String },
+				caption: { type: String },
+			},
+		],
 		zoning: { type: String },
 		taxId: { type: String },
 		owner: { type: PropertyOwnerSchema },
@@ -168,6 +183,13 @@ const PropertySchema = new Schema<Property & Document>(
 			default: PropertyVisibility.PRIVATE,
 		},
 		quantity: { type: Number, default: 1 },
+		bedrooms: { type: Number },
+		bathrooms: { type: Number },
+		parkingSpaces: { type: Number },
+		amenities: [{ type: String }],
+		finishingType: { type: String },
+		projectName: { type: String },
+		availableFrom: { type: String },
 		boughtFrom: { type: String },
 		witnesses: [{ type: String }],
 		signatures: [{ type: String }],
@@ -216,11 +238,20 @@ function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
 		prop.coordinates.lng = prop.coordinates.lng || 0;
 	}
 	if (prop.documents) {
-		prop.documents = prop.documents.map((doc: any) => ({
-			...doc,
-			size: doc.size || 0,
-			accessLevel: doc.accessLevel || DocumentAccessLevel.PUBLIC,
-		}));
+		prop.documents = prop.documents.map((doc: any) => {
+			const { _id, ...rest } = doc;
+			return {
+				...rest,
+				size: doc.size || 0,
+				accessLevel: doc.accessLevel || DocumentAccessLevel.PUBLIC,
+			};
+		});
+	}
+	if (prop.media) {
+		prop.media = prop.media.map((m: any) => {
+			const { _id, ...rest } = m;
+			return rest;
+		});
 	}
 	if (prop.surveyData) {
 		prop.surveyData.area = prop.surveyData.area || 0;

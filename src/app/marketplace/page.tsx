@@ -1,12 +1,16 @@
 "use client";
 
+import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { PropertyAPI } from "@/lib/api";
+import { getPropertyImageUrls } from "@/lib/utils";
 import { Property, PropertyType } from "@/types/property";
 import {
+	Bookmark,
+	ChevronDown,
+	ChevronUp,
 	Copy,
-	Heart,
 	MapPin,
 	RotateCcw,
 	Search,
@@ -15,7 +19,7 @@ import {
 	X,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 
@@ -31,20 +35,80 @@ function getTypeLabel(type: PropertyType): string {
 	return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function getConditionLabel(c: string): string {
+	return c.replace(/_/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
 function getLocalityLabel(address?: string): string {
 	if (!address) return "No location";
 	return address.split(",").slice(0, 2).join(",").trim();
 }
 
-/* ─── category pills ─────────────────────────────────────────── */
+function getPrice(p: Property): number {
+	return p.currentValue ?? p.purchasePrice ?? 0;
+}
 
-const CATEGORIES = [
-	{ label: "All Listings", value: "" },
-	...Object.values(PropertyType).map((t) => ({
-		label: getTypeLabel(t),
-		value: t,
-	})),
+/* ─── count helpers ───────────────────────────────────────────── */
+
+function buildTypeCounts(properties: Property[]): Record<string, number> {
+	const counts: Record<string, number> = { "": properties.length };
+	for (const p of properties) {
+		counts[p.propertyType] = (counts[p.propertyType] ?? 0) + 1;
+	}
+	return counts;
+}
+
+function buildConditionCounts(
+	properties: Property[],
+): { value: string; count: number }[] {
+	const map: Record<string, number> = {};
+	for (const p of properties) {
+		for (const c of p.conditions ?? []) {
+			map[c] = (map[c] ?? 0) + 1;
+		}
+	}
+	return Object.entries(map)
+		.map(([value, count]) => ({ value, count }))
+		.sort((a, b) => b.count - a.count);
+}
+
+function buildLocationCounts(
+	properties: Property[],
+): { label: string; value: string; count: number }[] {
+	const map: Record<string, number> = {};
+	for (const p of properties) {
+		const loc = p.state || p.city || p.country || "";
+		if (loc) map[loc] = (map[loc] ?? 0) + 1;
+	}
+	return Object.entries(map)
+		.map(([value, count]) => ({ label: value, value, count }))
+		.sort((a, b) => b.count - a.count);
+}
+
+interface PricePreset {
+	label: string;
+	min: number;
+	max: number | null;
+}
+
+const PRICE_PRESETS: PricePreset[] = [
+	{ label: "Under $1M", min: 0, max: 1_000_000 },
+	{ label: "$1M – $10M", min: 1_000_000, max: 10_000_000 },
+	{ label: "$10M – $50M", min: 10_000_000, max: 50_000_000 },
+	{ label: "$50M – $200M", min: 50_000_000, max: 200_000_000 },
+	{ label: "More than $200M", min: 200_000_000, max: null },
 ];
+
+function buildPricePresetCounts(properties: Property[]): number[] {
+	return PRICE_PRESETS.map((preset) => {
+		return properties.filter((p) => {
+			const v = getPrice(p);
+			if (v < preset.min) return false;
+			if (preset.max !== null && v > preset.max) return false;
+			return true;
+		}).length;
+	});
+}
 
 /* ─── sort options ────────────────────────────────────────────── */
 
@@ -94,12 +158,19 @@ function ListingCard({
 	onToggleFavourite: (id: string) => void;
 }) {
 	const askingPrice = property.currentValue ?? property.purchasePrice ?? 0;
-	const heroImage = property.images?.[0];
-	const [imageUnavailable, setImageUnavailable] = useState(false);
-	const showHeroImage = Boolean(heroImage) && !imageUnavailable;
+	const imageCandidates = getPropertyImageUrls(property).filter(
+		(image): image is string => Boolean(image),
+	);
+	const [imageIndex, setImageIndex] = useState(0);
+	const heroImage = imageCandidates[imageIndex];
+	const showHeroImage = Boolean(heroImage);
 	const isFeatured =
 		askingPrice > 20_000_000 ||
 		property.propertyType === PropertyType.COMMERCIAL;
+
+	useEffect(() => {
+		setImageIndex(0);
+	}, [property.id]);
 
 	return (
 		<div
@@ -110,12 +181,16 @@ function ListingCard({
 			<div className="relative h-48 bg-linear-to-br from-[#eef3ea] via-[#f7f4ec] to-[#dde7dd] overflow-hidden">
 				{showHeroImage ? (
 					<Image
-						src={heroImage as string}
+						src={heroImage}
 						alt={property.name}
 						fill
 						className="object-cover transition-transform duration-300 group-hover:scale-105"
 						sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 280px"
-						onError={() => setImageUnavailable(true)}
+						onError={() => {
+							setImageIndex((current) =>
+								Math.min(current + 1, imageCandidates.length),
+							);
+						}}
 					/>
 				) : (
 					<div className="absolute inset-0 flex items-center justify-center">
@@ -163,7 +238,7 @@ function ListingCard({
 					</div>
 				)}
 
-				{/* Heart / Favourite */}
+				{/* Bookmark / Favourite */}
 				<button
 					onClick={(e) => {
 						e.stopPropagation();
@@ -175,7 +250,7 @@ function ListingCard({
 							: "bg-white/80 text-gray-400 hover:text-red-500"
 					}`}
 				>
-					<Heart
+					<Bookmark
 						className="w-4 h-4"
 						fill={isFavourite ? "currentColor" : "none"}
 					/>
@@ -233,6 +308,51 @@ function ListingCard({
 	);
 }
 
+/* ─── collapsible section ─────────────────────────────────────── */
+
+function FilterSection({
+	title,
+	defaultOpen = true,
+	onClear,
+	children,
+}: {
+	title: string;
+	defaultOpen?: boolean;
+	onClear?: () => void;
+	children: React.ReactNode;
+}) {
+	const [open, setOpen] = useState(defaultOpen);
+	return (
+		<div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+			<button
+				onClick={() => setOpen((o) => !o)}
+				className="flex items-center justify-between w-full px-4 py-3"
+			>
+				<h4 className="text-sm font-bold text-gray-900">{title}</h4>
+				<div className="flex items-center gap-2">
+					{onClear && (
+						<span
+							onClick={(e) => {
+								e.stopPropagation();
+								onClear();
+							}}
+							className="text-[10px] text-gray-400 hover:text-blue-600 font-semibold uppercase tracking-wider cursor-pointer"
+						>
+							Clear
+						</span>
+					)}
+					{open ? (
+						<ChevronUp className="w-3.5 h-3.5 text-gray-400" />
+					) : (
+						<ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+					)}
+				</div>
+			</button>
+			{open && <div className="px-4 pb-4">{children}</div>}
+		</div>
+	);
+}
+
 /* ─── filter sidebar ──────────────────────────────────────────── */
 
 function FilterSidebar({
@@ -240,28 +360,44 @@ function FilterSidebar({
 	maxPrice,
 	onMinPriceChange,
 	onMaxPriceChange,
+	onPricePresetSelect,
+	activePricePreset,
 	sortKey,
 	onSortChange,
 	search,
 	onSearchChange,
 	totalListings,
 	onReset,
+	conditionCounts,
+	selectedConditions,
+	onToggleCondition,
+	locationCounts,
+	selectedLocation,
+	onSelectLocation,
+	pricePresetCounts,
 }: {
 	minPrice: string;
 	maxPrice: string;
 	onMinPriceChange: (v: string) => void;
 	onMaxPriceChange: (v: string) => void;
+	onPricePresetSelect: (idx: number) => void;
+	activePricePreset: number | null;
 	sortKey: SortKey;
 	onSortChange: (v: SortKey) => void;
 	search: string;
 	onSearchChange: (v: string) => void;
 	totalListings: number;
 	onReset: () => void;
+	conditionCounts: { value: string; count: number }[];
+	selectedConditions: Set<string>;
+	onToggleCondition: (c: string) => void;
+	locationCounts: { label: string; value: string; count: number }[];
+	selectedLocation: string;
+	onSelectLocation: (loc: string) => void;
+	pricePresetCounts: number[];
 }) {
-	const avgPrice = totalListings > 0 ? "$15K" : "—";
-
 	return (
-		<div className="w-full space-y-5">
+		<div className="w-full space-y-3">
 			{/* Search */}
 			<div className="relative">
 				<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -282,53 +418,175 @@ function FilterSidebar({
 				)}
 			</div>
 
+			{/* Location */}
+			{locationCounts.length > 0 && (
+				<FilterSection
+					title="Location"
+					onClear={selectedLocation ? () => onSelectLocation("") : undefined}
+				>
+					<div className="flex flex-col gap-1">
+						<button
+							onClick={() => onSelectLocation("")}
+							className={`flex items-center justify-between text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${
+								!selectedLocation
+									? "bg-blue-50 text-blue-700 font-semibold"
+									: "text-gray-600 hover:bg-gray-50"
+							}`}
+						>
+							<span>All Locations</span>
+							<span className="text-[10px] text-gray-400">{totalListings}</span>
+						</button>
+						{locationCounts.map((loc) => (
+							<button
+								key={loc.value}
+								onClick={() => onSelectLocation(loc.value)}
+								className={`flex items-center justify-between text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${
+									selectedLocation === loc.value
+										? "bg-blue-50 text-blue-700 font-semibold"
+										: "text-gray-600 hover:bg-gray-50"
+								}`}
+							>
+								<span className="truncate mr-2">{loc.label}</span>
+								<span
+									className={`text-[10px] shrink-0 ${
+										selectedLocation === loc.value
+											? "text-blue-500"
+											: "text-gray-400"
+									}`}
+								>
+									{loc.count} {loc.count === 1 ? "ad" : "ads"}
+								</span>
+							</button>
+						))}
+					</div>
+				</FilterSection>
+			)}
+
 			{/* Price Range */}
-			<div className="bg-white border border-gray-200 rounded-xl p-4">
-				<div className="flex items-center justify-between mb-1">
-					<h4 className="text-sm font-bold text-gray-900">Price Range</h4>
-					<button
-						onClick={onReset}
-						className="text-[10px] text-gray-400 hover:text-blue-600 font-semibold uppercase tracking-wider"
-					>
-						Reset
-					</button>
-				</div>
-				<p className="text-[11px] text-gray-400 mb-3">
-					The average price is {avgPrice}
-				</p>
-				<div className="flex items-center gap-2">
+			<FilterSection
+				title="Price"
+				onClear={
+					minPrice || maxPrice || activePricePreset !== null
+						? () => {
+								onMinPriceChange("");
+								onMaxPriceChange("");
+								onPricePresetSelect(-1);
+							}
+						: undefined
+				}
+			>
+				<div className="flex items-center gap-2 mb-3">
 					<div className="flex-1">
-						<label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
-							Min ($)
-						</label>
 						<input
 							type="number"
 							value={minPrice}
 							onChange={(e) => onMinPriceChange(e.target.value)}
-							placeholder="0"
+							placeholder="min"
 							className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white"
 						/>
 					</div>
-					<span className="text-gray-300 mt-5">—</span>
+					<span className="text-gray-300">—</span>
 					<div className="flex-1">
-						<label className="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
-							Max ($)
-						</label>
 						<input
 							type="number"
 							value={maxPrice}
 							onChange={(e) => onMaxPriceChange(e.target.value)}
-							placeholder="No limit"
+							placeholder="max"
 							className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white"
 						/>
 					</div>
 				</div>
-			</div>
+				<div className="flex flex-col gap-1">
+					{PRICE_PRESETS.map((preset, idx) => (
+						<button
+							key={preset.label}
+							onClick={() => onPricePresetSelect(idx)}
+							className={`flex items-center justify-between text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${
+								activePricePreset === idx
+									? "bg-blue-50 text-blue-700 font-semibold"
+									: "text-gray-600 hover:bg-gray-50"
+							}`}
+						>
+							<span>{preset.label}</span>
+							<span
+								className={`text-[10px] ${
+									activePricePreset === idx ? "text-blue-500" : "text-gray-400"
+								}`}
+							>
+								{pricePresetCounts[idx]}{" "}
+								{pricePresetCounts[idx] === 1 ? "ad" : "ads"}
+							</span>
+						</button>
+					))}
+				</div>
+			</FilterSection>
+
+			{/* Condition */}
+			{conditionCounts.length > 0 && (
+				<FilterSection
+					title="Condition"
+					onClear={
+						selectedConditions.size > 0
+							? () => {
+									for (const c of selectedConditions) onToggleCondition(c);
+								}
+							: undefined
+					}
+				>
+					<div className="flex flex-col gap-1">
+						{conditionCounts.map((item) => {
+							const active = selectedConditions.has(item.value);
+							return (
+								<button
+									key={item.value}
+									onClick={() => onToggleCondition(item.value)}
+									className={`flex items-center justify-between text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${
+										active
+											? "bg-blue-50 text-blue-700 font-semibold"
+											: "text-gray-600 hover:bg-gray-50"
+									}`}
+								>
+									<span className="flex items-center gap-2">
+										<span
+											className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+												active
+													? "border-blue-600 bg-blue-600"
+													: "border-gray-300"
+											}`}
+										>
+											{active && (
+												<svg
+													className="w-2 h-2 text-white"
+													viewBox="0 0 12 12"
+													fill="none"
+												>
+													<path
+														d="M2 6l3 3 5-5"
+														stroke="currentColor"
+														strokeWidth="2"
+														strokeLinecap="round"
+														strokeLinejoin="round"
+													/>
+												</svg>
+											)}
+										</span>
+										{getConditionLabel(item.value)}
+									</span>
+									<span
+										className={`text-[10px] ${active ? "text-blue-500" : "text-gray-400"}`}
+									>
+										{item.count}
+									</span>
+								</button>
+							);
+						})}
+					</div>
+				</FilterSection>
+			)}
 
 			{/* Sort By */}
-			<div className="bg-white border border-gray-200 rounded-xl p-4">
-				<h4 className="text-sm font-bold text-gray-900 mb-3">Sort By</h4>
-				<div className="flex flex-col gap-1.5">
+			<FilterSection title="Sort By">
+				<div className="flex flex-col gap-1">
 					{(
 						[
 							{ key: "price-desc", label: "Price: High → Low" },
@@ -341,7 +599,7 @@ function FilterSidebar({
 						<button
 							key={opt.key}
 							onClick={() => onSortChange(opt.key)}
-							className={`text-left px-3 py-2 text-xs rounded-lg transition-colors ${
+							className={`text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${
 								sortKey === opt.key
 									? "bg-blue-50 text-blue-700 font-semibold"
 									: "text-gray-600 hover:bg-gray-50"
@@ -351,7 +609,16 @@ function FilterSidebar({
 						</button>
 					))}
 				</div>
-			</div>
+			</FilterSection>
+
+			{/* Reset all */}
+			<button
+				onClick={onReset}
+				className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-blue-600 font-semibold w-full justify-center py-2"
+			>
+				<RotateCcw className="w-3 h-3" />
+				Reset all filters
+			</button>
 		</div>
 	);
 }
@@ -362,7 +629,7 @@ export default function MarketplacePage() {
 	const [allProperties, setAllProperties] = useState<Property[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [favourites, setFavourites] = useState<Set<string>>(new Set());
+	const { isFavourite, toggleFavourite } = useFavourites();
 
 	// Filters
 	const [search, setSearch] = useState("");
@@ -370,6 +637,13 @@ export default function MarketplacePage() {
 	const [sortKey, setSortKey] = useState<SortKey>("price-desc");
 	const [minPrice, setMinPrice] = useState<string>("");
 	const [maxPrice, setMaxPrice] = useState<string>("");
+	const [selectedConditions, setSelectedConditions] = useState<Set<string>>(
+		new Set(),
+	);
+	const [selectedLocation, setSelectedLocation] = useState<string>("");
+	const [activePricePreset, setActivePricePreset] = useState<number | null>(
+		null,
+	);
 
 	useEffect(() => {
 		const load = async () => {
@@ -391,6 +665,24 @@ export default function MarketplacePage() {
 		load();
 	}, []);
 
+	// Counts computed from ALL listings (before filters, so users see total stock)
+	const typeCounts = useMemo(
+		() => buildTypeCounts(allProperties),
+		[allProperties],
+	);
+	const conditionCounts = useMemo(
+		() => buildConditionCounts(allProperties),
+		[allProperties],
+	);
+	const locationCounts = useMemo(
+		() => buildLocationCounts(allProperties),
+		[allProperties],
+	);
+	const pricePresetCounts = useMemo(
+		() => buildPricePresetCounts(allProperties),
+		[allProperties],
+	);
+
 	const filtered = useMemo(() => {
 		let list = allProperties;
 
@@ -411,37 +703,79 @@ export default function MarketplacePage() {
 			list = list.filter((p) => p.propertyType === filterType);
 		}
 
+		if (selectedLocation) {
+			list = list.filter(
+				(p) =>
+					p.state === selectedLocation ||
+					p.city === selectedLocation ||
+					p.country === selectedLocation,
+			);
+		}
+
+		if (selectedConditions.size > 0) {
+			list = list.filter((p) =>
+				(p.conditions ?? []).some((c) => selectedConditions.has(c)),
+			);
+		}
+
 		const minP = Number(minPrice);
 		const maxP = Number(maxPrice);
 		if (minP > 0) {
-			list = list.filter(
-				(p) => (p.currentValue ?? p.purchasePrice ?? 0) >= minP,
-			);
+			list = list.filter((p) => getPrice(p) >= minP);
 		}
 		if (maxP > 0) {
-			list = list.filter(
-				(p) => (p.currentValue ?? p.purchasePrice ?? 0) <= maxP,
-			);
+			list = list.filter((p) => getPrice(p) <= maxP);
 		}
 
 		return sortProperties(list, sortKey);
-	}, [allProperties, search, filterType, sortKey, minPrice, maxPrice]);
+	}, [
+		allProperties,
+		search,
+		filterType,
+		sortKey,
+		minPrice,
+		maxPrice,
+		selectedConditions,
+		selectedLocation,
+	]);
 
 	const totalListings = allProperties.length;
-	const hasActiveFilters = search || filterType || minPrice || maxPrice;
+	const hasActiveFilters =
+		search ||
+		filterType ||
+		minPrice ||
+		maxPrice ||
+		selectedConditions.size > 0 ||
+		selectedLocation;
 
 	const handleSelect = (id: string) => {
 		window.location.href = `/marketplace/${id}`;
 	};
 
-	const toggleFavourite = (id: string) => {
-		setFavourites((prev) => {
+	const toggleCondition = useCallback((c: string) => {
+		setSelectedConditions((prev) => {
 			const next = new Set(prev);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
+			if (next.has(c)) next.delete(c);
+			else next.add(c);
 			return next;
 		});
-	};
+	}, []);
+
+	const handlePricePreset = useCallback(
+		(idx: number) => {
+			if (idx < 0 || activePricePreset === idx) {
+				setActivePricePreset(null);
+				setMinPrice("");
+				setMaxPrice("");
+				return;
+			}
+			const preset = PRICE_PRESETS[idx];
+			setActivePricePreset(idx);
+			setMinPrice(String(preset.min));
+			setMaxPrice(preset.max !== null ? String(preset.max) : "");
+		},
+		[activePricePreset],
+	);
 
 	const resetFilters = () => {
 		setSearch("");
@@ -449,14 +783,29 @@ export default function MarketplacePage() {
 		setMinPrice("");
 		setMaxPrice("");
 		setSortKey("price-desc");
+		setSelectedConditions(new Set());
+		setSelectedLocation("");
+		setActivePricePreset(null);
 	};
+
+	// Category pills with counts
+	const categoryPills = useMemo(() => {
+		return [
+			{ label: "All Listings", value: "", count: typeCounts[""] ?? 0 },
+			...Object.values(PropertyType).map((t) => ({
+				label: getTypeLabel(t),
+				value: t,
+				count: typeCounts[t] ?? 0,
+			})),
+		];
+	}, [typeCounts]);
 
 	return (
 		<AppShell>
 			<div className="px-6 py-6">
-				{/* Category pills */}
+				{/* Category pills with counts */}
 				<div className="flex items-center gap-2 overflow-x-auto pb-4 mb-5 scrollbar-hide">
-					{CATEGORIES.map((cat) => (
+					{categoryPills.map((cat) => (
 						<button
 							key={cat.value}
 							onClick={() => setFilterType(cat.value)}
@@ -467,6 +816,13 @@ export default function MarketplacePage() {
 							}`}
 						>
 							{cat.label}
+							<span
+								className={`ml-1.5 ${
+									filterType === cat.value ? "text-blue-200" : "text-gray-400"
+								}`}
+							>
+								· {cat.count}
+							</span>
 						</button>
 					))}
 				</div>
@@ -474,18 +830,33 @@ export default function MarketplacePage() {
 				{/* Main layout: sidebar + grid */}
 				<div className="flex gap-6 items-start">
 					{/* Left filter sidebar */}
-					<aside className="hidden lg:block w-56 shrink-0 sticky top-24">
+					<aside className="hidden lg:block w-60 shrink-0 sticky top-24">
 						<FilterSidebar
 							minPrice={minPrice}
 							maxPrice={maxPrice}
-							onMinPriceChange={setMinPrice}
-							onMaxPriceChange={setMaxPrice}
+							onMinPriceChange={(v) => {
+								setMinPrice(v);
+								setActivePricePreset(null);
+							}}
+							onMaxPriceChange={(v) => {
+								setMaxPrice(v);
+								setActivePricePreset(null);
+							}}
+							onPricePresetSelect={handlePricePreset}
+							activePricePreset={activePricePreset}
 							sortKey={sortKey}
 							onSortChange={setSortKey}
 							search={search}
 							onSearchChange={setSearch}
 							totalListings={totalListings}
 							onReset={resetFilters}
+							conditionCounts={conditionCounts}
+							selectedConditions={selectedConditions}
+							onToggleCondition={toggleCondition}
+							locationCounts={locationCounts}
+							selectedLocation={selectedLocation}
+							onSelectLocation={setSelectedLocation}
+							pricePresetCounts={pricePresetCounts}
 						/>
 					</aside>
 
@@ -570,7 +941,7 @@ export default function MarketplacePage() {
 											key={property.id}
 											property={property}
 											onSelect={handleSelect}
-											isFavourite={favourites.has(property.id)}
+											isFavourite={isFavourite(property.id)}
 											onToggleFavourite={toggleFavourite}
 										/>
 									))}

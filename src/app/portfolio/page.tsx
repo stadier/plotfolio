@@ -1,5 +1,6 @@
 "use client";
 
+import { useRequireAuth } from "@/components/AuthContext";
 import DocumentCompletionWidget from "@/components/dashboard/DocumentCompletionWidget";
 import {
 	CARD_GRADIENTS,
@@ -18,7 +19,7 @@ import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { PropertyAPI } from "@/lib/api";
 import { Property, PropertyStatus } from "@/types/property";
-import { Eye, MapPin, TrendingUp } from "lucide-react";
+import { Eye, Loader2, MapPin, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -28,14 +29,16 @@ export default function DashboardPage() {
 	const [properties, setProperties] = useState<Property[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const { user, loading: authLoading } = useRequireAuth();
 
 	useEffect(() => {
+		if (!user) return;
 		const load = async () => {
 			try {
-				let data = await PropertyAPI.getAllProperties();
+				let data = await PropertyAPI.getMyProperties(user.id);
 				if (data.length === 0) {
 					await PropertyAPI.seedDatabase();
-					data = await PropertyAPI.getAllProperties();
+					data = await PropertyAPI.getMyProperties(user.id);
 				}
 				setProperties(data);
 			} catch {
@@ -45,7 +48,18 @@ export default function DashboardPage() {
 			}
 		};
 		load();
-	}, []);
+	}, [user]);
+
+	// Show loading while checking auth
+	if (authLoading || !user) {
+		return (
+			<AppShell>
+				<div className="flex items-center justify-center h-[60vh]">
+					<Loader2 className="w-6 h-6 animate-spin text-primary" />
+				</div>
+			</AppShell>
+		);
+	}
 
 	const totalWorth = properties.reduce(
 		(sum, p) => sum + (p.currentValue || p.purchasePrice || 0),

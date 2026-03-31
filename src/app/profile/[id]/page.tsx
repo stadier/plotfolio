@@ -2,7 +2,7 @@
 
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
-import { formatArea, formatCurrency } from "@/lib/utils";
+import { formatArea, formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import {
 	Property,
 	PropertyCondition,
@@ -112,7 +112,7 @@ function StatPill({ value, label }: { value: string; label: string }) {
 
 function PublicPropertyCard({ property }: { property: Property }) {
 	const price = property.currentValue || property.purchasePrice || 0;
-	const heroImage = property.images?.[0];
+	const heroImage = getPropertyImageUrls(property)[0];
 	const status =
 		statusLabels[property.status] || statusLabels[PropertyStatus.OWNED];
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/components/AuthContext";
 import ChipInput from "@/components/ui/ChipInput";
 import { extractFieldsFromDocument } from "@/lib/documentExtractor";
 import {
@@ -157,6 +158,7 @@ export default function CreatePropertyForm({
 	initialName,
 }: CreatePropertyFormProps) {
 	const router = useRouter();
+	const { user } = useAuth();
 
 	/* basic info */
 	const [name, setName] = useState(initialName || "");
@@ -340,6 +342,18 @@ export default function CreatePropertyForm({
 					? signatures.split(",").map((s) => s.trim())
 					: undefined,
 				owner: (() => {
+					if (user) {
+						return {
+							id: user.id,
+							name: user.name,
+							username: user.username,
+							displayName: user.displayName,
+							email: user.email,
+							avatar: user.avatar,
+							phone: user.phone || ownerPhone.trim() || undefined,
+							type: user.type,
+						};
+					}
 					const fullName =
 						ownerName.trim() ||
 						`PROP-${Date.now().toString(36).slice(-4).toUpperCase()}`;

@@ -1,10 +1,18 @@
 "use client";
 
 import UserAvatar from "@/components/ui/UserAvatar";
-import { cn, formatArea, formatCurrency, formatDate } from "@/lib/utils";
 import {
+	cn,
+	formatArea,
+	formatCurrency,
+	formatDate,
+	getPropertyMedia,
+} from "@/lib/utils";
+import {
+	MediaType,
 	Property,
 	PropertyCondition,
+	PropertyMedia,
 	PropertyStatus,
 	PropertyType,
 } from "@/types/property";
@@ -14,11 +22,15 @@ import {
 	ChevronRight,
 	Copy,
 	DollarSign,
+	Loader2,
 	MapPin,
+	Mic,
+	Play,
 	Square,
+	Video,
 } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface PropertyCardProps {
 	property: Property;
@@ -92,21 +104,31 @@ export default function PropertyCard({
 	isSelected = false,
 	className = "",
 }: PropertyCardProps) {
-	const images = property.images ?? [];
-	const hasMultipleImages = images.length > 1;
+	const mediaItems = getPropertyMedia(property);
+	const hasMultipleMedia = mediaItems.length > 1;
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [paused, setPaused] = useState(false);
+	const [loadedSet, setLoadedSet] = useState<Set<number>>(new Set());
+
+	const markLoaded = useCallback((idx: number) => {
+		setLoadedSet((prev) => {
+			if (prev.has(idx)) return prev;
+			const next = new Set(prev);
+			next.add(idx);
+			return next;
+		});
+	}, []);
 
 	const goNext = useCallback(() => {
-		setCurrentIndex((i) => (i + 1) % images.length);
-	}, [images.length]);
+		setCurrentIndex((i) => (i + 1) % mediaItems.length);
+	}, [mediaItems.length]);
 
 	const goPrev = useCallback(
 		(e: React.MouseEvent) => {
 			e.stopPropagation();
-			setCurrentIndex((i) => (i - 1 + images.length) % images.length);
+			setCurrentIndex((i) => (i - 1 + mediaItems.length) % mediaItems.length);
 		},
-		[images.length],
+		[mediaItems.length],
 	);
 
 	const goNextClick = useCallback(
@@ -117,12 +139,22 @@ export default function PropertyCard({
 		[goNext],
 	);
 
-	// Auto-advance every 4 seconds
+	// Auto-advance every 4 seconds (only when not paused and current slide is an image)
 	useEffect(() => {
-		if (!hasMultipleImages || paused) return;
+		if (!hasMultipleMedia || paused) return;
+		const current = mediaItems[currentIndex];
+		if (current?.type !== MediaType.IMAGE) return;
 		const timer = setInterval(goNext, 4000);
 		return () => clearInterval(timer);
-	}, [hasMultipleImages, paused, goNext]);
+	}, [hasMultipleMedia, paused, goNext, currentIndex, mediaItems]);
+
+	// Count how many of each media type
+	const videoCount = mediaItems.filter(
+		(m) => m.type === MediaType.VIDEO,
+	).length;
+	const audioCount = mediaItems.filter(
+		(m) => m.type === MediaType.AUDIO,
+	).length;
 
 	return (
 		<div
@@ -133,65 +165,82 @@ export default function PropertyCard({
 			)}
 			onClick={onClick}
 		>
-			{/* Property Image Slideshow or Placeholder */}
+			{/* Property Media Slideshow or Placeholder */}
 			<div
 				className="h-48 bg-gray-200 dark:bg-surface-container rounded-t-lg relative overflow-hidden group"
 				onMouseEnter={() => setPaused(true)}
 				onMouseLeave={() => setPaused(false)}
 			>
-				{images.length > 0 ? (
+				{mediaItems.length > 0 ? (
 					<>
-						{images.map((src, idx) => (
-							<div
-								key={src}
-								className={cn(
-									"absolute inset-0 transition-opacity duration-500",
-									idx === currentIndex ? "opacity-100" : "opacity-0",
-								)}
-							>
-								<Image
-									src={src}
-									alt={`${property.name} - ${idx + 1}`}
-									fill
-									className="object-cover"
-								/>
-							</div>
+						{mediaItems.map((item, idx) => (
+							<MediaSlide
+								key={`${item.url}-${idx}`}
+								item={item}
+								active={idx === currentIndex}
+								loaded={loadedSet.has(idx)}
+								onLoaded={() => markLoaded(idx)}
+								propertyName={property.name}
+								index={idx}
+							/>
 						))}
 
 						{/* Prev / Next arrows — visible on hover */}
-						{hasMultipleImages && (
+						{hasMultipleMedia && (
 							<>
 								<button
 									type="button"
 									onClick={goPrev}
-									className="absolute left-1.5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-									aria-label="Previous image"
+									className="absolute left-1.5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+									aria-label="Previous"
 								>
 									<ChevronLeft className="w-4 h-4" />
 								</button>
 								<button
 									type="button"
 									onClick={goNextClick}
-									className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-									aria-label="Next image"
+									className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+									aria-label="Next"
 								>
 									<ChevronRight className="w-4 h-4" />
 								</button>
 							</>
 						)}
 
-						{/* Dot indicators */}
-						{hasMultipleImages && (
-							<div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-								{images.map((_, idx) => (
+						{/* Dot indicators with media type hints */}
+						{hasMultipleMedia && (
+							<div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+								{mediaItems.map((item, idx) => (
 									<span
 										key={idx}
 										className={cn(
-											"w-1.5 h-1.5 rounded-full transition-colors",
+											"rounded-full transition-colors",
 											idx === currentIndex ? "bg-white" : "bg-white/50",
+											item.type === MediaType.IMAGE
+												? "w-1.5 h-1.5"
+												: "w-2.5 h-1.5",
 										)}
+										title={item.type}
 									/>
 								))}
+							</div>
+						)}
+
+						{/* Media type badges — top-left */}
+						{(videoCount > 0 || audioCount > 0) && (
+							<div className="absolute top-3 left-3 flex gap-1 z-10">
+								{videoCount > 0 && (
+									<span className="flex items-center gap-0.5 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+										<Video className="w-3 h-3" />
+										{videoCount}
+									</span>
+								)}
+								{audioCount > 0 && (
+									<span className="flex items-center gap-0.5 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+										<Mic className="w-3 h-3" />
+										{audioCount}
+									</span>
+								)}
 							</div>
 						)}
 					</>
@@ -315,6 +364,140 @@ export default function PropertyCard({
 					</div>
 				)}
 			</div>
+		</div>
+	);
+}
+
+/* ─── Media slide component ───────────────────────────────────── */
+
+function MediaSlide({
+	item,
+	active,
+	loaded,
+	onLoaded,
+	propertyName,
+	index,
+}: {
+	item: PropertyMedia;
+	active: boolean;
+	loaded: boolean;
+	onLoaded: () => void;
+	propertyName: string;
+	index: number;
+}) {
+	const videoRef = useRef<HTMLVideoElement>(null);
+
+	// Pause video/audio when slide is not active
+	useEffect(() => {
+		if (!active && videoRef.current) {
+			videoRef.current.pause();
+		}
+	}, [active]);
+
+	// Mark audio without thumbnail as loaded immediately
+	useEffect(() => {
+		if (item.type === MediaType.AUDIO && !item.thumbnail) {
+			onLoaded();
+		}
+	}, [item.type, item.thumbnail, onLoaded]);
+
+	if (item.type === MediaType.VIDEO) {
+		return (
+			<div
+				className={cn(
+					"absolute inset-0 transition-opacity duration-500",
+					active ? "opacity-100 z-1" : "opacity-0 z-0",
+				)}
+			>
+				{/* Thumbnail / poster while loading */}
+				{!loaded && (
+					<div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+						<Loader2 className="w-8 h-8 text-white animate-spin" />
+					</div>
+				)}
+				<video
+					ref={videoRef}
+					src={item.url}
+					poster={item.thumbnail}
+					className="w-full h-full object-cover"
+					muted
+					playsInline
+					loop
+					onLoadedData={onLoaded}
+					onClick={(e) => {
+						e.stopPropagation();
+						const v = e.currentTarget;
+						v.paused ? v.play() : v.pause();
+					}}
+				/>
+				{/* Play overlay when paused */}
+				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<div className="bg-black/40 rounded-full p-2">
+						<Play className="w-6 h-6 text-white fill-white" />
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (item.type === MediaType.AUDIO) {
+		return (
+			<div
+				className={cn(
+					"absolute inset-0 transition-opacity duration-500",
+					active ? "opacity-100 z-1" : "opacity-0 z-0",
+				)}
+			>
+				{/* Audio background — show thumbnail or waveform placeholder */}
+				<div className="w-full h-full flex flex-col items-center justify-center bg-linear-to-br from-violet-600 to-indigo-800 text-white">
+					{item.thumbnail ? (
+						<Image
+							src={item.thumbnail}
+							alt={item.caption ?? `${propertyName} audio`}
+							fill
+							className="object-cover opacity-40"
+							onLoad={onLoaded}
+						/>
+					) : null}
+					<Mic className="w-10 h-10 mb-2 relative z-1" />
+					<span className="text-xs font-medium relative z-1">
+						{item.caption ?? "Audio"}
+					</span>
+					{active && (
+						<audio
+							src={item.url}
+							controls
+							className="mt-3 w-4/5 h-8 relative z-1"
+							onLoadedData={onLoaded}
+							onClick={(e) => e.stopPropagation()}
+						/>
+					)}
+				</div>
+			</div>
+		);
+	}
+
+	// Default: IMAGE
+	return (
+		<div
+			className={cn(
+				"absolute inset-0 transition-opacity duration-500",
+				active ? "opacity-100 z-1" : "opacity-0 z-0",
+			)}
+		>
+			{/* Loading spinner shown until image completes loading */}
+			{!loaded && (
+				<div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-surface-container z-2">
+					<Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+				</div>
+			)}
+			<Image
+				src={item.url}
+				alt={item.caption ?? `${propertyName} - ${index + 1}`}
+				fill
+				className="object-cover"
+				onLoad={onLoaded}
+			/>
 		</div>
 	);
 }

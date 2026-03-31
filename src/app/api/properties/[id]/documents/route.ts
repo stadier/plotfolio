@@ -122,7 +122,7 @@ export async function DELETE(
 	}
 }
 
-// PATCH /api/properties/[id]/documents - Update document access level
+// PATCH /api/properties/[id]/documents - Update document access level or type
 export async function PATCH(
 	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
@@ -130,27 +130,46 @@ export async function PATCH(
 	try {
 		const { id } = await params;
 		const body = await request.json();
-		const { docId, accessLevel } = body;
+		const { docId, accessLevel, type } = body;
 
-		if (!docId || !accessLevel) {
+		if (!docId) {
+			return NextResponse.json({ error: "docId is required" }, { status: 400 });
+		}
+
+		if (!accessLevel && !type) {
 			return NextResponse.json(
-				{ error: "docId and accessLevel are required" },
+				{ error: "accessLevel or type is required" },
 				{ status: 400 },
 			);
 		}
 
-		if (!Object.values(DocumentAccessLevel).includes(accessLevel)) {
-			return NextResponse.json(
-				{ error: "Invalid access level" },
-				{ status: 400 },
-			);
+		const updates: Record<string, string> = {};
+
+		if (accessLevel) {
+			if (!Object.values(DocumentAccessLevel).includes(accessLevel)) {
+				return NextResponse.json(
+					{ error: "Invalid access level" },
+					{ status: 400 },
+				);
+			}
+			updates["documents.$.accessLevel"] = accessLevel;
+		}
+
+		if (type) {
+			if (!Object.values(DocumentType).includes(type)) {
+				return NextResponse.json(
+					{ error: "Invalid document type" },
+					{ status: 400 },
+				);
+			}
+			updates["documents.$.type"] = type;
 		}
 
 		await connectDB();
 
 		const result = await PropertyModel.updateOne(
 			{ id, "documents.id": docId },
-			{ $set: { "documents.$.accessLevel": accessLevel } },
+			{ $set: updates },
 		);
 
 		if (result.matchedCount === 0) {
@@ -160,11 +179,11 @@ export async function PATCH(
 			);
 		}
 
-		return NextResponse.json({ success: true, accessLevel });
+		return NextResponse.json({ success: true, accessLevel, type });
 	} catch (error) {
-		console.error("Error updating document access level:", error);
+		console.error("Error updating document:", error);
 		return NextResponse.json(
-			{ error: "Failed to update document access level" },
+			{ error: "Failed to update document" },
 			{ status: 500 },
 		);
 	}

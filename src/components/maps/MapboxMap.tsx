@@ -1,6 +1,6 @@
 "use client";
 
-import { getPropertyTypeColor } from "@/lib/utils";
+import { getPropertyImageUrls, getPropertyTypeColor } from "@/lib/utils";
 import { MapViewport, Property, SurveyData } from "@/types/property";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
@@ -22,6 +22,7 @@ interface MapboxMapProps {
 	isDrawingBoundary?: boolean;
 	onBoundaryComplete?: (surveyData: SurveyData) => void;
 	onDrawingCancel?: () => void;
+	useImageMarkers?: boolean;
 	mapStyle?: MapboxStyleType;
 }
 
@@ -46,6 +47,7 @@ export default function MapboxMap({
 	isDrawingBoundary = false,
 	onBoundaryComplete,
 	onDrawingCancel,
+	useImageMarkers = true,
 	mapStyle = "streets",
 }: MapboxMapProps) {
 	const mapRef = useRef<any>(null);
@@ -162,7 +164,7 @@ export default function MapboxMap({
 							setPopupInfo(property);
 						}}
 					>
-						{property.images && property.images.length > 0 ? (
+						{getPropertyImageUrls(property).length > 0 ? (
 							<div
 								className="cursor-pointer transition-transform hover:scale-110"
 								style={{
@@ -177,7 +179,7 @@ export default function MapboxMap({
 								}}
 							>
 								<img
-									src={property.images[0]}
+									src={getPropertyImageUrls(property)[0]}
 									alt=""
 									style={{ width: "100%", height: "100%", objectFit: "cover" }}
 								/>

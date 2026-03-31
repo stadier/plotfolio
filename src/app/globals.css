@@ -312,3 +312,26 @@ body {
 	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 	border-color: #43474e;
 }
+
+/* ── Pre-hydration sidebar collapse ──
+   These rules match the Tailwind classes React will apply after hydration,
+   preventing any visible flash when the sidebar remounts across navigations. */
+html[data-sidebar-collapsed="true"] [data-sidebar] {
+	width: 72px;
+}
+html[data-sidebar-collapsed="true"] [data-sidebar-label] {
+	width: 0 !important;
+	opacity: 0 !important;
+	overflow: hidden !important;
+}
+/* Sidebar menu item width animation */
+.sidebar-link-expanded {
+	width: 192px; /* 12rem, matches w-64 */
+}
+.sidebar-link-collapsed {
+	width: 48px; /* 3rem, just enough for icon and gap */
+}
+.sidebar-link-expanded,
+.sidebar-link-collapsed {
+	transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

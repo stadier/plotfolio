@@ -1,6 +1,7 @@
 import connectDB from "@/lib/mongoose";
 import { PropertyModel, PropertyService } from "@/models/Property";
 import {
+	MediaType,
 	Property,
 	PropertyCondition,
 	PropertyStatus,
@@ -159,7 +160,10 @@ const sampleProperties: Property[] = [
 		purchasePrice: 45000000,
 		currentValue: 52000000,
 		documents: [],
-		images: ["/mock-properties/maitama-overview.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-1/1200/900",
+			"/mock-properties/maitama-overview.svg",
+		],
 		status: PropertyStatus.OWNED,
 		description:
 			"Prime residential plot in upscale Maitama district with Certificate of Occupancy.",
@@ -179,7 +183,10 @@ const sampleProperties: Property[] = [
 		purchasePrice: 0,
 		currentValue: 0,
 		documents: [],
-		images: ["/mock-properties/my-property.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-7/1200/900",
+			"/mock-properties/my-property.svg",
+		],
 		status: PropertyStatus.OWNED,
 		description: "My personal property",
 		country: "Nigeria",
@@ -199,7 +206,10 @@ const sampleProperties: Property[] = [
 		currentValue: 42000000,
 		conditions: [PropertyCondition.FENCED, PropertyCondition.CLEARED],
 		documents: [],
-		images: ["/mock-properties/jahi-garden.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-3/1200/900",
+			"/mock-properties/jahi-garden.svg",
+		],
 		status: PropertyStatus.OWNED,
 		visibility: PropertyVisibility.PUBLIC,
 		description:
@@ -221,7 +231,31 @@ const sampleProperties: Property[] = [
 		currentValue: 165000000,
 		conditions: [PropertyCondition.PAVED, PropertyCondition.HAS_STRUCTURE],
 		documents: [],
-		images: ["/mock-properties/commercial-cbd.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-8/1200/900",
+			"/mock-properties/commercial-cbd.svg",
+		],
+		media: [
+			{
+				url: "https://picsum.photos/seed/plotfolio-8/1200/900",
+				type: MediaType.IMAGE,
+			},
+			{
+				url: "/mock-properties/commercial-cbd.svg",
+				type: MediaType.IMAGE,
+			},
+			{
+				url: "https://www.w3schools.com/html/mov_bbb.mp4",
+				type: MediaType.VIDEO,
+				thumbnail: "https://picsum.photos/seed/plotfolio-8-video/1200/900",
+				caption: "Walkthrough tour of commercial block",
+			},
+			{
+				url: "https://www.w3schools.com/html/horse.mp3",
+				type: MediaType.AUDIO,
+				caption: "Site ambient audio recording",
+			},
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"High-value commercial block in the Central Business District with existing office structure. Dual access road, serviced with municipal water and power. Ideal for corporate HQ or mixed-use development.",
@@ -244,7 +278,10 @@ const sampleProperties: Property[] = [
 		currentValue: 22000000,
 		conditions: [PropertyCondition.FOUNDATION],
 		documents: [],
-		images: ["/mock-properties/gwarinpa-foundation.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-2/1200/900",
+			"/mock-properties/gwarinpa-foundation.svg",
+		],
 		status: PropertyStatus.DEVELOPMENT,
 		description:
 			"Residential plot in family-friendly Gwarinpa Estate, foundation already laid.",
@@ -265,7 +302,10 @@ const sampleProperties: Property[] = [
 		currentValue: 33000000,
 		conditions: [PropertyCondition.CLEARED],
 		documents: [],
-		images: ["/mock-properties/wuye-corner-plot.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-5/1200/900",
+			"/mock-properties/wuye-corner-plot.svg",
+		],
 		status: PropertyStatus.UNDER_CONTRACT,
 		description:
 			"Well-located plot in Wuye district close to shopping centers.",
@@ -286,7 +326,10 @@ const sampleProperties: Property[] = [
 		currentValue: 38000000,
 		conditions: [PropertyCondition.FENCED, PropertyCondition.CLEARED],
 		documents: [],
-		images: ["/mock-properties/life-camp-duplex.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-9/1200/900",
+			"/mock-properties/life-camp-duplex.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Corner plot in Life Camp ideal for a duplex build. Fully fenced with C of O. Close to Shoprite and major road arteries. Owner relocating — priced to sell quickly.",
@@ -309,7 +352,10 @@ const sampleProperties: Property[] = [
 		currentValue: 15000000,
 		conditions: [PropertyCondition.BUSH],
 		documents: [],
-		images: ["/mock-properties/kubwa-plot.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-4/1200/900",
+			"/mock-properties/kubwa-plot.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Affordable residential plot in Kubwa with survey plan and deed.",
@@ -330,7 +376,10 @@ const sampleProperties: Property[] = [
 		currentValue: 72000000,
 		conditions: [PropertyCondition.PAVED, PropertyCondition.FENCED],
 		documents: [],
-		images: ["/mock-properties/idu-industrial.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-10/1200/900",
+			"/mock-properties/idu-industrial.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Expansive industrial lot in Idu Layout. Paved access, perimeter fenced, utility connections available. Suitable for warehousing, manufacturing, or logistics hub. Clear title documentation.",
@@ -353,7 +402,10 @@ const sampleProperties: Property[] = [
 		currentValue: 21000000,
 		conditions: [PropertyCondition.CLEARED],
 		documents: [],
-		images: ["/mock-properties/karsana-expanse.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-6/1200/900",
+			"/mock-properties/karsana-expanse.svg",
+		],
 		status: PropertyStatus.OWNED,
 		visibility: PropertyVisibility.PUBLIC,
 		description:
@@ -375,7 +427,10 @@ const sampleProperties: Property[] = [
 		currentValue: 14000000,
 		conditions: [PropertyCondition.BUSH],
 		documents: [],
-		images: ["/mock-properties/gwagwalada-farm.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-11/1200/900",
+			"/mock-properties/gwagwalada-farm.svg",
+		],
 		status: PropertyStatus.OWNED,
 		description:
 			"Fertile farmland along the Gwagwalada corridor. Currently uncultivated but road-accessible. Ideal for poultry, crop farming, or agri-business.",
@@ -402,7 +457,10 @@ const sampleProperties: Property[] = [
 			PropertyCondition.HAS_STRUCTURE,
 		],
 		documents: [],
-		images: ["/mock-properties/asokoro-terrace.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-12/1200/900",
+			"/mock-properties/asokoro-terrace.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Premium plot in Asokoro Extension with partially completed terrace structure. Tarred road, 24-hr security estate, underground drainage. Ideal for luxury residences.",
@@ -423,7 +481,10 @@ const sampleProperties: Property[] = [
 		currentValue: 75000000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.FENCED],
 		documents: [],
-		images: ["/mock-properties/guzape-duplex.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-13/1200/900",
+			"/mock-properties/guzape-duplex.svg",
+		],
 		status: PropertyStatus.OWNED,
 		visibility: PropertyVisibility.PUBLIC,
 		description:
@@ -445,7 +506,10 @@ const sampleProperties: Property[] = [
 		currentValue: 58000000,
 		conditions: [PropertyCondition.PAVED],
 		documents: [],
-		images: ["/mock-properties/garki-mixed.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-14/1200/900",
+			"/mock-properties/garki-mixed.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Corner plot on a major junction in Garki II. Zoned for mixed-use — retail ground floor with residential upper floors. High foot traffic area with steady rental demand.",
@@ -468,7 +532,10 @@ const sampleProperties: Property[] = [
 		currentValue: 24000000,
 		conditions: [PropertyCondition.CLEARED],
 		documents: [],
-		images: ["/mock-properties/lokogoma-estate.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-15/1200/900",
+			"/mock-properties/lokogoma-estate.svg",
+		],
 		status: PropertyStatus.DEVELOPMENT,
 		description:
 			"Residential plot in the well-planned Lokogoma district. Estate roads, drainage, and streetlights already installed. Foundation expected Q2 2026.",
@@ -489,7 +556,10 @@ const sampleProperties: Property[] = [
 		currentValue: 9500000,
 		conditions: [PropertyCondition.BUSH],
 		documents: [],
-		images: ["/mock-properties/lugbe-vacant.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-16/1200/900",
+			"/mock-properties/lugbe-vacant.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Affordable vacant land in FHA Lugbe. Uncleared but accessible from Airport Road. Survey plan and allocation papers in order. Great entry-level investment.",
@@ -510,7 +580,10 @@ const sampleProperties: Property[] = [
 		currentValue: 18000000,
 		conditions: [PropertyCondition.HAS_STRUCTURE],
 		documents: [],
-		images: ["/mock-properties/nyanya-shop.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-17/1200/900",
+			"/mock-properties/nyanya-shop.svg",
+		],
 		status: PropertyStatus.RENTED,
 		visibility: PropertyVisibility.PUBLIC,
 		description:
@@ -534,7 +607,10 @@ const sampleProperties: Property[] = [
 		currentValue: 95000000,
 		conditions: [PropertyCondition.ROCKY, PropertyCondition.FENCED],
 		documents: [],
-		images: ["/mock-properties/katampe-hilltop.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-18/1200/900",
+			"/mock-properties/katampe-hilltop.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Elevated hilltop plot in Katampe Extension with panoramic views of the city. Rocky terrain — ideal for a luxury villa with a basement. R of O and survey certified.",
@@ -555,7 +631,10 @@ const sampleProperties: Property[] = [
 		currentValue: 28000000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.PAVED],
 		documents: [],
-		images: ["/mock-properties/mbora-serviced.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-19/1200/900",
+			"/mock-properties/mbora-serviced.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Serviced plot in Mbora (Trademoore) Estate with tarred roads and estate security. Cleared and ready for immediate construction. All documentation verified.",
@@ -578,7 +657,10 @@ const sampleProperties: Property[] = [
 		currentValue: 7800000,
 		conditions: [PropertyCondition.BUSH],
 		documents: [],
-		images: ["/mock-properties/dei-dei-bungalow.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-20/1200/900",
+			"/mock-properties/dei-dei-bungalow.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Compact plot in Dei-Dei suitable for a 3-bedroom bungalow. Affordable area with strong growth potential as infrastructure improves. Deed of assignment available.",
@@ -599,7 +681,10 @@ const sampleProperties: Property[] = [
 		currentValue: 48000000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.FENCED],
 		documents: [],
-		images: ["/mock-properties/zuba-warehouse.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-21/1200/900",
+			"/mock-properties/zuba-warehouse.svg",
+		],
 		status: PropertyStatus.OWNED,
 		visibility: PropertyVisibility.PUBLIC,
 		description:
@@ -623,7 +708,10 @@ const sampleProperties: Property[] = [
 		currentValue: 13500000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.PAVED],
 		documents: [],
-		images: ["/mock-properties/karshi-estate.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-22/1200/900",
+			"/mock-properties/karshi-estate.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Developer plots in Karshi New Town Phase 1 estate. Roads and drainage complete. Title: Governor's Consent. 24-month installment plan available from Primelands Development.",
@@ -648,7 +736,10 @@ const sampleProperties: Property[] = [
 			PropertyCondition.FENCED,
 		],
 		documents: [],
-		images: ["/mock-properties/apo-commercial.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-23/1200/900",
+			"/mock-properties/apo-commercial.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Prime commercial strip facing Apo main road. Three contiguous plots with existing retail structures. High visibility, heavy traffic. Suitable for plaza development or franchise outlets.",
@@ -669,7 +760,10 @@ const sampleProperties: Property[] = [
 		currentValue: 7000000,
 		conditions: [PropertyCondition.CLEARED],
 		documents: [],
-		images: ["/mock-properties/kuje-gated.svg"],
+		images: [
+			"https://picsum.photos/seed/plotfolio-24/1200/900",
+			"/mock-properties/kuje-gated.svg",
+		],
 		status: PropertyStatus.FOR_SALE,
 		description:
 			"Affordable gated-community plot in Kuje. Estate perimeter wall, security gate, and internal roads provided by developer. Flexible payment plan. Perfect starter investment.",

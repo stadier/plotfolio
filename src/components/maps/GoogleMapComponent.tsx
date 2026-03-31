@@ -1,6 +1,6 @@
 "use client";
 
-import { getPropertyTypeColor } from "@/lib/utils";
+import { getPropertyImageUrls, getPropertyTypeColor } from "@/lib/utils";
 import {
 	MapViewport,
 	Property,
@@ -295,6 +295,7 @@ interface GoogleMapComponentProps {
 	onDrawingCancel?: () => void;
 	onGridComplete?: (grid: PropertyGrid) => void;
 	onGridCancel?: () => void;
+	useImageMarkers?: boolean;
 	mapType?: GoogleMapType;
 }
 
@@ -332,6 +333,7 @@ export default function GoogleMapComponent({
 	onDrawingCancel,
 	onGridComplete,
 	onGridCancel,
+	useImageMarkers = true,
 	mapType = "standard",
 	className = "",
 }: GoogleMapComponentProps) {
@@ -429,7 +431,8 @@ export default function GoogleMapComponent({
 								}}
 								onClick={() => handleMarkerClick(property)}
 							>
-								{property.images && property.images.length > 0 ? (
+								{useImageMarkers &&
+								getPropertyImageUrls(property).length > 0 ? (
 									<div
 										className={`cursor-pointer transition-transform hover:scale-110 overflow-hidden bg-white ${
 											selectedProperty?.id === property.id
@@ -442,7 +445,7 @@ export default function GoogleMapComponent({
 										}}
 									>
 										<img
-											src={property.images[0]}
+											src={getPropertyImageUrls(property)[0]}
 											alt=""
 											className="w-full h-full object-cover"
 										/>

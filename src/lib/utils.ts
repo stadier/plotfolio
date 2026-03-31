@@ -1,3 +1,4 @@
+import { MediaType, type Property, type PropertyMedia } from "@/types/property";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -86,4 +87,30 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 		clearTimeout(timeoutId);
 		timeoutId = setTimeout(() => func(...args), delay);
 	};
+}
+
+/**
+ * Normalise the legacy `images` string array and new `media` array into a
+ * single `PropertyMedia[]`.  Media entries take precedence; any legacy image
+ * URLs that aren't already present in `media` are appended as IMAGE type.
+ */
+export function getPropertyMedia(property: Property): PropertyMedia[] {
+	const mediaItems: PropertyMedia[] = [...(property.media ?? [])];
+	const existingUrls = new Set(mediaItems.map((m) => m.url));
+
+	for (const url of property.images ?? []) {
+		if (!existingUrls.has(url)) {
+			mediaItems.push({ url, type: MediaType.IMAGE });
+			existingUrls.add(url);
+		}
+	}
+
+	return mediaItems;
+}
+
+/** Get only image-type media for contexts that only display images (map popups, etc.) */
+export function getPropertyImageUrls(property: Property): string[] {
+	return getPropertyMedia(property)
+		.filter((m) => m.type === MediaType.IMAGE)
+		.map((m) => m.url);
 }

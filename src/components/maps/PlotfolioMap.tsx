@@ -56,6 +56,9 @@ interface PlotfolioMapProps {
 	onGridComplete?: (grid: PropertyGrid) => void;
 	onGridCancel?: () => void;
 
+	// Marker style
+	useImageMarkers?: boolean;
+
 	// Styling
 	className?: string;
 }
@@ -82,6 +85,7 @@ export default function PlotfolioMap({
 	onDrawingCancel,
 	onGridComplete,
 	onGridCancel,
+	useImageMarkers = true,
 	className = "",
 }: PlotfolioMapProps) {
 	// Common props for all map providers
@@ -104,12 +108,13 @@ export default function PlotfolioMap({
 		onDrawingCancel,
 		onGridComplete,
 		onGridCancel,
+		useImageMarkers,
 		className,
 	};
 
 	// Map view mode to provider-specific types
 	const getMapboxStyle = (
-		mode: MapViewMode
+		mode: MapViewMode,
 	): "streets" | "satellite" | "outdoors" | "satellite-streets" => {
 		switch (mode) {
 			case "standard":

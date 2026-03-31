@@ -10,6 +10,19 @@ export interface PropertyGrid {
 	color?: string;
 }
 
+export enum MediaType {
+	IMAGE = "image",
+	VIDEO = "video",
+	AUDIO = "audio",
+}
+
+export interface PropertyMedia {
+	url: string;
+	type: MediaType;
+	thumbnail?: string; // optional preview image for video/audio
+	caption?: string;
+}
+
 export interface Property {
 	id: string;
 	name: string;
@@ -26,7 +39,8 @@ export interface Property {
 	documents: PropertyDocument[];
 	status: PropertyStatus;
 	description?: string;
-	images?: string[];
+	images?: string[]; // legacy — prefer media[]
+	media?: PropertyMedia[];
 	zoning?: string;
 	taxId?: string;
 	owner: PropertyOwner;
@@ -39,6 +53,14 @@ export interface Property {
 	conditions?: string[]; // Physical state tags — enum values or custom strings
 	visibility?: PropertyVisibility; // Profile/search visibility — defaults to private
 	quantity?: number; // Number of identical units (e.g. 10 plots in the same location)
+	// Building details
+	bedrooms?: number;
+	bathrooms?: number;
+	parkingSpaces?: number;
+	amenities?: string[]; // e.g. "Private Pool", "Balcony", "Security"
+	finishingType?: string; // e.g. "Fully Finished", "Semi-Finished", "Core & Shell"
+	projectName?: string; // Development or estate name
+	availableFrom?: string; // ISO date string
 	// Transaction details
 	boughtFrom?: string; // Seller / previous owner name
 	witnesses?: string[]; // Names of witnesses on the transaction
@@ -60,6 +82,8 @@ export interface PropertyOwner {
 	type: "individual" | "company" | "trust";
 	joinDate?: string; // ISO date string
 	salesCount?: number;
+	followerCount?: number;
+	allowBookings?: boolean; // whether visitors can book consultation/inspection slots
 }
 
 export enum DocumentAccessLevel {
@@ -239,4 +263,52 @@ export interface SurveyBearing {
 	to: string;
 	bearing: number; // in degrees
 	distance: number; // in meters
+}
+
+/* ─── Favourite ───────────────────────────────────────────────── */
+
+export interface Favourite {
+	id: string;
+	userId: string;
+	propertyId: string;
+	createdAt?: string;
+}
+
+/* ─── Follow ──────────────────────────────────────────────────── */
+
+export interface Follow {
+	id: string;
+	followerId: string; // user doing the following
+	followingId: string; // owner being followed
+	createdAt?: string;
+}
+
+/* ─── Booking ─────────────────────────────────────────────────── */
+
+export enum BookingType {
+	CONSULTATION = "consultation",
+	INSPECTION = "inspection",
+}
+
+export enum BookingStatus {
+	PENDING = "pending",
+	CONFIRMED = "confirmed",
+	CANCELLED = "cancelled",
+	COMPLETED = "completed",
+}
+
+export interface Booking {
+	id: string;
+	ownerId: string; // the property owner being booked
+	requesterId: string; // user requesting the booking
+	requesterName: string;
+	requesterEmail: string;
+	type: BookingType;
+	date: string; // ISO date string (YYYY-MM-DD)
+	time: string; // HH:mm
+	message?: string;
+	status: BookingStatus;
+	propertyId?: string; // optional — specific property for inspection
+	createdAt?: string;
+	updatedAt?: string;
 }
