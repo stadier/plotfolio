@@ -24,7 +24,7 @@ export default function SettingsPage() {
 				</p>
 
 				{/* Appearance section */}
-				<section className="bg-white dark:bg-surface-container-low rounded-2xl border border-outline-variant p-6">
+				<section className="bg-card rounded-2xl border border-outline-variant p-6">
 					<h2 className="font-headline text-base font-bold text-on-surface mb-1">
 						Appearance
 					</h2>

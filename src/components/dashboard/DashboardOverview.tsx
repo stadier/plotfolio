@@ -89,7 +89,7 @@ export default function DashboardOverview({
 					return (
 						<div
 							key={index}
-							className="w-full sm:w-[280px] max-w-sm bg-white dark:bg-surface-container-low rounded-lg shadow-md p-6 card-hover animate-fade-in-up"
+							className="w-full sm:w-[280px] max-w-sm bg-card rounded-lg shadow-md p-6 card-hover animate-fade-in-up"
 						>
 							<div className="flex items-center justify-between">
 								<div>
@@ -112,7 +112,7 @@ export default function DashboardOverview({
 			{/* Distribution Charts */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				{/* Property Type Distribution */}
-				<div className="bg-white rounded-lg shadow-md p-6">
+				<div className="bg-card rounded-lg shadow-md p-6">
 					<h3 className="text-lg font-semibold text-gray-900 mb-4">
 						Property Types
 					</h3>
@@ -140,7 +140,7 @@ export default function DashboardOverview({
 				</div>
 
 				{/* Property Status Distribution */}
-				<div className="bg-white rounded-lg shadow-md p-6">
+				<div className="bg-card rounded-lg shadow-md p-6">
 					<h3 className="text-lg font-semibold text-gray-900 mb-4">
 						Property Status
 					</h3>
@@ -169,7 +169,7 @@ export default function DashboardOverview({
 			</div>
 
 			{/* Quick Stats */}
-			<div className="bg-white rounded-lg shadow-md p-6">
+			<div className="bg-card rounded-lg shadow-md p-6">
 				<h3 className="text-lg font-semibold text-gray-900 mb-4">
 					Portfolio Summary
 				</h3>

@@ -122,7 +122,7 @@ export default function ShareModal({
 			onClick={handleBackdropClick}
 			className="backdrop:bg-black/40 bg-transparent p-0 m-auto max-w-sm w-full rounded-2xl outline-none"
 		>
-			<div className="bg-white dark:bg-surface-container-high rounded-2xl border border-outline-variant/30 shadow-xl p-5 space-y-4 max-w-sm w-full">
+			<div className="bg-card rounded-2xl border border-outline-variant/30 shadow-xl p-5 space-y-4 max-w-sm w-full">
 				{/* Header */}
 				<div className="flex items-center justify-between">
 					<h2 className="text-base font-semibold text-on-surface font-headline">

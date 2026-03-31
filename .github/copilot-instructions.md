@@ -80,6 +80,36 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 - **Detail panels and document upload/preview components must have a max-width and stay left-aligned/top-aligned**; on reduced space they should wrap/flex rather than stretch to fill extra width
 - **This max-width + top-left alignment rule applies to every UI component in the app**; components should only grow up to their max-width and then wrap/reflow rather than stretching to consume all horizontal space
 
+### Dark Mode — Semantic Token Rules
+
+The project uses **CSS custom properties** defined in `globals.css` under `@theme` (light) and `.dark` (dark override). Tailwind `dark:` variant classes **do not reliably override** base utilities in this setup because `@theme` generates `var(--color-*)` references but the `dark:` specificity can fail. **Always use semantic tokens instead of `dark:` variant pairs.**
+
+#### Required tokens for new components:
+
+| Purpose                          | Token class               | Light value              | Dark value                    |
+| -------------------------------- | ------------------------- | ------------------------ | ----------------------------- |
+| Card / panel background          | `bg-card`                 | `#ffffff`                | `#1e293b`                     |
+| Page / main area background      | `bg-background`           | `#f8f9fa`                | `#0f172a`                     |
+| Sidebar background               | `bg-sidebar`              | `#f8fafc`                | `#1e293b`                     |
+| Active nav item background       | `bg-nav-active`           | `#ffffff`                | `#334155`                     |
+| Borders (cards, header, sidebar) | `border-border`           | `#e2e8f0`                | `#1e293b` (invisible in dark) |
+| Translucent overlay (map panels) | `bg-glass`                | `rgba(255,255,255,0.95)` | `rgba(30,41,59,0.95)`         |
+| Primary text                     | `text-on-surface`         | `#191c1d`                | `#f8fafc`                     |
+| Secondary text                   | `text-on-surface-variant` | `#43474e`                | `#cbd5e1`                     |
+| Muted text                       | `text-outline`            | `#74777f`                | `#94a3b8`                     |
+| Primary color (headings, links)  | `text-primary`            | `#000e24`                | `#93c5fd`                     |
+| Secondary / accent               | `text-secondary`          | `#3b6934`                | `#86efac`                     |
+
+#### Rules:
+
+1. **Never use `bg-white`** on cards, containers, inputs, or panels — use `bg-card`
+2. **Never use `border-gray-*` or `border-slate-*`** — use `border-border`
+3. **Never use `text-gray-*`** — use `text-on-surface`, `text-on-surface-variant`, or `text-outline`
+4. **Never use `bg-gray-*`** — use `bg-surface-container`, `bg-surface-container-high`, etc.
+5. **Never pair light + dark: classes** (e.g. `bg-white dark:bg-surface-container-low`) — use the single semantic token (`bg-card`)
+6. **Dark mode borders on cards are intentionally invisible** (`--color-border` matches `--color-card` in dark). This is by design — do not add visible borders in dark mode
+7. **Exception:** `bg-white/N` on image overlays (badges on photos, translucent map controls) is acceptable since those sit on images, not on dark backgrounds
+
 ## Feature-Specific Guidelines
 
 ### Property Management

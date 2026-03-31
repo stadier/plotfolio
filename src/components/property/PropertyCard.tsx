@@ -159,7 +159,7 @@ export default function PropertyCard({
 	return (
 		<div
 			className={cn(
-				"bg-white dark:bg-surface-container-low rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer border dark:border-outline-variant",
+				"bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer border border-border",
 				isSelected && "ring-2 ring-blue-500 border-blue-500",
 				className,
 			)}
@@ -351,7 +351,7 @@ export default function PropertyCard({
 
 				{/* Owner info */}
 				{property.owner && (
-					<div className="mt-3 pt-3 border-t border-gray-100 dark:border-outline-variant">
+					<div className="mt-3 pt-3 border-t border-border">
 						<UserAvatar
 							name={property.owner.name}
 							displayName={property.owner.displayName}

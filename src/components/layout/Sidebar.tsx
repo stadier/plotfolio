@@ -91,7 +91,7 @@ export default function Sidebar({ className = "" }: SidebarProps) {
 	return (
 		<aside
 			data-sidebar
-			className={`relative hidden md:flex flex-col h-full shrink-0 border-r border-slate-200 dark:border-outline-variant bg-slate-50 dark:bg-surface-container-low pt-8 pb-8 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
+			className={`relative hidden md:flex flex-col h-full shrink-0 border-r border-border bg-sidebar pt-8 pb-8 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
 				collapsed ? "w-[72px] px-2" : "w-64 px-4"
 			} ${className}`}
 		>
@@ -99,7 +99,7 @@ export default function Sidebar({ className = "" }: SidebarProps) {
 			<button
 				onClick={toggle}
 				title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-				className="absolute top-1/2 -translate-y-1/2 -right-3.5 z-10 flex items-center justify-center w-7 h-7 rounded-full border border-slate-200 dark:border-outline-variant bg-white dark:bg-surface-container-high text-slate-400 dark:text-on-surface-variant hover:text-primary hover:border-primary/40 shadow-sm transition-all"
+				className="absolute top-1/2 -translate-y-1/2 -right-3.5 z-10 flex items-center justify-center w-7 h-7 rounded-full border border-border bg-card text-slate-400 dark:text-on-surface-variant hover:text-primary hover:border-primary/40 shadow-sm transition-all"
 			>
 				{collapsed ? (
 					<PanelLeftOpen className="w-3.5 h-3.5" />
@@ -129,7 +129,7 @@ export default function Sidebar({ className = "" }: SidebarProps) {
 								collapsed ? "justify-center" : "gap-3 px-4"
 							} ${
 								isActive
-									? "bg-white dark:bg-surface-container-high text-primary font-bold shadow-sm dark:shadow-none"
+									? "bg-nav-active text-primary font-bold shadow-sm dark:shadow-none"
 									: "text-slate-600 dark:text-on-surface-variant hover:translate-x-1 hover:bg-slate-100 dark:hover:bg-surface-container"
 							}`}
 						>
@@ -187,7 +187,7 @@ export default function Sidebar({ className = "" }: SidebarProps) {
 				)}
 
 				{/* Secondary links */}
-				<div className="flex flex-col gap-1 border-t border-slate-200 dark:border-outline-variant pt-4">
+				<div className="flex flex-col gap-1 border-t border-border pt-4">
 					<Link
 						href="/settings"
 						data-sidebar-link

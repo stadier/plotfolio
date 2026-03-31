@@ -92,15 +92,15 @@ export default function DashboardPage() {
 					{loading && (
 						<div className="space-y-6">
 							<div className="flex gap-10">
-								<div className="h-16 w-48 bg-white dark:bg-surface-container-low rounded-2xl animate-pulse" />
-								<div className="h-16 w-32 bg-white dark:bg-surface-container-low rounded-2xl animate-pulse" />
+								<div className="h-16 w-48 bg-card rounded-2xl animate-pulse" />
+								<div className="h-16 w-32 bg-card rounded-2xl animate-pulse" />
 							</div>
-							<div className="h-80 bg-white dark:bg-surface-container-low rounded-2xl animate-pulse" />
+							<div className="h-80 bg-card rounded-2xl animate-pulse" />
 							<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-								<div className="h-36 bg-white dark:bg-surface-container-low rounded-2xl animate-pulse" />
-								<div className="h-36 bg-white dark:bg-surface-container-low rounded-2xl animate-pulse" />
-								<div className="h-36 bg-white dark:bg-surface-container-low rounded-2xl animate-pulse" />
-								<div className="h-36 bg-white dark:bg-surface-container-low rounded-2xl animate-pulse" />
+								<div className="h-36 bg-card rounded-2xl animate-pulse" />
+								<div className="h-36 bg-card rounded-2xl animate-pulse" />
+								<div className="h-36 bg-card rounded-2xl animate-pulse" />
+								<div className="h-36 bg-card rounded-2xl animate-pulse" />
 							</div>
 						</div>
 					)}
@@ -221,7 +221,7 @@ export default function DashboardPage() {
 								</Link>
 								<Link
 									href="/portfolio/map"
-									className="bg-white dark:bg-surface-container-low border border-slate-200 dark:border-outline-variant text-primary font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg hover:shadow-md transition-all flex items-center gap-2 btn-press"
+									className="bg-card border border-border text-primary font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg hover:shadow-md transition-all flex items-center gap-2 btn-press"
 								>
 									<MapPin className="w-4 h-4" />
 									Map View
@@ -234,7 +234,7 @@ export default function DashboardPage() {
 				{/* ── Right: Tracking Board (standalone sticky card) ── */}
 				{!loading && properties.length > 0 && (
 					<aside className="hidden lg:block w-80 shrink-0">
-						<div className="sticky top-24 bg-white dark:bg-surface-container-low rounded-2xl border border-slate-100 dark:border-outline-variant shadow-sm p-5 max-h-[calc(100vh-120px)] overflow-y-auto animate-fade-in-up">
+						<div className="sticky top-24 bg-card rounded-2xl border border-slate-300 p-5 max-h-[calc(100vh-120px)] overflow-y-auto animate-fade-in-up">
 							{/* Header */}
 							<div className="flex items-center justify-between mb-5">
 								<div className="flex items-center gap-2">
@@ -262,7 +262,7 @@ export default function DashboardPage() {
 							</div>
 
 							{/* Footer */}
-							<div className="mt-4 pt-4 border-t border-slate-50 dark:border-outline-variant">
+							<div className="mt-4 pt-4 border-t border-border">
 								<Link
 									href="/marketplace"
 									className="text-xs font-bold text-secondary uppercase tracking-widest hover:text-primary transition-colors"

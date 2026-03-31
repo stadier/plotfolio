@@ -72,7 +72,7 @@ export default function PropertyMiniMap({
 
 	return (
 		<div className="w-full max-w-xl">
-			<div className="bg-white dark:bg-surface-container border border-gray-200 dark:border-outline-variant rounded-xl overflow-hidden">
+			<div className="bg-card border border-border rounded-xl overflow-hidden">
 				<div className="flex items-center justify-between px-5 py-3">
 					<h2 className="text-sm font-semibold text-gray-900 dark:text-on-surface uppercase tracking-wide">
 						Location

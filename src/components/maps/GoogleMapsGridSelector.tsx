@@ -129,7 +129,7 @@ export default function GoogleMapsGridSelector({
 	};
 
 	return (
-		<div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 z-10 max-w-sm">
+		<div className="absolute top-4 left-4 bg-card rounded-lg shadow-lg p-4 z-10 max-w-sm">
 			<h3 className="font-bold text-lg mb-2">Select Property Grid</h3>
 			<p className="text-sm text-gray-600 mb-3">
 				Click on grid cells to mark your property boundaries

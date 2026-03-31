@@ -119,7 +119,7 @@ function PublicPropertyCard({ property }: { property: Property }) {
 	return (
 		<Link
 			href={`/marketplace/${property.id}`}
-			className="max-w-sm block rounded-xl border border-gray-200 dark:border-outline-variant bg-white dark:bg-surface-container-low overflow-hidden hover:border-gray-300 dark:hover:border-outline transition-colors group"
+			className="max-w-sm block rounded-xl border border-border bg-card overflow-hidden hover:border-gray-300 dark:hover:border-outline transition-colors group"
 		>
 			{/* Image */}
 			<div className="h-32 bg-gray-100 dark:bg-surface-container relative">
@@ -204,7 +204,7 @@ function ProfileSidebar({
 	return (
 		<div className="max-w-xs w-full">
 			{/* Banner + Avatar */}
-			<div className="rounded-xl overflow-hidden bg-white dark:bg-surface-container-low border border-gray-200 dark:border-outline-variant">
+			<div className="rounded-xl overflow-hidden bg-card border border-border">
 				<div className="h-24 relative bg-gray-200 dark:bg-surface-container">
 					{owner.banner ? (
 						<Image
@@ -277,7 +277,7 @@ function ProfileSidebar({
 			</div>
 
 			{/* Portfolio Summary */}
-			<div className="mt-3 rounded-xl bg-white dark:bg-surface-container-low border border-gray-200 dark:border-outline-variant p-4">
+			<div className="mt-3 rounded-xl bg-card border border-border p-4">
 				<h3 className="text-xs font-bold text-on-surface mb-3 uppercase tracking-wider">
 					Portfolio Summary
 				</h3>
@@ -326,7 +326,7 @@ function ProfileSidebar({
 				<button className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-primary text-on-primary hover:opacity-90 transition-opacity">
 					Contact
 				</button>
-				<button className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-outline-variant text-on-surface hover:bg-gray-50 dark:hover:bg-surface-container transition-colors">
+				<button className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold border border-border text-on-surface hover:bg-gray-50 dark:hover:bg-surface-container transition-colors">
 					Share Profile
 				</button>
 			</div>
@@ -465,7 +465,7 @@ export default function ProfilePage() {
 								</div>
 
 								{data.properties.length === 0 ? (
-									<div className="rounded-xl border border-dashed border-gray-300 dark:border-outline-variant py-12 px-6 text-center">
+									<div className="rounded-xl border border-dashed border-border py-12 px-6 text-center">
 										<Shield className="w-8 h-8 text-on-surface-variant mx-auto mb-2 opacity-50" />
 										<p className="text-sm text-on-surface-variant">
 											No public properties yet.

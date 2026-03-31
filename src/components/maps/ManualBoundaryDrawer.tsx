@@ -224,7 +224,7 @@ export default function ManualBoundaryDrawer({
 	};
 
 	return (
-		<div className="absolute top-20 left-4 z-1000 bg-white rounded-lg shadow-xl border border-gray-200 p-4 max-w-sm">
+		<div className="absolute top-20 left-4 z-1000 bg-card rounded-lg shadow-xl border border-border p-4 max-w-sm">
 			<div className="flex items-center justify-between mb-4">
 				<h3 className="font-semibold text-gray-900 flex items-center gap-2">
 					<Pencil className="w-5 h-5 text-blue-600" />

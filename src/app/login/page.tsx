@@ -91,7 +91,7 @@ export default function LoginPage() {
 				</div>
 
 				{/* Card */}
-				<div className="bg-white dark:bg-surface-container rounded-xl border border-slate-200 dark:border-outline-variant shadow-sm p-6">
+				<div className="bg-card rounded-xl border border-border shadow-sm p-6">
 					{/* Mode tabs */}
 					<div className="flex bg-slate-100 dark:bg-surface-container-low rounded-lg p-1 mb-6">
 						<button
@@ -102,7 +102,7 @@ export default function LoginPage() {
 							}}
 							className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${
 								mode === "login"
-									? "bg-white dark:bg-surface-container-high text-primary shadow-sm"
+									? "bg-card text-primary shadow-sm"
 									: "text-slate-500 dark:text-on-surface-variant"
 							}`}
 						>
@@ -116,7 +116,7 @@ export default function LoginPage() {
 							}}
 							className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${
 								mode === "signup"
-									? "bg-white dark:bg-surface-container-high text-primary shadow-sm"
+									? "bg-card text-primary shadow-sm"
 									: "text-slate-500 dark:text-on-surface-variant"
 							}`}
 						>
@@ -141,7 +141,7 @@ export default function LoginPage() {
 									onChange={(e) => setName(e.target.value)}
 									placeholder="Your full name"
 									autoComplete="name"
-									className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-outline-variant bg-slate-50 dark:bg-surface-container-low text-sm text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+									className="w-full px-3 py-2.5 rounded-lg border border-border bg-slate-50 dark:bg-surface-container-low text-sm text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
 								/>
 							</div>
 						)}
@@ -161,7 +161,7 @@ export default function LoginPage() {
 								placeholder="you@example.com"
 								autoComplete="email"
 								required
-								className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-outline-variant bg-slate-50 dark:bg-surface-container-low text-sm text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+								className="w-full px-3 py-2.5 rounded-lg border border-border bg-slate-50 dark:bg-surface-container-low text-sm text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
 							/>
 						</div>
 
@@ -185,7 +185,7 @@ export default function LoginPage() {
 										mode === "signup" ? "new-password" : "current-password"
 									}
 									required
-									className="w-full px-3 py-2.5 pr-10 rounded-lg border border-slate-200 dark:border-outline-variant bg-slate-50 dark:bg-surface-container-low text-sm text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+									className="w-full px-3 py-2.5 pr-10 rounded-lg border border-border bg-slate-50 dark:bg-surface-container-low text-sm text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
 								/>
 								<button
 									type="button"

@@ -46,8 +46,8 @@ export default function TrackingCard({
 					<span
 						className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
 							isOwn
-								? "bg-secondary/10 text-secondary"
-								: "bg-blue-50 text-blue-600"
+								? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300"
+								: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
 						}`}
 					>
 						{isOwn ? "Your listing" : "Marketplace"}

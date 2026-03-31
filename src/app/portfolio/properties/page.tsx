@@ -106,7 +106,7 @@ function getStatusColor(status: PropertyStatus): string {
 		case PropertyStatus.RENTED:
 			return "bg-purple-100 text-purple-700";
 		default:
-			return "bg-gray-100 text-gray-700";
+			return "bg-surface-container-high text-on-surface-variant";
 	}
 }
 
@@ -396,15 +396,15 @@ function PropertyCard({
 	return (
 		<div
 			onClick={() => onSelect(property.id)}
-			className="w-full max-w-xl bg-white border border-gray-300 rounded-xl p-5 transition-all cursor-pointer group card-hover"
+			className="w-full max-w-xl bg-card border border-border rounded-xl p-5 transition-all cursor-pointer group card-hover"
 		>
 			{/* Header */}
 			<div className="flex items-start justify-between mb-3 gap-3">
 				<div className="flex-1 min-w-0">
-					<h3 className="font-semibold text-gray-900 text-base truncate group-hover:text-black">
+					<h3 className="font-semibold text-on-surface text-base truncate group-hover:text-black">
 						{property.name}
 					</h3>
-					<div className="flex items-center gap-1 mt-1 text-gray-500 text-sm">
+					<div className="flex items-center gap-1 mt-1 text-outline text-sm">
 						<MapPin className="w-3 h-3 shrink-0" />
 						<span className="truncate">{property.address || "No address"}</span>
 					</div>
@@ -414,7 +414,7 @@ function PropertyCard({
 						href={`/portfolio/properties/${property.id}`}
 						onClick={(e) => e.stopPropagation()}
 						title="Edit property"
-						className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-all"
+						className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high opacity-0 group-hover:opacity-100 transition-all"
 					>
 						<Pencil className="w-3.5 h-3.5" />
 					</a>
@@ -429,16 +429,16 @@ function PropertyCard({
 						<span
 							className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDot(property.status)}`}
 						/>
-						<span className="text-gray-500">
+						<span className="text-outline">
 							{property.status.replace(/_/g, " ")}
 						</span>
 					</>
 				)}
 				{property.status && property.propertyType && (
-					<span className="text-gray-300 mx-0.5">·</span>
+					<span className="text-outline-variant mx-0.5">·</span>
 				)}
 				{property.propertyType && (
-					<span className="text-gray-400">
+					<span className="text-outline">
 						{getTypeLabel(property.propertyType)}
 					</span>
 				)}
@@ -463,17 +463,17 @@ function PropertyCard({
 			{/* Stats grid */}
 			<div className="grid grid-cols-2 gap-3 mb-4">
 				<div>
-					<div className="text-xs text-gray-500 mb-0.5">Purchase Price</div>
-					<div className="text-sm font-semibold text-gray-900">
+					<div className="text-xs text-outline mb-0.5">Purchase Price</div>
+					<div className="text-sm font-semibold text-on-surface">
 						{property.purchasePrice != null
 							? formatCurrency(property.purchasePrice)
 							: "—"}
 					</div>
 				</div>
 				<div>
-					<div className="text-xs text-gray-500 mb-0.5">Current Worth</div>
+					<div className="text-xs text-outline mb-0.5">Current Worth</div>
 					<div className="flex items-center gap-1">
-						<span className="text-sm font-semibold text-gray-900">
+						<span className="text-sm font-semibold text-on-surface">
 							{hasWorth ? formatCurrency(property.currentValue!) : "—"}
 						</span>
 						{worthChange !== null && (
@@ -487,23 +487,23 @@ function PropertyCard({
 					</div>
 				</div>
 				<div>
-					<div className="text-xs text-gray-500 mb-0.5">Area</div>
-					<div className="text-sm font-medium text-gray-700">
+					<div className="text-xs text-outline mb-0.5">Area</div>
+					<div className="text-sm font-medium text-on-surface-variant">
 						{property.area != null
 							? `${property.area.toLocaleString()} sqm`
 							: "—"}
 					</div>
 				</div>
 				<div>
-					<div className="text-xs text-gray-500 mb-0.5">Purchase Date</div>
-					<div className="flex items-center gap-1 text-sm font-medium text-gray-700">
+					<div className="text-xs text-outline mb-0.5">Purchase Date</div>
+					<div className="flex items-center gap-1 text-sm font-medium text-on-surface-variant">
 						<Calendar className="w-3 h-3" />
 						{property.purchaseDate ? formatDate(property.purchaseDate) : "—"}
 					</div>
 				</div>
 				{(property.quantity ?? 1) > 1 && (
 					<div>
-						<div className="text-xs text-gray-500 mb-0.5">Quantity</div>
+						<div className="text-xs text-outline mb-0.5">Quantity</div>
 						<div className="text-sm font-medium text-violet-700">
 							{property.quantity} units
 						</div>
@@ -512,16 +512,16 @@ function PropertyCard({
 			</div>
 
 			{/* Footer */}
-			<div className="flex items-center justify-between pt-3 border-t border-gray-100">
-				<div className="flex items-center gap-1.5 text-gray-500 text-xs">
+			<div className="flex items-center justify-between pt-3 border-t border-divider">
+				<div className="flex items-center gap-1.5 text-outline text-xs">
 					<FileText className="w-3.5 h-3.5" />
 					<span>
 						{docCount} document{docCount !== 1 ? "s" : ""}
 					</span>
 				</div>
 				{property.boughtFrom && (
-					<div className="text-xs text-gray-500 truncate max-w-[180px]">
-						From: <span className="text-gray-700">{property.boughtFrom}</span>
+					<div className="text-xs text-outline truncate max-w-[180px]">
+						From: <span className="text-on-surface-variant">{property.boughtFrom}</span>
 					</div>
 				)}
 			</div>
@@ -714,18 +714,18 @@ export default function PropertiesPage() {
 					<div className="flex flex-wrap items-center gap-3 mb-6">
 						{/* Search */}
 						<div className="relative flex-1 min-w-[220px] max-w-md">
-							<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
 							<input
 								type="text"
 								placeholder="Search name, address, owner…"
 								value={search}
 								onChange={(e) => setSearch(e.target.value)}
-								className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+								className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
 							/>
 							{search && (
 								<button
 									onClick={() => setSearch("")}
-									className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600"
+									className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-outline hover:text-on-surface-variant"
 								>
 									<X className="w-3.5 h-3.5" />
 								</button>
@@ -737,7 +737,7 @@ export default function PropertiesPage() {
 							<select
 								value={filterType}
 								onChange={(e) => setFilterType(e.target.value)}
-								className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 cursor-pointer"
+								className="appearance-none pl-3 pr-8 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 cursor-pointer"
 							>
 								<option value="">All Types</option>
 								{Object.values(PropertyType).map((t) => (
@@ -746,7 +746,7 @@ export default function PropertiesPage() {
 									</option>
 								))}
 							</select>
-							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
 						</div>
 
 						{/* Status filter */}
@@ -754,7 +754,7 @@ export default function PropertiesPage() {
 							<select
 								value={filterStatus}
 								onChange={(e) => setFilterStatus(e.target.value)}
-								className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 cursor-pointer"
+								className="appearance-none pl-3 pr-8 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 cursor-pointer"
 							>
 								<option value="">All Statuses</option>
 								{Object.values(PropertyStatus).map((s) => (
@@ -765,15 +765,15 @@ export default function PropertiesPage() {
 									</option>
 								))}
 							</select>
-							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
 						</div>
 						{/* Sort */}
 						<div className="relative">
-							<ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+							<ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-outline pointer-events-none" />
 							<select
 								value={sortBy}
 								onChange={(e) => setSortBy(e.target.value)}
-								className="appearance-none pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 cursor-pointer"
+								className="appearance-none pl-8 pr-8 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 cursor-pointer"
 							>
 								<option value="newest">Newest First</option>
 								<option value="oldest">Oldest First</option>
@@ -786,7 +786,7 @@ export default function PropertiesPage() {
 								<option value="area_low">Area: Smallest</option>
 								<option value="purchase_date">Purchase Date</option>
 							</select>
-							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
 						</div>
 						{/* Clear filters */}
 						{hasActiveFilters && (
@@ -797,20 +797,20 @@ export default function PropertiesPage() {
 									setFilterStatus("");
 									setSortBy("newest");
 								}}
-								className="text-xs text-gray-500 hover:text-primary underline underline-offset-2"
+								className="text-xs text-outline hover:text-primary underline underline-offset-2"
 							>
 								Clear filters
 							</button>
 						)}
 
 						{/* View toggle */}
-						<div className="ml-auto flex items-center rounded-lg border border-gray-200 bg-white p-0.5">
+						<div className="ml-auto flex items-center rounded-lg border border-border bg-card p-0.5">
 							<button
 								onClick={() => setViewMode("card")}
 								className={`p-1.5 rounded-md transition-colors ${
 									viewMode === "card"
 										? "bg-primary text-white"
-										: "text-gray-400 hover:text-gray-600"
+										: "text-outline hover:text-on-surface-variant"
 								}`}
 								title="Card view"
 							>
@@ -821,7 +821,7 @@ export default function PropertiesPage() {
 								className={`p-1.5 rounded-md transition-colors ${
 									viewMode === "table"
 										? "bg-primary text-white"
-										: "text-gray-400 hover:text-gray-600"
+										: "text-outline hover:text-on-surface-variant"
 								}`}
 								title="Table view"
 							>
@@ -837,16 +837,16 @@ export default function PropertiesPage() {
 						{[1, 2, 3].map((i) => (
 							<div
 								key={i}
-								className="bg-white border border-gray-200 rounded-xl p-5 animate-pulse"
+								className="bg-card border border-border rounded-xl p-5 animate-pulse"
 							>
-								<div className="h-5 bg-gray-200 rounded mb-2 w-3/4" />
-								<div className="h-4 bg-gray-200 rounded mb-4 w-1/2" />
-								<div className="h-44 bg-gray-200 rounded-lg mb-4" />
+								<div className="h-5 bg-surface-container-highest rounded mb-2 w-3/4" />
+								<div className="h-4 bg-surface-container-highest rounded mb-4 w-1/2" />
+								<div className="h-44 bg-surface-container-highest rounded-lg mb-4" />
 								<div className="grid grid-cols-2 gap-3">
-									<div className="h-10 bg-gray-200 rounded" />
-									<div className="h-10 bg-gray-200 rounded" />
-									<div className="h-10 bg-gray-200 rounded" />
-									<div className="h-10 bg-gray-200 rounded" />
+									<div className="h-10 bg-surface-container-highest rounded" />
+									<div className="h-10 bg-surface-container-highest rounded" />
+									<div className="h-10 bg-surface-container-highest rounded" />
+									<div className="h-10 bg-surface-container-highest rounded" />
 								</div>
 							</div>
 						))}
@@ -856,13 +856,13 @@ export default function PropertiesPage() {
 				{error && <div className="text-center py-16 text-red-500">{error}</div>}
 
 				{!loading && !error && properties.length === 0 && (
-					<div className="text-center py-16 text-gray-500">
+					<div className="text-center py-16 text-outline">
 						No properties found. Add your first property to get started.
 					</div>
 				)}
 
 				{!loading && properties.length > 0 && filtered.length === 0 && (
-					<div className="text-center py-16 text-gray-400">
+					<div className="text-center py-16 text-outline">
 						No properties match your filters.
 					</div>
 				)}
@@ -882,10 +882,10 @@ export default function PropertiesPage() {
 				)}
 
 				{!loading && filtered.length > 0 && viewMode === "table" && (
-					<div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+					<div className="overflow-x-auto rounded-xl border border-border bg-card">
 						<table className="w-full text-sm">
 							<thead>
-								<tr className="border-b border-gray-100 bg-gray-50/60 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+								<tr className="border-b border-divider bg-surface-container/60 text-left text-xs font-semibold uppercase tracking-wider text-outline">
 									<th className="px-4 py-3">Name</th>
 									<th className="px-4 py-3">Address</th>
 									<th className="px-4 py-3">Type</th>
@@ -900,7 +900,7 @@ export default function PropertiesPage() {
 									</th>
 								</tr>
 							</thead>
-							<tbody className="divide-y divide-gray-100">
+							<tbody className="divide-y divide-divider">
 								{filtered.map((property) => {
 									const worthChange =
 										property.currentValue != null &&
@@ -913,21 +913,21 @@ export default function PropertiesPage() {
 										<tr
 											key={property.id}
 											onClick={() => setSelectedId(property.id)}
-											className="cursor-pointer transition-colors hover:bg-gray-50"
+											className="cursor-pointer transition-colors hover:bg-surface-container"
 										>
-											<td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+											<td className="px-4 py-3 font-medium text-on-surface whitespace-nowrap">
 												{property.name}
 											</td>
-											<td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">
+											<td className="px-4 py-3 text-on-surface-variant max-w-[200px] truncate">
 												{property.address || "—"}
 											</td>
 											<td className="px-4 py-3 whitespace-nowrap">
 												{property.propertyType ? (
-													<span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+													<span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
 														{getTypeLabel(property.propertyType)}
 													</span>
 												) : (
-													<span className="text-gray-400">—</span>
+													<span className="text-outline">—</span>
 												)}
 											</td>
 											<td className="px-4 py-3 whitespace-nowrap">
@@ -938,22 +938,22 @@ export default function PropertiesPage() {
 														{property.status.replace(/_/g, " ").toUpperCase()}
 													</span>
 												) : (
-													<span className="text-gray-400">—</span>
+													<span className="text-outline">—</span>
 												)}
 											</td>
-											<td className="px-4 py-3 text-right text-gray-700 whitespace-nowrap">
+											<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
 												{property.area != null
 													? `${property.area.toLocaleString()} sqm`
 													: "—"}
 											</td>
-											<td className="px-4 py-3 text-right text-gray-700 whitespace-nowrap">
+											<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
 												{property.purchasePrice != null
 													? formatCurrency(property.purchasePrice)
 													: "—"}
 											</td>
 											<td className="px-4 py-3 text-right whitespace-nowrap">
 												{property.currentValue != null ? (
-													<span className="text-gray-900 font-medium">
+													<span className="text-on-surface font-medium">
 														{formatCurrency(property.currentValue)}
 														{worthChange !== null && (
 															<span
@@ -969,13 +969,13 @@ export default function PropertiesPage() {
 														)}
 													</span>
 												) : (
-													<span className="text-gray-400">—</span>
+													<span className="text-outline">—</span>
 												)}
 											</td>
-											<td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
+											<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
 												{(property.quantity ?? 1) > 1 ? property.quantity : "—"}
 											</td>
-											<td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
+											<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
 												{property.documents?.length ?? 0}
 											</td>
 											<td className="px-4 py-3 text-center whitespace-nowrap">
@@ -983,7 +983,7 @@ export default function PropertiesPage() {
 													href={`/portfolio/properties/${property.id}`}
 													onClick={(e) => e.stopPropagation()}
 													title="Edit property"
-													className="inline-flex p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+													className="inline-flex p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
 												>
 													<Pencil className="w-3.5 h-3.5" />
 												</a>

@@ -119,13 +119,13 @@ export default function PropertyDrawer({
 			{/* Panel */}
 			<div
 				ref={panelRef}
-				className={`fixed right-0 top-[65px] h-[calc(100vh-65px)] bg-slate-50 dark:bg-background border-l border-slate-200 dark:border-outline-variant shadow-2xl z-40 flex flex-col
+				className={`fixed right-0 top-[65px] h-[calc(100vh-65px)] bg-background border-l border-border shadow-2xl z-40 flex flex-col
 					transition-transform duration-300 ease-in-out
 					w-full sm:w-[55vw] lg:w-[50vw]
 					${isOpen ? "translate-x-0" : "translate-x-full"}`}
 			>
 				{/* Header */}
-				<div className="flex items-start justify-between px-6 py-4 border-b border-slate-200 dark:border-outline-variant shrink-0">
+				<div className="flex items-start justify-between px-6 py-4 border-b border-border shrink-0">
 					<div className="min-w-0 flex-1 mr-4">
 						{property ? (
 							<>
@@ -144,7 +144,7 @@ export default function PropertyDrawer({
 								</div>
 							</>
 						) : (
-							<div className="h-5 w-40 bg-gray-200 dark:bg-surface-container rounded animate-pulse" />
+							<div className="h-5 w-40 bg-surface-container-highest dark:bg-surface-container rounded animate-pulse" />
 						)}
 					</div>
 					<div className="flex items-center gap-1 shrink-0">
@@ -154,7 +154,7 @@ export default function PropertyDrawer({
 								propertyId && router.push(`/portfolio/properties/${propertyId}`)
 							}
 							title="Edit property"
-							className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-container text-gray-500 dark:text-on-surface-variant hover:text-gray-800 dark:hover:text-on-surface transition-colors"
+							className="p-2 rounded-lg hover:bg-surface-container-high dark:hover:bg-surface-container text-outline dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors"
 						>
 							<Pencil className="w-4 h-4" />
 						</button>
@@ -164,7 +164,7 @@ export default function PropertyDrawer({
 								propertyId && router.push(`/portfolio/properties/${propertyId}`)
 							}
 							title="Open full page"
-							className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-container text-gray-500 dark:text-on-surface-variant hover:text-gray-800 dark:hover:text-on-surface transition-colors"
+							className="p-2 rounded-lg hover:bg-surface-container-high dark:hover:bg-surface-container text-outline dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors"
 						>
 							<Maximize2 className="w-4 h-4" />
 						</button>
@@ -172,7 +172,7 @@ export default function PropertyDrawer({
 						<button
 							onClick={onClose}
 							title="Close"
-							className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-container text-gray-500 dark:text-on-surface-variant hover:text-gray-800 dark:hover:text-on-surface transition-colors"
+							className="p-2 rounded-lg hover:bg-surface-container-high dark:hover:bg-surface-container text-outline dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors"
 						>
 							<X className="w-5 h-5" />
 						</button>
@@ -186,7 +186,7 @@ export default function PropertyDrawer({
 							{[1, 2, 3].map((i) => (
 								<div
 									key={i}
-									className="h-28 bg-gray-100 dark:bg-surface-container rounded-xl animate-pulse"
+									className="h-28 bg-surface-container-high dark:bg-surface-container rounded-xl animate-pulse"
 								/>
 							))}
 						</div>
@@ -197,7 +197,7 @@ export default function PropertyDrawer({
 							<p className="text-red-500 text-sm mb-3">{error}</p>
 							<button
 								onClick={() => propertyId && setLoading(true)}
-								className="text-sm text-gray-500 underline"
+								className="text-sm text-outline underline"
 							>
 								Try again
 							</button>

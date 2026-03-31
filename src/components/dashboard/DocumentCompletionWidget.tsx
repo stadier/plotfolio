@@ -19,10 +19,10 @@ export default function DocumentCompletionWidget({
 	);
 
 	return (
-		<div className="bg-white dark:bg-surface-container-low rounded-2xl border border-slate-200 dark:border-outline-variant p-5 break-inside-avoid widget-card animate-fade-in-up">
+		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
 			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-surface-container flex items-center justify-center">
-					<Shield className="w-4 h-4 text-amber-600" />
+				<div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/20 flex items-center justify-center">
+					<Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
 				</div>
 				<span className="text-xs font-semibold text-on-surface-variant">
 					Doc Compliance

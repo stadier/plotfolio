@@ -65,7 +65,7 @@ function ImageThumbnail({ file }: { file: File }) {
 
 function PdfThumbnail({ file }: { file: File }) {
 	return (
-		<div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-white border border-slate-200">
+		<div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-card border border-border">
 			{/* page body lines */}
 			<div className="p-3 pt-4 flex flex-col gap-1.5">
 				<div className="h-1.5 w-3/4 rounded-full bg-slate-200" />
@@ -125,7 +125,7 @@ function AudioThumbnail() {
 
 function GenericDocThumbnail() {
 	return (
-		<div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-white border border-slate-200">
+		<div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-card border border-border">
 			<div className="p-3 pt-4 flex flex-col gap-1.5">
 				<div className="h-1.5 w-2/3 rounded-full bg-slate-200" />
 				<div className="h-1.5 w-full rounded-full bg-slate-100" />
@@ -178,7 +178,7 @@ function DocumentCard({
 
 	return (
 		<div
-			className="group relative rounded-xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+			className="group relative rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
 			onClick={onPreview}
 			onContextMenu={(e) => {
 				e.preventDefault();
@@ -232,7 +232,7 @@ function DocumentCard({
 			{showMenu && (
 				<div
 					ref={menuRef}
-					className="absolute inset-x-1.5 bottom-1.5 z-20 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-in fade-in zoom-in-95 duration-150"
+					className="absolute inset-x-1.5 bottom-1.5 z-20 bg-card rounded-lg shadow-lg border border-border py-1 animate-in fade-in zoom-in-95 duration-150"
 					onClick={(e) => e.stopPropagation()}
 				>
 					<button

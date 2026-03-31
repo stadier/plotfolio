@@ -119,7 +119,7 @@ export default function MapboxMap({
 	if (!MAPBOX_TOKEN) {
 		return (
 			<div className="h-full w-full flex items-center justify-center bg-gray-100">
-				<div className="text-center p-6 bg-white rounded-lg shadow-lg">
+				<div className="text-center p-6 bg-card rounded-lg shadow-lg">
 					<p className="text-red-600 font-semibold mb-2">
 						⚠️ Mapbox Token Missing
 					</p>

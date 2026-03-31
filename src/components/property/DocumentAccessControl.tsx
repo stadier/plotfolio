@@ -121,7 +121,7 @@ export function DocumentAccessLevelPicker({
 			</button>
 
 			{open && (
-				<div className="absolute right-0 top-full mt-1 z-20 w-52 bg-white dark:bg-surface-container-low border border-gray-200 dark:border-outline-variant rounded-xl shadow-lg overflow-hidden">
+				<div className="absolute right-0 top-full mt-1 z-20 w-52 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
 					{ACCESS_LEVELS.map((level) => {
 						const Icon = level.icon;
 						const isActive = level.value === currentLevel;
@@ -233,7 +233,7 @@ export function RequestAccessButton({
 
 	if (showForm) {
 		return (
-			<div className="w-full max-w-xs bg-white dark:bg-surface-container-low border border-gray-200 dark:border-outline-variant rounded-xl p-3 space-y-2">
+			<div className="w-full max-w-xs bg-card border border-border rounded-xl p-3 space-y-2">
 				<div className="text-xs font-semibold text-gray-800 dark:text-on-surface">
 					Request access to &ldquo;{documentName}&rdquo;
 				</div>
@@ -242,7 +242,7 @@ export function RequestAccessButton({
 					onChange={(e) => setMessage(e.target.value)}
 					placeholder="Optional message to the owner…"
 					rows={2}
-					className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-outline-variant rounded-lg bg-gray-50 dark:bg-surface-container focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none dark:text-on-surface"
+					className="w-full px-3 py-2 text-xs border border-border rounded-lg bg-gray-50 dark:bg-surface-container focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none dark:text-on-surface"
 				/>
 				<div className="flex gap-2">
 					<button
@@ -258,7 +258,7 @@ export function RequestAccessButton({
 							setShowForm(false);
 							setMessage("");
 						}}
-						className="px-3 py-1.5 border border-gray-200 dark:border-outline-variant rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-surface-container text-gray-600 dark:text-on-surface-variant"
+						className="px-3 py-1.5 border border-border rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-surface-container text-gray-600 dark:text-on-surface-variant"
 					>
 						Cancel
 					</button>
@@ -314,7 +314,7 @@ export function RestrictedDocumentRow({
 	return (
 		<div className="flex items-start justify-between px-5 py-3 gap-3">
 			<div className="flex items-start gap-3 min-w-0">
-				<div className="h-14 w-14 rounded-lg border border-gray-200 dark:border-outline-variant overflow-hidden shrink-0 bg-gray-50 dark:bg-surface-container flex items-center justify-center">
+				<div className="h-14 w-14 rounded-lg border border-border overflow-hidden shrink-0 bg-gray-50 dark:bg-surface-container flex items-center justify-center">
 					<Lock className="w-5 h-5 text-gray-400 dark:text-on-surface-variant" />
 				</div>
 				<div className="min-w-0">
@@ -406,7 +406,7 @@ export function AccessRequestManager({
 	}
 
 	return (
-		<div className="w-full max-w-2xl bg-white dark:bg-surface-container-low border border-amber-200 dark:border-amber-800/40 rounded-xl overflow-hidden">
+		<div className="w-full max-w-2xl bg-card border border-amber-200 dark:border-amber-800/40 rounded-xl overflow-hidden">
 			<div className="px-5 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/40">
 				<div className="flex items-center gap-2">
 					<Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
@@ -418,7 +418,7 @@ export function AccessRequestManager({
 					</span>
 				</div>
 			</div>
-			<div className="divide-y divide-gray-100 dark:divide-outline-variant/30">
+			<div className="divide-y divide-divider dark:divide-outline-variant/30">
 				{pendingRequests.map((req) => {
 					const doc = documents.find((d) => d.id === req.documentId);
 					const isResponding = respondingId === req.id;

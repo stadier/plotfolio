@@ -188,7 +188,7 @@ export default function PropertyGridSelector({
 
 	return (
 		<div
-			className="absolute top-20 right-4 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-xs"
+			className="absolute top-20 right-4 bg-card rounded-lg shadow-lg border border-border p-4 max-w-xs"
 			style={{ zIndex: 1000 }}
 		>
 			<h3 className="text-sm font-semibold text-gray-900 mb-2">

@@ -130,12 +130,12 @@ export default function MiniMapWidget({
 		slideDir === "left" ? "animate-slide-left" : "animate-slide-right";
 
 	return (
-		<div className="bg-white dark:bg-surface-container-low rounded-2xl border border-slate-200 dark:border-outline-variant p-5 break-inside-avoid widget-card animate-fade-in-up">
+		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
 			{/* Header */}
 			<div className="flex items-center justify-between mb-3">
 				<div className="flex items-center gap-2">
-					<div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-surface-container flex items-center justify-center">
-						<Globe className="w-4 h-4 text-blue-600" />
+					<div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-500/20 flex items-center justify-center">
+						<Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
 					</div>
 					<span className="text-xs font-semibold text-on-surface-variant">
 						Property Map
@@ -196,7 +196,7 @@ export default function MiniMapWidget({
 							y1={(i * mapH) / 5}
 							x2={mapW}
 							y2={(i * mapH) / 5}
-							stroke="#e2e8f0"
+							stroke="var(--chart-grid)"
 							strokeWidth="0.5"
 						/>
 					))}
@@ -207,7 +207,7 @@ export default function MiniMapWidget({
 							y1={0}
 							x2={(i * mapW) / 7}
 							y2={mapH}
-							stroke="#e2e8f0"
+							stroke="var(--chart-grid)"
 							strokeWidth="0.5"
 						/>
 					))}
@@ -230,20 +230,28 @@ export default function MiniMapWidget({
 									cx={x}
 									cy={y}
 									r="10"
-									fill={isOwned ? "#3b6934" : "#000e24"}
+									fill={
+										isOwned
+											? "var(--chart-pin-owned)"
+											: "var(--chart-pin-default)"
+									}
 									opacity="0.15"
 								/>
 								<circle
 									cx={x}
 									cy={y}
 									r="4"
-									fill={isOwned ? "#3b6934" : "#000e24"}
+									fill={
+										isOwned
+											? "var(--chart-pin-owned)"
+											: "var(--chart-pin-default)"
+									}
 								/>
 								<text
 									x={x}
 									y={y - 14}
 									textAnchor="middle"
-									fill="#334155"
+									fill="var(--chart-label)"
 									fontSize="8"
 									fontWeight="600"
 								>

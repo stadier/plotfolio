@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme inline {
+@theme {
 	/* Design system colors */
 	--color-primary: #000e24;
 	--color-primary-container: #00234b;
@@ -29,6 +29,12 @@
 	--color-error: #ba1a1a;
 	--color-inverse-surface: #2e3132;
 	--color-inverse-on-surface: #f0f1f2;
+	--color-card: #ffffff;
+	--color-sidebar: #f8fafc;
+	--color-border: #e2e8f0;
+	--color-glass: rgba(255, 255, 255, 0.95);
+	--color-nav-active: #ffffff;
+	--color-divider: #f1f5f9;
 	/* Fonts */
 	--font-headline: var(--font-manrope), "Manrope", sans-serif;
 	--font-body: var(--font-inter), "Inter", sans-serif;
@@ -41,37 +47,68 @@ body {
 	color: var(--color-on-background);
 	font-family: var(--font-inter), "Inter", sans-serif;
 	-webkit-font-smoothing: antialiased;
+
+	/* Chart / SVG tokens (light) */
+	--chart-line: #3b6934;
+	--chart-grid: #e2e8f0;
+	--chart-pin-owned: #3b6934;
+	--chart-pin-default: #000e24;
+	--chart-label: #334155;
 }
 
 /* ── Dark mode token overrides ─────────────────────────────────────────────── */
 .dark {
-	--color-primary: #a0c4ff;
-	--color-primary-container: #003466;
-	--color-on-primary: #001c3a;
-	--color-secondary: #8ed883;
-	--color-secondary-container: #1e4d1a;
-	--color-on-secondary-container: #b9eeab;
-	--color-on-secondary: #1a3d15;
-	--color-background: #0d1117;
-	--color-surface: #0d1117;
-	--color-surface-bright: #252a31;
-	--color-surface-dim: #0d1117;
-	--color-surface-container-lowest: #080c10;
-	--color-surface-container-low: #151b23;
-	--color-surface-container: #1c2229;
-	--color-surface-container-high: #272d36;
-	--color-surface-container-highest: #333a44;
-	--color-on-surface: #e2e6ea;
-	--color-on-surface-variant: #8b949e;
-	--color-outline: #6e7681;
-	--color-outline-variant: #2d333b;
-	--color-on-background: #e2e6ea;
-	--color-error: #ffb4ab;
-	--color-inverse-surface: #e2e6ea;
-	--color-inverse-on-surface: #2e3132;
+	/* Primary — lighter blue readable on dark slate */
+	--color-primary: #93c5fd;
+	--color-primary-container: #1e3a5f;
+	--color-on-primary: #0f172a;
 
-	background: #0d1117;
-	color: #e2e6ea;
+	/* Secondary — lighter green */
+	--color-secondary: #86efac;
+	--color-secondary-container: #14532d;
+	--color-on-secondary-container: #bbf7d0;
+	--color-on-secondary: #14532d;
+
+	/* Surfaces — rich slate palette */
+	--color-background: #0f172a;
+	--color-surface: #0f172a;
+	--color-surface-bright: #1e293b;
+	--color-surface-dim: #020617;
+	--color-surface-container-lowest: #020617;
+	--color-surface-container-low: #1e293b;
+	--color-surface-container: #334155;
+	--color-surface-container-high: #475569;
+	--color-surface-container-highest: #64748b;
+
+	/* Text */
+	--color-on-surface: #f8fafc;
+	--color-on-surface-variant: #cbd5e1;
+	--color-outline: #94a3b8;
+	--color-outline-variant: #475569;
+	--color-on-background: #f8fafc;
+
+	/* Error */
+	--color-error: #fca5a5;
+
+	/* Inverse */
+	--color-inverse-surface: #f1f5f9;
+	--color-inverse-on-surface: #1e293b;
+	--color-card: #1e293b;
+	--color-sidebar: #1e293b;
+	--color-border: #1e293b;
+	--color-glass: rgba(30, 41, 59, 0.95);
+	--color-nav-active: #334155;
+	--color-divider: #334155;
+
+	/* Chart / SVG tokens (dark) */
+	--chart-line: #86efac;
+	--chart-grid: #475569;
+	--chart-pin-owned: #86efac;
+	--chart-pin-default: #93c5fd;
+	--chart-label: #cbd5e1;
+
+	background: #0f172a;
+	color: #f8fafc;
 }
 
 .glass-search {
@@ -79,14 +116,14 @@ body {
 	backdrop-filter: blur(12px);
 }
 .dark .glass-search {
-	background: rgba(13, 17, 23, 0.8);
+	background: rgba(15, 23, 42, 0.85);
 }
 
 .signature-gradient {
 	background: linear-gradient(135deg, #000e24 0%, #00234b 100%);
 }
 .dark .signature-gradient {
-	background: linear-gradient(135deg, #00234b 0%, #003466 100%);
+	background: linear-gradient(135deg, #172554 0%, #1e40af 100%);
 }
 
 /* Custom styles for Google Maps InfoWindow to match the dark overlay style */
@@ -309,8 +346,8 @@ body {
 	border-color: #c4c6d0;
 }
 .dark .widget-card:hover {
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-	border-color: #43474e;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+	border-color: #64748b;
 }
 
 /* ── Pre-hydration sidebar collapse ──

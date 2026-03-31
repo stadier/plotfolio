@@ -74,7 +74,7 @@ export function getStatusColor(status: PropertyStatus): string {
 		case PropertyStatus.RENTED:
 			return "bg-purple-100 text-purple-700 border-purple-200";
 		default:
-			return "bg-gray-100 text-gray-700 border-gray-200";
+			return "bg-surface-container-high text-on-surface-variant border-border";
 	}
 }
 
@@ -146,7 +146,7 @@ export function EditableInline({
 					value={draft}
 					onChange={(e) => setDraft(e.target.value)}
 					placeholder={placeholder}
-					className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
+					className="flex-1 px-3 py-1.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
 					onKeyDown={(e) => {
 						if (e.key === "Enter") {
 							onSave(draft);
@@ -172,9 +172,9 @@ export function EditableInline({
 						setDraft(value);
 						setEditing(false);
 					}}
-					className="p-1.5 border border-gray-300 rounded-lg hover:bg-gray-50"
+					className="p-1.5 border border-border rounded-lg hover:bg-surface-container"
 				>
-					<X className="w-3.5 h-3.5 text-gray-500" />
+					<X className="w-3.5 h-3.5 text-outline" />
 				</button>
 			</div>
 		);
@@ -186,12 +186,12 @@ export function EditableInline({
 				setDraft(value);
 				setEditing(true);
 			}}
-			className="text-left text-sm text-gray-800 hover:text-black group flex items-center gap-2"
+			className="text-left text-sm text-on-surface hover:text-on-surface group flex items-center gap-2"
 		>
-			<span className={value ? "" : "text-gray-400 italic"}>
+			<span className={value ? "" : "text-outline italic"}>
 				{value || placeholder}
 			</span>
-			<Pencil className="w-3 h-3 text-gray-300 group-hover:text-gray-500 transition-colors" />
+			<Pencil className="w-3 h-3 text-outline-variant group-hover:text-outline transition-colors" />
 		</button>
 	);
 }
@@ -223,7 +223,7 @@ export function EditableTagList({
 	return (
 		<div>
 			<div className="flex items-center justify-between mb-2">
-				<div className="flex items-center gap-2 text-sm text-gray-500">
+				<div className="flex items-center gap-2 text-sm text-outline">
 					<Icon className="w-4 h-4" />
 					<span className="font-medium">{label}</span>
 				</div>
@@ -233,7 +233,7 @@ export function EditableTagList({
 							setDraft(items);
 							setEditing(true);
 						}}
-						className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+						className="p-1 hover:bg-surface-container-high rounded text-outline hover:text-on-surface-variant"
 					>
 						<Pencil className="w-3.5 h-3.5" />
 					</button>
@@ -246,7 +246,7 @@ export function EditableTagList({
 						{draft.map((item, i) => (
 							<span
 								key={i}
-								className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-sm"
+								className="flex items-center gap-1 px-2 py-0.5 bg-surface-container-high text-on-surface-variant rounded-full text-sm"
 							>
 								{item}
 								<button
@@ -265,11 +265,11 @@ export function EditableTagList({
 							onChange={(e) => setInput(e.target.value)}
 							onKeyDown={(e) => e.key === "Enter" && addItem()}
 							placeholder={placeholder}
-							className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
+							className="flex-1 px-3 py-1.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
 						/>
 						<button
 							onClick={addItem}
-							className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+							className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded-lg text-sm"
 						>
 							Add
 						</button>
@@ -290,7 +290,7 @@ export function EditableTagList({
 								setInput("");
 								setEditing(false);
 							}}
-							className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+							className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-surface-container"
 						>
 							Cancel
 						</button>
@@ -299,12 +299,12 @@ export function EditableTagList({
 			) : (
 				<div className="flex flex-wrap gap-1.5 min-h-7">
 					{items.length === 0 ? (
-						<span className="text-sm text-gray-400 italic">None recorded</span>
+						<span className="text-sm text-outline italic">None recorded</span>
 					) : (
 						items.map((item, i) => (
 							<span
 								key={i}
-								className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-sm"
+								className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant rounded-full text-sm"
 							>
 								{item}
 							</span>
@@ -414,9 +414,9 @@ function DocumentCard({
 	}
 
 	return (
-		<div className="w-32 flex flex-col rounded-xl border border-gray-200 dark:border-outline-variant/40 overflow-hidden bg-white dark:bg-surface-container-low group relative shrink-0">
+		<div className="w-32 flex flex-col rounded-xl border border-border border-border overflow-hidden bg-card group relative shrink-0">
 			{/* Thumbnail / icon area */}
-			<div className="h-40 flex flex-col items-center justify-center bg-gray-50 dark:bg-surface-container relative">
+			<div className="h-40 flex flex-col items-center justify-center bg-surface-container dark:bg-surface-container relative">
 				{kind === "image" ? (
 					<img
 						src={doc.url}
@@ -424,7 +424,7 @@ function DocumentCard({
 						className="h-full w-full object-cover"
 					/>
 				) : (
-					<div className="flex flex-col items-center gap-2 text-gray-400 dark:text-on-surface-variant">
+					<div className="flex flex-col items-center gap-2 text-outline dark:text-on-surface-variant">
 						<FileText className="w-7 h-7" />
 						<span className="text-[10px] font-semibold uppercase tracking-wide">
 							{extensionLabel}
@@ -437,7 +437,7 @@ function DocumentCard({
 						href={doc.url}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-gray-600 dark:text-on-surface-variant hover:text-gray-900 dark:hover:text-on-surface"
+						className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface"
 						title="Open"
 					>
 						<Download className="w-3.5 h-3.5" />
@@ -454,7 +454,7 @@ function DocumentCard({
 							/>
 							<button
 								onClick={() => handleDelete(doc.id)}
-								className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-gray-400 hover:text-red-500"
+								className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-outline hover:text-red-500"
 								title="Delete"
 							>
 								<Trash2 className="w-3.5 h-3.5" />
@@ -467,12 +467,12 @@ function DocumentCard({
 			{/* Name */}
 			<div className="px-2 pt-1.5 pb-1">
 				<div
-					className="text-[11px] font-medium text-gray-800 dark:text-on-surface truncate"
+					className="text-[11px] font-medium text-on-surface dark:text-on-surface truncate"
 					title={doc.name}
 				>
 					{doc.name}
 				</div>
-				<div className="text-[10px] text-gray-400 dark:text-on-surface-variant">
+				<div className="text-[10px] text-outline dark:text-on-surface-variant">
 					{new Date(doc.uploadDate).toLocaleDateString("en-US", {
 						month: "short",
 						day: "numeric",
@@ -484,7 +484,7 @@ function DocumentCard({
 			<div className="px-2 pb-2 mt-auto relative" ref={typeRef}>
 				<button
 					onClick={() => isOwner && setTypeOpen(!typeOpen)}
-					className={`text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-surface-container-high text-gray-600 dark:text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-gray-200 dark:hover:bg-surface-container cursor-pointer" : ""}`}
+					className={`text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-surface-container-high dark:bg-surface-container-high text-on-surface-variant dark:text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-surface-container-highest dark:hover:bg-surface-container cursor-pointer" : ""}`}
 					title={
 						isOwner ? "Click to change type" : getDocumentTypeLabel(doc.type)
 					}
@@ -492,7 +492,7 @@ function DocumentCard({
 					{getDocumentTypeLabel(doc.type)}
 				</button>
 				{typeOpen && (
-					<div className="absolute bottom-full left-0 mb-1 bg-white dark:bg-surface-container-high border border-gray-200 dark:border-outline-variant/40 rounded-lg shadow-lg z-30 py-1 w-48">
+					<div className="absolute bottom-full left-0 mb-1 bg-card border border-border border-border rounded-lg shadow-lg z-30 py-1 w-48">
 						{DOCUMENT_CATEGORIES.map((cat) => (
 							<button
 								key={cat.type}
@@ -500,7 +500,7 @@ function DocumentCard({
 									onTypeChanged(doc.id, cat.type);
 									setTypeOpen(false);
 								}}
-								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-surface-container ${doc.type === cat.type ? "font-semibold text-gray-900 dark:text-on-surface" : "text-gray-600 dark:text-on-surface-variant"}`}
+								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container dark:hover:bg-surface-container ${doc.type === cat.type ? "font-semibold text-on-surface dark:text-on-surface" : "text-on-surface-variant dark:text-on-surface-variant"}`}
 							>
 								{cat.label}
 							</button>
@@ -525,6 +525,7 @@ function DocumentUploadButton({
 	);
 	const [typeOpen, setTypeOpen] = useState(false);
 	const [uploading, setUploading] = useState(false);
+	const [uploadDone, setUploadDone] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
@@ -562,6 +563,7 @@ function DocumentUploadButton({
 			}
 			const { document } = await res.json();
 			onUploaded(document);
+			setUploadDone(true);
 		} catch (err) {
 			setUploadError(err instanceof Error ? err.message : "Upload failed");
 		} finally {
@@ -571,18 +573,18 @@ function DocumentUploadButton({
 	}
 
 	return (
-		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-gray-300 dark:border-outline-variant/50 bg-gray-50/50 dark:bg-surface-container/50 hover:bg-gray-100 dark:hover:bg-surface-container transition-colors">
+		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-border border-border bg-surface-container/50 dark:bg-surface-container/50 hover:bg-surface-container-high dark:hover:bg-surface-container transition-colors">
 			{/* Type selector */}
 			<div className="relative mt-3 px-2 w-full" ref={dropdownRef}>
 				<button
 					onClick={() => setTypeOpen(!typeOpen)}
-					className="w-full flex items-center justify-center gap-1 text-[10px] text-gray-500 dark:text-on-surface-variant hover:text-gray-700 dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-white dark:bg-surface-container-high border border-gray-200 dark:border-outline-variant/40"
+					className="w-full flex items-center justify-center gap-1 text-[10px] text-outline dark:text-on-surface-variant hover:text-on-surface-variant dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border border-border"
 				>
 					<span className="truncate">{getDocumentTypeLabel(selectedType)}</span>
 					<ChevronDown className="w-3 h-3 shrink-0" />
 				</button>
 				{typeOpen && (
-					<div className="absolute top-full left-0 mt-1 bg-white dark:bg-surface-container-high border border-gray-200 dark:border-outline-variant/40 rounded-lg shadow-lg z-30 py-1 w-48">
+					<div className="absolute top-full left-0 mt-1 bg-card border border-border border-border rounded-lg shadow-lg z-30 py-1 w-48">
 						{DOCUMENT_CATEGORIES.map((cat) => (
 							<button
 								key={cat.type}
@@ -590,7 +592,7 @@ function DocumentUploadButton({
 									setSelectedType(cat.type);
 									setTypeOpen(false);
 								}}
-								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-surface-container ${selectedType === cat.type ? "font-semibold text-gray-900 dark:text-on-surface" : "text-gray-600 dark:text-on-surface-variant"}`}
+								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container dark:hover:bg-surface-container ${selectedType === cat.type ? "font-semibold text-on-surface dark:text-on-surface" : "text-on-surface-variant dark:text-on-surface-variant"}`}
 							>
 								{cat.label}
 							</button>
@@ -599,30 +601,46 @@ function DocumentUploadButton({
 				)}
 			</div>
 			{/* Upload area */}
-			<label className="flex-1 flex flex-col items-center justify-center cursor-pointer py-6 w-full">
-				{uploading ? (
-					<>
-						<Upload className="w-5 h-5 text-gray-400 dark:text-on-surface-variant animate-pulse" />
-						<span className="text-[10px] text-gray-400 dark:text-on-surface-variant mt-1">
-							Uploading…
-						</span>
-					</>
-				) : (
-					<>
-						<Plus className="w-5 h-5 text-gray-400 dark:text-on-surface-variant" />
-						<span className="text-[10px] text-gray-400 dark:text-on-surface-variant mt-1">
-							Upload
-						</span>
-					</>
-				)}
-				<input
-					ref={inputRef}
-					type="file"
-					className="hidden"
-					disabled={uploading}
-					onChange={handleFileChange}
-				/>
-			</label>
+			{uploadDone ? (
+				<div className="flex-1 flex flex-col items-center justify-center py-6 w-full gap-2">
+					<Check className="w-5 h-5 text-green-500" />
+					<span className="text-[10px] text-green-500 font-medium">
+						Uploaded
+					</span>
+					<button
+						onClick={() => setUploadDone(false)}
+						className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline mt-1"
+					>
+						<Plus className="w-3.5 h-3.5" />
+						Add another
+					</button>
+				</div>
+			) : (
+				<label className="flex-1 flex flex-col items-center justify-center cursor-pointer py-6 w-full">
+					{uploading ? (
+						<>
+							<Upload className="w-5 h-5 text-outline dark:text-on-surface-variant animate-pulse" />
+							<span className="text-[10px] text-outline dark:text-on-surface-variant mt-1">
+								Uploading…
+							</span>
+						</>
+					) : (
+						<>
+							<Plus className="w-5 h-5 text-outline dark:text-on-surface-variant" />
+							<span className="text-[10px] text-outline dark:text-on-surface-variant mt-1">
+								Upload
+							</span>
+						</>
+					)}
+					<input
+						ref={inputRef}
+						type="file"
+						className="hidden"
+						disabled={uploading}
+						onChange={handleFileChange}
+					/>
+				</label>
+			)}
 			{uploadError && (
 				<div className="px-2 pb-2 text-[10px] text-red-500 text-center">
 					{uploadError}
@@ -666,7 +684,7 @@ export function DocumentsGrid({
 	if (!hasDocuments && !isOwner) return null;
 
 	return (
-		<div className="flex flex-wrap gap-3 items-start">
+		<div className="flex flex-row-reverse flex-wrap gap-3 items-start">
 			{documents.map((doc) => (
 				<DocumentCard
 					key={doc.id}
@@ -722,7 +740,7 @@ export function WorthEditor({
 	return (
 		<div>
 			<div className="flex items-center justify-between mb-1">
-				<div className="flex items-center gap-2 text-sm text-gray-500">
+				<div className="flex items-center gap-2 text-sm text-outline">
 					<TrendingUp className="w-4 h-4" />
 					<span className="font-medium">Current Worth</span>
 				</div>
@@ -732,7 +750,7 @@ export function WorthEditor({
 							setDraft(String(currentValue ?? ""));
 							setEditing(true);
 						}}
-						className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+						className="p-1 hover:bg-surface-container-high rounded text-outline hover:text-on-surface-variant"
 					>
 						<Pencil className="w-3.5 h-3.5" />
 					</button>
@@ -745,7 +763,7 @@ export function WorthEditor({
 						value={draft}
 						onChange={(e) => setDraft(e.target.value)}
 						placeholder="Enter amount"
-						className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
+						className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
 					/>
 					<button
 						onClick={save}
@@ -756,18 +774,18 @@ export function WorthEditor({
 					</button>
 					<button
 						onClick={() => setEditing(false)}
-						className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+						className="p-2 border border-border rounded-lg hover:bg-surface-container"
 					>
-						<X className="w-3.5 h-3.5 text-gray-500" />
+						<X className="w-3.5 h-3.5 text-outline" />
 					</button>
 				</div>
 			) : (
 				<div>
-					<div className="text-xl font-bold text-gray-900">
+					<div className="text-xl font-bold text-on-surface">
 						{currentValue != null ? (
 							formatCurrency(currentValue)
 						) : (
-							<span className="text-gray-400 text-base font-normal italic">
+							<span className="text-outline text-base font-normal italic">
 								Not set — click edit to add
 							</span>
 						)}
@@ -789,8 +807,8 @@ export function WorthEditor({
 function InfoItem({ label, value }: { label: string; value: string }) {
 	return (
 		<div>
-			<div className="text-xs text-gray-500 mb-0.5">{label}</div>
-			<div className="text-sm font-medium text-gray-800">{value}</div>
+			<div className="text-xs text-outline mb-0.5">{label}</div>
+			<div className="text-sm font-medium text-on-surface">{value}</div>
 		</div>
 	);
 }
@@ -847,9 +865,9 @@ function ConditionTagEditor({
 		"bg-slate-50 text-slate-700 border-slate-200";
 
 	return (
-		<div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+		<div className="bg-card border border-border rounded-xl p-5 space-y-3">
 			<div className="flex items-center justify-between">
-				<h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+				<h2 className="text-sm font-semibold text-on-surface uppercase tracking-wide">
 					Property Condition
 				</h2>
 				{!editing && (
@@ -858,7 +876,7 @@ function ConditionTagEditor({
 							setDraft(conditions);
 							setEditing(true);
 						}}
-						className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+						className="p-1 hover:bg-surface-container-high rounded text-outline hover:text-on-surface-variant"
 					>
 						<Pencil className="w-3.5 h-3.5" />
 					</button>
@@ -889,7 +907,7 @@ function ConditionTagEditor({
 								setDraft(conditions);
 								setEditing(false);
 							}}
-							className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+							className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-surface-container"
 						>
 							Cancel
 						</button>
@@ -898,7 +916,7 @@ function ConditionTagEditor({
 			) : (
 				<div className="flex flex-wrap gap-1.5 min-h-7">
 					{conditions.length === 0 ? (
-						<span className="text-sm text-gray-400 italic">
+						<span className="text-sm text-outline italic">
 							No conditions set — click edit to add
 						</span>
 					) : (
@@ -956,23 +974,23 @@ export default function PropertyDetailContent({
 	const summaryCol = (
 		<div className="w-full max-w-xl space-y-4">
 			{/* Property summary */}
-			<div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
-				<h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+			<div className="bg-card border border-border rounded-xl p-5 space-y-5">
+				<h2 className="text-sm font-semibold text-on-surface uppercase tracking-wide">
 					Property Summary
 				</h2>
 
 				<div>
-					<div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+					<div className="flex items-center gap-2 text-sm text-outline mb-1">
 						<MapPin className="w-4 h-4" />
 						<span className="font-medium">Address</span>
 					</div>
-					<div className="text-sm text-gray-800">{property.address}</div>
+					<div className="text-sm text-on-surface">{property.address}</div>
 				</div>
 
-				<div className="border-t border-gray-100" />
+				<div className="border-t border-divider" />
 
 				<div>
-					<div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+					<div className="flex items-center gap-2 text-sm text-outline mb-1">
 						<User className="w-4 h-4" />
 						<span className="font-medium">Bought From</span>
 					</div>
@@ -983,31 +1001,31 @@ export default function PropertyDetailContent({
 					/>
 				</div>
 
-				<div className="border-t border-gray-100" />
+				<div className="border-t border-divider" />
 
 				<div>
-					<div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+					<div className="flex items-center gap-2 text-sm text-outline mb-1">
 						<Calendar className="w-4 h-4" />
 						<span className="font-medium">Purchase Date</span>
 					</div>
-					<div className="text-sm text-gray-800 font-medium">
+					<div className="text-sm text-on-surface font-medium">
 						{formatDate(property.purchaseDate)}
 					</div>
 				</div>
 
-				<div className="border-t border-gray-100" />
+				<div className="border-t border-divider" />
 
 				<div>
-					<div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+					<div className="flex items-center gap-2 text-sm text-outline mb-1">
 						<TrendingUp className="w-4 h-4" />
 						<span className="font-medium">Purchase Price</span>
 					</div>
-					<div className="text-xl font-bold text-gray-900">
+					<div className="text-xl font-bold text-on-surface">
 						{formatCurrency(property.purchasePrice)}
 					</div>
 				</div>
 
-				<div className="border-t border-gray-100" />
+				<div className="border-t border-divider" />
 
 				<WorthEditor
 					currentValue={property.currentValue}
@@ -1015,27 +1033,27 @@ export default function PropertyDetailContent({
 					onSave={(val) => onPatch({ currentValue: val })}
 				/>
 
-				<div className="border-t border-gray-100" />
+				<div className="border-t border-divider" />
 
 				<div>
-					<div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+					<div className="flex items-center gap-2 text-sm text-outline mb-1">
 						<MapPin className="w-4 h-4" />
 						<span className="font-medium">Plot Area</span>
 					</div>
-					<div className="text-sm text-gray-800 font-medium">
+					<div className="text-sm text-on-surface font-medium">
 						{property.area?.toLocaleString() ?? "—"} sqm
 					</div>
 				</div>
 
 				{(property.quantity ?? 1) > 1 && (
 					<>
-						<div className="border-t border-gray-100" />
+						<div className="border-t border-divider" />
 						<div>
-							<div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+							<div className="flex items-center gap-2 text-sm text-outline mb-1">
 								<Copy className="w-4 h-4" />
 								<span className="font-medium">Quantity</span>
 							</div>
-							<div className="text-sm text-gray-800 font-medium">
+							<div className="text-sm text-on-surface font-medium">
 								{property.quantity} identical units
 							</div>
 						</div>
@@ -1050,8 +1068,8 @@ export default function PropertyDetailContent({
 			/>
 
 			{/* Transaction details */}
-			<div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
-				<h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+			<div className="bg-card border border-border rounded-xl p-5 space-y-5">
+				<h2 className="text-sm font-semibold text-on-surface uppercase tracking-wide">
 					Transaction Details
 				</h2>
 				<EditableTagList
@@ -1061,7 +1079,7 @@ export default function PropertyDetailContent({
 					placeholder="Add witness name, press Enter"
 					onSave={(items) => onPatch({ witnesses: items })}
 				/>
-				<div className="border-t border-gray-100" />
+				<div className="border-t border-divider" />
 				<EditableTagList
 					label="Signatories"
 					icon={Edit3}
@@ -1073,8 +1091,8 @@ export default function PropertyDetailContent({
 
 			{/* Survey info */}
 			{property.surveyData && (
-				<div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-					<h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+				<div className="bg-card border border-border rounded-xl p-5 space-y-4">
+					<h2 className="text-sm font-semibold text-on-surface uppercase tracking-wide">
 						Survey Information
 					</h2>
 					<div className="grid grid-cols-2 gap-3">
@@ -1148,13 +1166,13 @@ export default function PropertyDetailContent({
 	const showDocsSection = docCount > 0 || isOwner;
 
 	const docsCol = showDocsSection ? (
-		<div className="w-full max-w-2xl space-y-4">
+		<div className="w-full space-y-4">
 			<div className="flex items-center justify-between">
-				<h2 className="text-sm font-semibold text-gray-900 dark:text-on-surface uppercase tracking-wide">
+				<h2 className="text-sm font-semibold text-on-surface dark:text-on-surface uppercase tracking-wide">
 					Documents
 				</h2>
 				{docCount > 0 && (
-					<span className="text-xs text-gray-500 dark:text-on-surface-variant">
+					<span className="text-xs text-outline dark:text-on-surface-variant">
 						{docCount} file{docCount !== 1 ? "s" : ""} total
 					</span>
 				)}
@@ -1199,10 +1217,12 @@ export default function PropertyDetailContent({
 
 	if (layout === "stack") {
 		return (
-			<div className="flex flex-wrap items-start justify-start gap-6">
-				{summaryCol}
-				{miniMapCol}
-				{docsCol}
+			<div className="flex items-start justify-start gap-6">
+				<div className="flex-1 min-w-0 space-y-4">
+					{summaryCol}
+					{miniMapCol}
+				</div>
+				{docsCol && <div className="w-80 shrink-0">{docsCol}</div>}
 			</div>
 		);
 	}

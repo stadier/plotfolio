@@ -56,7 +56,7 @@ export default function PlotZoomControl({
 			className={`absolute top-4 left-4 flex flex-col gap-2 ${className}`}
 			style={{ zIndex: 1000 }}
 		>
-			<div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+			<div className="bg-card rounded-lg shadow-lg border border-border overflow-hidden">
 				<button
 					onClick={handleZoomIn}
 					className="flex items-center justify-center w-10 h-10 hover:bg-gray-100 transition-colors border-b border-gray-200"
@@ -89,7 +89,7 @@ export default function PlotZoomControl({
 			</div>
 
 			{/* Zoom Level Indicator */}
-			<div className="bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2">
+			<div className="bg-card rounded-lg shadow-lg border border-border px-3 py-2">
 				<div className="text-xs text-gray-600 text-center">Plot Level</div>
 				<div className="text-xs font-mono text-gray-800 text-center">
 					Z{Math.round(map.getZoom())}

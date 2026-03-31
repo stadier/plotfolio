@@ -13,7 +13,7 @@ export default function Header() {
 	const { user, logout } = useAuth();
 
 	return (
-		<header className="fixed top-0 w-full z-50 bg-white dark:bg-surface-container-low border-b border-slate-200 dark:border-outline-variant">
+		<header className="fixed top-0 w-full z-50 bg-card border-b border-border">
 			<div className="flex items-center justify-between px-8 py-4 w-full">
 				{/* Logo */}
 				<Link href="/" className="flex items-center gap-2.5">

@@ -29,19 +29,34 @@ export function formatCurrencyFull(
 export function getStatusBadge(status: PropertyStatus) {
 	switch (status) {
 		case PropertyStatus.OWNED:
-			return { label: "Owned", cls: "bg-secondary text-white" };
+			return {
+				label: "Owned",
+				cls: "bg-green-600 text-white dark:bg-green-500/20 dark:text-green-300",
+			};
 		case PropertyStatus.FOR_SALE:
-			return { label: "For Sale", cls: "bg-primary text-white" };
+			return {
+				label: "For Sale",
+				cls: "bg-blue-600 text-white dark:bg-blue-500/20 dark:text-blue-300",
+			};
 		case PropertyStatus.DEVELOPMENT:
-			return { label: "Development", cls: "bg-amber-500 text-white" };
+			return {
+				label: "Development",
+				cls: "bg-amber-500 text-white dark:bg-amber-500/20 dark:text-amber-300",
+			};
 		case PropertyStatus.UNDER_CONTRACT:
-			return { label: "Under Contract", cls: "bg-orange-500 text-white" };
+			return {
+				label: "Under Contract",
+				cls: "bg-orange-500 text-white dark:bg-orange-500/20 dark:text-orange-300",
+			};
 		case PropertyStatus.RENTED:
-			return { label: "Rented", cls: "bg-purple-600 text-white" };
+			return {
+				label: "Rented",
+				cls: "bg-purple-600 text-white dark:bg-purple-500/20 dark:text-purple-300",
+			};
 		default:
 			return {
 				label: (status as string).replace(/_/g, " "),
-				cls: "bg-slate-500 text-white",
+				cls: "bg-slate-500 text-white dark:bg-slate-500/20 dark:text-slate-300",
 			};
 	}
 }

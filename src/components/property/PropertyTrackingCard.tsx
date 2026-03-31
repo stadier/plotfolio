@@ -27,7 +27,7 @@ export default function PropertyTrackingCard({
 			case PropertyStatus.DEVELOPMENT:
 				return "bg-orange-100 text-orange-800";
 			default:
-				return "bg-gray-100 text-gray-800";
+				return "bg-surface-container-high text-on-surface";
 		}
 	};
 
@@ -50,14 +50,14 @@ export default function PropertyTrackingCard({
 
 	return (
 		<div
-			className={`bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer ${className}`}
+			className={`bg-card rounded-xl border border-border p-4 hover:shadow-md transition-shadow cursor-pointer ${className}`}
 			onClick={onClick}
 		>
 			{/* Header */}
 			<div className="flex items-start justify-between mb-3">
 				<div className="flex-1">
 					<div className="flex items-center gap-2 mb-1">
-						<h3 className="font-semibold text-gray-900 text-sm">
+						<h3 className="font-semibold text-on-surface text-sm">
 							{property.name}
 						</h3>
 						<span
@@ -68,10 +68,10 @@ export default function PropertyTrackingCard({
 							{getStatusText(property.status)}
 						</span>
 					</div>
-					<p className="text-xs text-gray-600">Property #{property.id}</p>
+					<p className="text-xs text-on-surface-variant">Property #{property.id}</p>
 				</div>
-				<button className="p-1 hover:bg-gray-100 rounded">
-					<MoreHorizontal className="w-4 h-4 text-gray-400" />
+				<button className="p-1 hover:bg-surface-container-high rounded">
+					<MoreHorizontal className="w-4 h-4 text-outline" />
 				</button>
 			</div>
 
@@ -81,8 +81,8 @@ export default function PropertyTrackingCard({
 				<div className="flex items-start gap-2">
 					<div className="w-2 h-2 bg-gray-400 rounded-full mt-2 shrink-0"></div>
 					<div className="flex-1">
-						<p className="text-xs font-medium text-gray-700 mb-1">Location</p>
-						<p className="text-xs text-gray-600 leading-relaxed">
+						<p className="text-xs font-medium text-on-surface-variant mb-1">Location</p>
+						<p className="text-xs text-on-surface-variant leading-relaxed">
 							{property.address}
 						</p>
 					</div>
@@ -92,14 +92,14 @@ export default function PropertyTrackingCard({
 				<div className="flex items-start gap-2">
 					<div className="w-2 h-2 bg-gray-900 rounded-full mt-2 shrink-0"></div>
 					<div className="flex-1">
-						<p className="text-xs font-medium text-gray-700 mb-1">
+						<p className="text-xs font-medium text-on-surface-variant mb-1">
 							Property Details
 						</p>
 						<div className="flex items-center justify-between">
-							<span className="text-xs text-gray-600">
+							<span className="text-xs text-on-surface-variant">
 								{formatArea(property.area)}
 							</span>
-							<span className="text-xs font-medium text-gray-900">
+							<span className="text-xs font-medium text-on-surface">
 								{formatCurrency(
 									property.currentValue || property.purchasePrice,
 								)}
@@ -111,7 +111,7 @@ export default function PropertyTrackingCard({
 
 			{/* Owner/Contact Info */}
 			{property.owner && (
-				<div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100">
+				<div className="flex items-center gap-3 mt-4 pt-3 border-t border-divider">
 					<UserAvatar
 						name={property.owner.name}
 						displayName={property.owner.displayName}
@@ -123,11 +123,11 @@ export default function PropertyTrackingCard({
 						className="flex-1 min-w-0"
 					/>
 					<div className="flex items-center gap-2">
-						<button className="p-2 hover:bg-gray-100 rounded-full">
-							<Phone className="w-4 h-4 text-gray-400" />
+						<button className="p-2 hover:bg-surface-container-high rounded-full">
+							<Phone className="w-4 h-4 text-outline" />
 						</button>
-						<button className="p-2 hover:bg-gray-100 rounded-full">
-							<MessageCircle className="w-4 h-4 text-gray-400" />
+						<button className="p-2 hover:bg-surface-container-high rounded-full">
+							<MessageCircle className="w-4 h-4 text-outline" />
 						</button>
 					</div>
 				</div>

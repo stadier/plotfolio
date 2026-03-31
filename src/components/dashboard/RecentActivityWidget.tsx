@@ -12,10 +12,10 @@ export default function RecentActivityWidget({
 	onSelect,
 }: RecentActivityWidgetProps) {
 	return (
-		<div className="bg-white dark:bg-surface-container-low rounded-2xl border border-slate-200 dark:border-outline-variant p-5 break-inside-avoid widget-card animate-fade-in-up">
+		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
 			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-surface-container flex items-center justify-center">
-					<MessageSquare className="w-4 h-4 text-primary" />
+				<div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-purple-500/20 flex items-center justify-center">
+					<MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
 				</div>
 				<span className="text-xs font-semibold text-on-surface-variant">
 					Recent Activity
@@ -30,8 +30,8 @@ export default function RecentActivityWidget({
 							className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-container -mx-2 px-2 py-1.5 rounded-lg transition-colors"
 							onClick={() => onSelect(p.id)}
 						>
-							<div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-surface-container flex items-center justify-center shrink-0">
-								<MapPin className="w-3 h-3 text-slate-400 dark:text-on-surface-variant" />
+							<div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
+								<MapPin className="w-3 h-3 text-slate-400 dark:text-slate-300" />
 							</div>
 							<div className="min-w-0 flex-1">
 								<p className="text-xs font-semibold text-primary truncate">

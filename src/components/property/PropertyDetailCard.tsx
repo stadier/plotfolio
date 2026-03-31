@@ -42,7 +42,7 @@ export default function PropertyDetailCard({
 			case PropertyStatus.DEVELOPMENT:
 				return "bg-orange-100 text-orange-800";
 			default:
-				return "bg-gray-100 text-gray-800";
+				return "bg-surface-container-high text-on-surface";
 		}
 	};
 
@@ -65,13 +65,13 @@ export default function PropertyDetailCard({
 
 	return (
 		<div
-			className={`bg-white rounded-xl border border-gray-200 p-6 animate-fade-in-up ${className}`}
+			className={`bg-card rounded-xl border border-border p-6 animate-fade-in-up ${className}`}
 		>
 			{/* Header */}
 			<div className="flex items-start justify-between mb-6">
 				<div>
 					<div className="flex items-center gap-3 mb-2">
-						<h2 className="text-lg font-semibold text-gray-900">
+						<h2 className="text-lg font-semibold text-on-surface">
 							{property.name}
 						</h2>
 						<span
@@ -82,14 +82,14 @@ export default function PropertyDetailCard({
 							{getStatusText(property.status)}
 						</span>
 					</div>
-					<p className="text-sm text-gray-600">Property #{property.id}</p>
+					<p className="text-sm text-on-surface-variant">Property #{property.id}</p>
 				</div>
 				{onClose && (
 					<button
 						onClick={onClose}
-						className="p-2 hover:bg-gray-100 rounded-lg icon-btn-hover"
+						className="p-2 hover:bg-surface-container-high rounded-lg icon-btn-hover"
 					>
-						<X className="w-5 h-5 text-gray-400" />
+						<X className="w-5 h-5 text-outline" />
 					</button>
 				)}
 			</div>
@@ -99,8 +99,8 @@ export default function PropertyDetailCard({
 				<div className="flex items-start gap-3">
 					<div className="w-3 h-3 bg-gray-900 rounded-full mt-2 shrink-0"></div>
 					<div className="flex-1">
-						<p className="text-sm font-medium text-gray-900 mb-1">Location</p>
-						<p className="text-sm text-gray-600 leading-relaxed">
+						<p className="text-sm font-medium text-on-surface mb-1">Location</p>
+						<p className="text-sm text-on-surface-variant leading-relaxed">
 							{property.address}
 						</p>
 					</div>
@@ -109,10 +109,10 @@ export default function PropertyDetailCard({
 				<div className="flex items-start gap-3">
 					<div className="w-3 h-3 bg-gray-400 rounded-full mt-2 shrink-0"></div>
 					<div className="flex-1">
-						<p className="text-sm font-medium text-gray-900 mb-1">
+						<p className="text-sm font-medium text-on-surface mb-1">
 							Purchase Date
 						</p>
-						<p className="text-sm text-gray-600">
+						<p className="text-sm text-on-surface-variant">
 							{property.purchaseDate.toLocaleDateString()}
 						</p>
 					</div>
@@ -121,46 +121,46 @@ export default function PropertyDetailCard({
 
 			{/* Property Details Grid */}
 			<div className="grid grid-cols-2 gap-4 mb-6">
-				<div className="bg-gray-50 rounded-lg p-4">
+				<div className="bg-surface-container rounded-lg p-4">
 					<div className="flex items-center gap-2 mb-2">
-						<Square className="w-4 h-4 text-gray-600" />
-						<span className="text-sm font-medium text-gray-900">Area</span>
+						<Square className="w-4 h-4 text-on-surface-variant" />
+						<span className="text-sm font-medium text-on-surface">Area</span>
 					</div>
-					<p className="text-lg font-semibold text-gray-900">
+					<p className="text-lg font-semibold text-on-surface">
 						{formatArea(property.area)}
 					</p>
 				</div>
 
-				<div className="bg-gray-50 rounded-lg p-4">
+				<div className="bg-surface-container rounded-lg p-4">
 					<div className="flex items-center gap-2 mb-2">
-						<DollarSign className="w-4 h-4 text-gray-600" />
-						<span className="text-sm font-medium text-gray-900">
+						<DollarSign className="w-4 h-4 text-on-surface-variant" />
+						<span className="text-sm font-medium text-on-surface">
 							Current Value
 						</span>
 					</div>
-					<p className="text-lg font-semibold text-gray-900">
+					<p className="text-lg font-semibold text-on-surface">
 						{formatCurrency(property.currentValue || property.purchasePrice)}
 					</p>
 				</div>
 
-				<div className="bg-gray-50 rounded-lg p-4">
+				<div className="bg-surface-container rounded-lg p-4">
 					<div className="flex items-center gap-2 mb-2">
-						<Calendar className="w-4 h-4 text-gray-600" />
-						<span className="text-sm font-medium text-gray-900">
+						<Calendar className="w-4 h-4 text-on-surface-variant" />
+						<span className="text-sm font-medium text-on-surface">
 							Purchase Price
 						</span>
 					</div>
-					<p className="text-lg font-semibold text-gray-900">
+					<p className="text-lg font-semibold text-on-surface">
 						{formatCurrency(property.purchasePrice)}
 					</p>
 				</div>
 
-				<div className="bg-gray-50 rounded-lg p-4">
+				<div className="bg-surface-container rounded-lg p-4">
 					<div className="flex items-center gap-2 mb-2">
-						<FileText className="w-4 h-4 text-gray-600" />
-						<span className="text-sm font-medium text-gray-900">Documents</span>
+						<FileText className="w-4 h-4 text-on-surface-variant" />
+						<span className="text-sm font-medium text-on-surface">Documents</span>
 					</div>
-					<p className="text-lg font-semibold text-gray-900">
+					<p className="text-lg font-semibold text-on-surface">
 						{property.documents.length}
 					</p>
 				</div>
@@ -168,8 +168,8 @@ export default function PropertyDetailCard({
 
 			{/* Owner Information */}
 			{property.owner && (
-				<div className="border-t border-gray-200 pt-4">
-					<p className="text-sm font-medium text-gray-900 mb-3">Owner</p>
+				<div className="border-t border-border pt-4">
+					<p className="text-sm font-medium text-on-surface mb-3">Owner</p>
 					<div className="flex items-center gap-3">
 						<UserAvatar
 							name={property.owner.name}
@@ -182,11 +182,11 @@ export default function PropertyDetailCard({
 							className="flex-1"
 						/>
 						<div className="flex items-center gap-2">
-							<button className="p-2 hover:bg-gray-100 rounded-full icon-btn-hover">
-								<Phone className="w-4 h-4 text-gray-400" />
+							<button className="p-2 hover:bg-surface-container-high rounded-full icon-btn-hover">
+								<Phone className="w-4 h-4 text-outline" />
 							</button>
-							<button className="p-2 hover:bg-gray-100 rounded-full icon-btn-hover">
-								<MessageCircle className="w-4 h-4 text-gray-400" />
+							<button className="p-2 hover:bg-surface-container-high rounded-full icon-btn-hover">
+								<MessageCircle className="w-4 h-4 text-outline" />
 							</button>
 						</div>
 					</div>
@@ -194,7 +194,7 @@ export default function PropertyDetailCard({
 			)}
 
 			{/* Survey Document Management */}
-			<div className="border-t border-gray-200 pt-4 mt-4">
+			<div className="border-t border-border pt-4 mt-4">
 				<SurveyManager
 					propertyId={property.id}
 					currentSurveyData={property.surveyData}
@@ -206,9 +206,9 @@ export default function PropertyDetailCard({
 
 			{/* Description */}
 			{property.description && (
-				<div className="border-t border-gray-200 pt-4 mt-4">
-					<p className="text-sm font-medium text-gray-900 mb-2">Description</p>
-					<p className="text-sm text-gray-600 leading-relaxed">
+				<div className="border-t border-border pt-4 mt-4">
+					<p className="text-sm font-medium text-on-surface mb-2">Description</p>
+					<p className="text-sm text-on-surface-variant leading-relaxed">
 						{property.description}
 					</p>
 				</div>

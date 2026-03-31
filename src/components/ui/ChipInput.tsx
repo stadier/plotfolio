@@ -114,7 +114,7 @@ export default function ChipInput({
 			<div
 				className={
 					"flex flex-wrap items-center gap-1.5 rounded-xl border px-3 py-2 " +
-					"bg-white dark:bg-surface-container border-slate-200 dark:border-outline-variant " +
+					"bg-card border-border " +
 					"focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-colors"
 				}
 				onClick={() => inputRef.current?.focus()}
@@ -163,7 +163,7 @@ export default function ChipInput({
 				<ul
 					className={
 						"absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-xl border shadow-lg " +
-						"bg-white dark:bg-surface-container-high border-slate-200 dark:border-outline-variant"
+						"bg-card border-border"
 					}
 				>
 					{visibleOptions.map((opt, idx) => {

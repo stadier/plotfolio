@@ -44,7 +44,7 @@ export default function MapboxViewSwitcher({
 }: MapboxViewSwitcherProps) {
 	return (
 		<div
-			className={`bg-white rounded-lg shadow-lg border border-gray-200 ${className}`}
+			className={`bg-card rounded-lg shadow-lg border border-border ${className}`}
 		>
 			<div className="p-2">
 				<div className="text-xs font-semibold text-gray-700 px-2 py-1 mb-1">

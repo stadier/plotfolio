@@ -65,11 +65,11 @@ export default function FavouritesPage() {
 				<div className="mb-8">
 					<div className="flex items-center gap-3 mb-2">
 						<Heart className="w-6 h-6 text-red-500" />
-						<h1 className="text-2xl font-bold font-headline text-gray-900 dark:text-on-surface">
+						<h1 className="text-2xl font-bold font-headline text-on-surface">
 							Favourites
 						</h1>
 					</div>
-					<p className="text-sm text-gray-500 dark:text-on-surface-variant">
+					<p className="text-sm text-on-surface-variant">
 						{favourites.size === 0
 							? "You haven\u2019t saved any listings yet."
 							: `${favourites.size} saved listing${favourites.size === 1 ? "" : "s"}`}
@@ -87,7 +87,7 @@ export default function FavouritesPage() {
 						{Array.from({ length: 4 }).map((_, i) => (
 							<div
 								key={i}
-								className="bg-gray-100 dark:bg-surface-container rounded-2xl h-72 animate-pulse"
+								className="bg-surface-container rounded-2xl h-72 animate-pulse"
 							/>
 						))}
 					</div>
@@ -96,13 +96,13 @@ export default function FavouritesPage() {
 				{/* Empty state */}
 				{!loading && !favsLoading && properties.length === 0 && (
 					<div className="flex flex-col items-center justify-center py-20 text-center">
-						<div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-surface-container flex items-center justify-center mb-4">
+						<div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4">
 							<Bookmark className="w-7 h-7 text-gray-400" />
 						</div>
-						<h2 className="text-lg font-semibold text-gray-700 dark:text-on-surface mb-2">
+						<h2 className="text-lg font-semibold text-on-surface mb-2">
 							No favourites yet
 						</h2>
-						<p className="text-sm text-gray-500 dark:text-on-surface-variant max-w-sm mb-6">
+						<p className="text-sm text-on-surface-variant max-w-sm mb-6">
 							Browse the marketplace and tap the bookmark icon on any listing to
 							save it here.
 						</p>
@@ -136,7 +136,7 @@ export default function FavouritesPage() {
 								<Link
 									key={property.id}
 									href={`/marketplace/${property.id}`}
-									className="w-full bg-white dark:bg-surface-container border border-gray-200 dark:border-outline-variant rounded-2xl overflow-hidden transition-all group hover:shadow-lg hover:border-gray-300 dark:hover:border-outline"
+									className="w-full bg-card border border-border rounded-2xl overflow-hidden transition-all group hover:shadow-lg hover:border-outline"
 								>
 									{/* Image */}
 									<div className="relative h-48 bg-linear-to-br from-[#eef3ea] via-[#f7f4ec] to-[#dde7dd] overflow-hidden">
@@ -168,27 +168,27 @@ export default function FavouritesPage() {
 
 									{/* Info */}
 									<div className="px-4 pt-3 pb-4">
-										<h3 className="font-semibold text-sm text-gray-900 dark:text-on-surface truncate mb-2 group-hover:text-black dark:group-hover:text-on-surface">
+										<h3 className="font-semibold text-sm text-on-surface truncate mb-2 group-hover:text-primary">
 											{property.name}
 										</h3>
-										<div className="flex items-center gap-1 text-gray-400 dark:text-on-surface-variant text-xs mb-1">
+										<div className="flex items-center gap-1 text-on-surface-variant text-xs mb-1">
 											<MapPin className="w-3 h-3 shrink-0" />
 											<span className="truncate">
 												{getLocalityLabel(property.address)}
 											</span>
 										</div>
 										{property.area != null && (
-											<div className="text-xs text-gray-400 dark:text-on-surface-variant mb-3">
+											<div className="text-xs text-on-surface-variant mb-3">
 												{property.area.toLocaleString()} sqm
 											</div>
 										)}
 										<div className="flex items-center gap-1.5 mb-3">
 											<Tag className="w-3.5 h-3.5 text-gray-400" />
-											<span className="text-sm font-bold text-gray-900 dark:text-on-surface">
+											<span className="text-sm font-bold text-on-surface">
 												{formatCurrency(askingPrice)}
 											</span>
 										</div>
-										<div className="pt-3 border-t border-gray-100 dark:border-outline-variant">
+										<div className="pt-3 border-t border-border">
 											<UserAvatar
 												name={property.owner?.name || "Unknown"}
 												displayName={property.owner?.displayName}

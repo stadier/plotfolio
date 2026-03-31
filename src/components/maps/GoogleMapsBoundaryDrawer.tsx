@@ -293,7 +293,7 @@ export default function GoogleMapsBoundaryDrawer({
 	};
 
 	return (
-		<div className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-lg p-4 max-w-sm">
+		<div className="absolute top-4 right-4 z-10 bg-card rounded-lg shadow-lg p-4 max-w-sm">
 			<div className="flex items-center justify-between mb-3">
 				<h3 className="font-semibold text-gray-900">
 					{points.length >= 3 && !isDrawing

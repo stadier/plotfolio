@@ -51,18 +51,18 @@ export default function ValueTrendWidget({
 			: "0";
 
 	return (
-		<div className="bg-white dark:bg-surface-container-low rounded-2xl border border-slate-200 dark:border-outline-variant p-5 flex flex-col justify-between h-full widget-card animate-fade-in-up">
+		<div className="bg-card rounded-2xl border border-border p-5 flex flex-col justify-between h-full widget-card animate-fade-in-up">
 			<div>
 				<div className="flex items-center justify-between mb-1">
 					<div className="flex items-center gap-2">
-						<div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-surface-container flex items-center justify-center">
-							<TrendingUp className="w-4 h-4 text-secondary" />
+						<div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-green-500/20 flex items-center justify-center">
+							<TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
 						</div>
 						<span className="text-xs font-semibold text-on-surface-variant">
 							Portfolio Trend
 						</span>
 					</div>
-					<span className="text-xs font-bold text-secondary">
+					<span className="text-xs font-bold text-green-600 dark:text-green-400">
 						+{growthPct}%
 					</span>
 				</div>
@@ -78,8 +78,8 @@ export default function ValueTrendWidget({
 			>
 				<defs>
 					<linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-						<stop offset="0%" stopColor="#3b6934" stopOpacity="0.2" />
-						<stop offset="100%" stopColor="#3b6934" stopOpacity="0" />
+						<stop offset="0%" stopColor="var(--chart-line)" stopOpacity="0.2" />
+						<stop offset="100%" stopColor="var(--chart-line)" stopOpacity="0" />
 					</linearGradient>
 				</defs>
 				<polygon
@@ -89,7 +89,7 @@ export default function ValueTrendWidget({
 				<polyline
 					points={pathPoints.join(" ")}
 					fill="none"
-					stroke="#3b6934"
+					stroke="var(--chart-line)"
 					strokeWidth="2"
 					strokeLinecap="round"
 					strokeLinejoin="round"
@@ -100,7 +100,7 @@ export default function ValueTrendWidget({
 					cx={pathPoints[11]?.split(",")[0]}
 					cy={pathPoints[11]?.split(",")[1]}
 					r="3"
-					fill="#3b6934"
+					fill="var(--chart-line)"
 				/>
 			</svg>
 			{/* Month labels */}

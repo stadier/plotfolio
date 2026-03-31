@@ -109,7 +109,7 @@ function FormSection({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="bg-white border border-slate-200 rounded-2xl p-6 min-w-[420px] flex-1">
+		<div className="bg-card border border-border rounded-2xl p-6 min-w-[420px] flex-1">
 			<div className="flex items-center gap-2.5 mb-5">
 				<Icon className="w-5 h-5 text-primary" />
 				<h2 className="font-headline text-sm font-bold text-primary uppercase tracking-wider">
@@ -144,7 +144,7 @@ function Field({
 }
 
 const inputCls =
-	"w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-body";
+	"w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-body";
 
 const selectCls = `${inputCls} appearance-none bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2374777f' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E")] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-8`;
 
@@ -420,7 +420,7 @@ export default function CreatePropertyForm({
 					<div className="mb-6">
 						<label
 							htmlFor="doc-upload"
-							className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-colors border-slate-300 bg-white hover:border-primary/40 hover:bg-slate-50"
+							className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-colors border-border bg-card hover:border-primary/40 hover:bg-slate-50"
 						>
 							<input
 								ref={fileInputRef}
@@ -790,7 +790,7 @@ export default function CreatePropertyForm({
 				<div className="sticky bottom-0 left-0 right-0 bg-slate-50/90 backdrop-blur-sm py-3 -mx-8 px-8 flex items-center gap-3 justify-center sm:justify-end">
 					<Link
 						href="/portfolio/properties"
-						className="px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-sm font-medium text-on-surface-variant hover:bg-slate-50 transition-colors font-label"
+						className="px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-medium text-on-surface-variant hover:bg-slate-50 transition-colors font-label"
 					>
 						Cancel
 					</Link>

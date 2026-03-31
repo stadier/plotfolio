@@ -6,28 +6,28 @@ const STATUS_COLORS: Record<
 	{ bg: string; text: string; label: string }
 > = {
 	[PropertyStatus.OWNED]: {
-		bg: "bg-secondary",
-		text: "text-secondary",
+		bg: "bg-green-600 dark:bg-green-400",
+		text: "text-green-600 dark:text-green-400",
 		label: "Owned",
 	},
 	[PropertyStatus.FOR_SALE]: {
-		bg: "bg-primary",
-		text: "text-primary",
+		bg: "bg-blue-600 dark:bg-blue-400",
+		text: "text-blue-600 dark:text-blue-400",
 		label: "For Sale",
 	},
 	[PropertyStatus.DEVELOPMENT]: {
-		bg: "bg-amber-500",
-		text: "text-amber-600",
+		bg: "bg-amber-500 dark:bg-amber-400",
+		text: "text-amber-600 dark:text-amber-400",
 		label: "Development",
 	},
 	[PropertyStatus.UNDER_CONTRACT]: {
-		bg: "bg-orange-500",
-		text: "text-orange-600",
+		bg: "bg-orange-500 dark:bg-orange-400",
+		text: "text-orange-600 dark:text-orange-300",
 		label: "Contract",
 	},
 	[PropertyStatus.RENTED]: {
-		bg: "bg-purple-500",
-		text: "text-purple-600",
+		bg: "bg-purple-500 dark:bg-purple-400",
+		text: "text-purple-600 dark:text-purple-400",
 		label: "Rented",
 	},
 };
@@ -46,10 +46,10 @@ export default function StatusDistributionWidget({
 	const total = properties.length;
 
 	return (
-		<div className="bg-white dark:bg-surface-container-low rounded-2xl border border-slate-200 dark:border-outline-variant p-5 break-inside-avoid widget-card animate-fade-in-up">
+		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
 			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-surface-container flex items-center justify-center">
-					<BarChart3 className="w-4 h-4 text-primary" />
+				<div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-indigo-500/20 flex items-center justify-center">
+					<BarChart3 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
 				</div>
 				<span className="text-xs font-semibold text-on-surface-variant">
 					Status Breakdown

@@ -17,10 +17,10 @@ export default function UpcomingDatesWidget({
 		];
 		const daysOut = [3, 12, 24, 45];
 		const urgency = [
-			"text-red-500 bg-red-50",
-			"text-amber-600 bg-amber-50",
-			"text-blue-600 bg-blue-50",
-			"text-slate-500 bg-slate-50",
+			"text-red-500 bg-red-50 dark:text-red-400 dark:bg-red-500/20",
+			"text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-500/20",
+			"text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/20",
+			"text-slate-500 bg-slate-50 dark:text-slate-400 dark:bg-slate-500/20",
 		];
 		const date = new Date();
 		date.setDate(date.getDate() + daysOut[i]);
@@ -38,10 +38,10 @@ export default function UpcomingDatesWidget({
 	});
 
 	return (
-		<div className="bg-white dark:bg-surface-container-low rounded-2xl border border-slate-200 dark:border-outline-variant p-5 break-inside-avoid widget-card animate-fade-in-up">
+		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
 			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-violet-50 dark:bg-surface-container flex items-center justify-center">
-					<Calendar className="w-4 h-4 text-violet-600" />
+				<div className="w-8 h-8 rounded-full bg-violet-50 dark:bg-violet-500/20 flex items-center justify-center">
+					<Calendar className="w-4 h-4 text-violet-600 dark:text-violet-400" />
 				</div>
 				<span className="text-xs font-semibold text-on-surface-variant">
 					Upcoming Dates

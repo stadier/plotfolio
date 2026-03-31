@@ -27,8 +27,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 const PlotfolioMap = dynamic(() => import("@/components/maps/PlotfolioMap"), {
 	ssr: false,
 	loading: () => (
-		<div className="h-full bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
-			<div className="text-gray-600">Loading map...</div>
+		<div className="h-full bg-surface-container-highest animate-pulse rounded-lg flex items-center justify-center">
+			<div className="text-on-surface-variant">Loading map...</div>
 		</div>
 	),
 });
@@ -405,10 +405,10 @@ export default function Home() {
 
 				{/* Hovered State Indicator */}
 				{hoveredState && (
-					<div className="absolute top-6 right-6 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-3 z-20">
+					<div className="absolute top-6 right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-3 z-20">
 						<div className="flex items-center space-x-2">
 							<div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-							<span className="text-sm font-medium text-gray-900">
+							<span className="text-sm font-medium text-on-surface">
 								{hoveredState}
 							</span>
 						</div>
@@ -420,7 +420,7 @@ export default function Home() {
 					<div
 						className={`absolute ${
 							hoveredState ? "top-20" : "top-6"
-						} right-6 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-4 z-20`}
+						} right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-20`}
 					>
 						<div className="flex items-center space-x-3">
 							<div className="flex items-center space-x-2">
@@ -431,7 +431,7 @@ export default function Home() {
 									<div className="w-3 h-3 bg-red-500 rounded-full"></div>
 								)}
 								{climateRisk === "wind" && (
-									<Wind className="w-4 h-4 text-gray-600" />
+									<Wind className="w-4 h-4 text-on-surface-variant" />
 								)}
 								{climateRisk === "air" && (
 									<div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
@@ -439,13 +439,13 @@ export default function Home() {
 								{climateRisk === "heat" && (
 									<Zap className="w-4 h-4 text-orange-500" />
 								)}
-								<span className="text-sm font-medium text-gray-900 capitalize">
+								<span className="text-sm font-medium text-on-surface capitalize">
 									{climateRisk} Risk
 								</span>
 							</div>
 							<button
 								onClick={() => setClimateRisk("none")}
-								className="text-gray-400 hover:text-gray-600"
+								className="text-outline hover:text-on-surface-variant"
 							>
 								<X className="w-4 h-4" />
 							</button>
@@ -455,14 +455,14 @@ export default function Home() {
 
 				{/* Map Options Panel */}
 				{showMapOptions && (
-					<div className="absolute top-6 left-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 p-4 w-64 z-20">
+					<div className="absolute top-6 left-4 bg-glass backdrop-blur-sm rounded-lg shadow-lg border border-border/50 p-4 w-64 z-20">
 						<div className="flex items-center justify-between mb-3">
-							<h3 className="text-sm font-semibold text-gray-900">
+							<h3 className="text-sm font-semibold text-on-surface">
 								Map Options
 							</h3>
 							<button
 								onClick={() => setShowMapOptions(false)}
-								className="text-gray-400 hover:text-gray-600"
+								className="text-outline hover:text-on-surface-variant"
 							>
 								<X className="w-4 h-4" />
 							</button>
@@ -479,7 +479,7 @@ export default function Home() {
 										onChange={() => handleMapViewModeChange("automatic")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-sm">Automatic</span>
+									<span className="text-on-surface text-sm">Automatic</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -489,7 +489,7 @@ export default function Home() {
 										onChange={() => handleMapViewModeChange("satellite")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-sm">Satellite</span>
+									<span className="text-on-surface text-sm">Satellite</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -499,14 +499,14 @@ export default function Home() {
 										onChange={() => handleMapViewModeChange("street")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-sm">Street view</span>
+									<span className="text-on-surface text-sm">Street view</span>
 								</label>
 							</div>
 						</div>
 
 						{/* Layer Controls */}
 						<div className="mb-4">
-							<h4 className="text-sm font-medium text-gray-900 mb-2">
+							<h4 className="text-sm font-medium text-on-surface mb-2">
 								Map Layers
 							</h4>
 							<div className="space-y-2">
@@ -517,7 +517,7 @@ export default function Home() {
 										onChange={() => setUseImageMarkers(!useImageMarkers)}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-sm">Image Markers</span>
+									<span className="text-on-surface text-sm">Image Markers</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -526,7 +526,7 @@ export default function Home() {
 										onChange={handleStateBordersToggle}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-sm">State Borders</span>
+									<span className="text-on-surface text-sm">State Borders</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -535,7 +535,7 @@ export default function Home() {
 										onChange={handleBoundaryToggle}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-sm">
+									<span className="text-on-surface text-sm">
 										Property Boundaries
 									</span>
 								</label>
@@ -546,14 +546,14 @@ export default function Home() {
 										onChange={handlePropertyGridToggle}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-sm">Property Grids</span>
+									<span className="text-on-surface text-sm">Property Grids</span>
 								</label>
 							</div>
 						</div>
 
 						{/* Climate Risks */}
 						<div>
-							<h4 className="text-sm font-medium text-gray-900 mb-2">
+							<h4 className="text-sm font-medium text-on-surface mb-2">
 								Climate Risks
 							</h4>
 							<div className="grid grid-cols-2 gap-2">
@@ -565,7 +565,7 @@ export default function Home() {
 										onChange={() => setClimateRisk("none")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-xs">None selected</span>
+									<span className="text-on-surface text-xs">None selected</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -575,7 +575,7 @@ export default function Home() {
 										onChange={() => setClimateRisk("wind")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-xs">Wind</span>
+									<span className="text-on-surface text-xs">Wind</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -585,7 +585,7 @@ export default function Home() {
 										onChange={() => setClimateRisk("flood")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-xs">Flood</span>
+									<span className="text-on-surface text-xs">Flood</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -595,7 +595,7 @@ export default function Home() {
 										onChange={() => setClimateRisk("air")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-xs">Air</span>
+									<span className="text-on-surface text-xs">Air</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -605,7 +605,7 @@ export default function Home() {
 										onChange={() => setClimateRisk("fire")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-xs">Fire</span>
+									<span className="text-on-surface text-xs">Fire</span>
 								</label>
 								<label className="flex items-center space-x-2 cursor-pointer">
 									<input
@@ -615,7 +615,7 @@ export default function Home() {
 										onChange={() => setClimateRisk("heat")}
 										className="w-3 h-3 text-blue-600"
 									/>
-									<span className="text-gray-900 text-xs">Heat</span>
+									<span className="text-on-surface text-xs">Heat</span>
 								</label>
 							</div>
 						</div>
@@ -627,8 +627,8 @@ export default function Home() {
 					{/* Map Options Toggle */}
 					<button
 						onClick={() => setShowMapOptions(!showMapOptions)}
-						className={`bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 shadow-md hover:shadow-lg transition-all flex items-center space-x-2 text-sm ${
-							showMapOptions ? "bg-blue-600 text-white" : "text-gray-900"
+						className={`bg-glass backdrop-blur-sm rounded-full px-4 py-2 shadow-md hover:shadow-lg transition-all flex items-center space-x-2 text-sm ${
+							showMapOptions ? "bg-blue-600 text-white" : "text-on-surface"
 						}`}
 					>
 						<Layers className="w-4 h-4" />
@@ -637,7 +637,7 @@ export default function Home() {
 					</button>
 
 					{/* Zoom Controls */}
-					<div className="bg-white/95 backdrop-blur-sm rounded-full shadow-md flex">
+					<div className="bg-glass backdrop-blur-sm rounded-full shadow-md flex">
 						<button
 							onClick={() =>
 								setViewport((prev) => ({
@@ -645,11 +645,11 @@ export default function Home() {
 									zoom: Math.min(prev.zoom + 1, 20),
 								}))
 							}
-							className="p-2 hover:bg-gray-100 rounded-l-full transition-colors"
+							className="p-2 hover:bg-surface-container-high rounded-l-full transition-colors"
 						>
-							<Plus className="w-4 h-4 text-gray-900" />
+							<Plus className="w-4 h-4 text-on-surface" />
 						</button>
-						<div className="w-px bg-gray-200"></div>
+						<div className="w-px bg-surface-container-highest"></div>
 						<button
 							onClick={() =>
 								setViewport((prev) => ({
@@ -657,42 +657,42 @@ export default function Home() {
 									zoom: Math.max(prev.zoom - 1, 1),
 								}))
 							}
-							className="p-2 hover:bg-gray-100 rounded-r-full transition-colors"
+							className="p-2 hover:bg-surface-container-high rounded-r-full transition-colors"
 						>
-							<Minus className="w-4 h-4 text-gray-900" />
+							<Minus className="w-4 h-4 text-on-surface" />
 						</button>
 					</div>
 
 					{/* Map Edit Functions */}
-					<div className="bg-white/95 backdrop-blur-sm rounded-full shadow-md flex">
+					<div className="bg-glass backdrop-blur-sm rounded-full shadow-md flex">
 						<button
 							onClick={() => setIsDrawingBoundary(!isDrawingBoundary)}
-							className={`p-2 hover:bg-gray-100 transition-colors ${
+							className={`p-2 hover:bg-surface-container-high transition-colors ${
 								isDrawingBoundary
 									? "bg-blue-100 text-blue-600"
-									: "text-gray-900"
+									: "text-on-surface"
 							}`}
 							title="Draw Boundary"
 						>
 							<Edit3 className="w-4 h-4" />
 						</button>
-						<div className="w-px bg-gray-200"></div>
+						<div className="w-px bg-surface-container-highest"></div>
 						<button
 							onClick={() => setIsSelectingGrid(!isSelectingGrid)}
-							className={`p-2 hover:bg-gray-100 transition-colors ${
-								isSelectingGrid ? "bg-blue-100 text-blue-600" : "text-gray-900"
+							className={`p-2 hover:bg-surface-container-high transition-colors ${
+								isSelectingGrid ? "bg-blue-100 text-blue-600" : "text-on-surface"
 							}`}
 							title="Select Grid"
 						>
 							<MapPin className="w-4 h-4" />
 						</button>
-						<div className="w-px bg-gray-200"></div>
+						<div className="w-px bg-surface-container-highest"></div>
 						<button
 							onClick={handleBoundaryToggle}
-							className={`p-2 hover:bg-gray-100 rounded-r-full transition-colors ${
+							className={`p-2 hover:bg-surface-container-high rounded-r-full transition-colors ${
 								isBoundaryVisible
 									? "bg-blue-100 text-blue-600"
-									: "text-gray-900"
+									: "text-on-surface"
 							}`}
 							title="Toggle Boundaries"
 						>
@@ -703,10 +703,10 @@ export default function Home() {
 
 				{/* Property Details Overlay */}
 				{selectedProperty && isPropertyCardVisible && (
-					<div className="absolute top-2 left-2 w-80 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 z-10 transition-all duration-300">
+					<div className="absolute top-2 left-2 w-80 bg-glass backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-10 transition-all duration-300">
 						{/* Header with Controls */}
 						<div className="flex items-center justify-between p-4 pb-0">
-							<h2 className="text-lg font-semibold text-gray-900 truncate flex-1 mr-3">
+							<h2 className="text-lg font-semibold text-on-surface truncate flex-1 mr-3">
 								{selectedProperty.name}
 							</h2>
 							<div className="flex items-center space-x-1">
@@ -714,19 +714,19 @@ export default function Home() {
 									onClick={() =>
 										setIsPropertyCardExpanded(!isPropertyCardExpanded)
 									}
-									className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded flex items-center justify-center transition-colors"
+									className="w-6 h-6 bg-surface-container-high hover:bg-surface-container-highest rounded flex items-center justify-center transition-colors"
 								>
 									{isPropertyCardExpanded ? (
-										<ChevronUp className="w-3 h-3 text-gray-600" />
+										<ChevronUp className="w-3 h-3 text-on-surface-variant" />
 									) : (
-										<ChevronDown className="w-3 h-3 text-gray-600" />
+										<ChevronDown className="w-3 h-3 text-on-surface-variant" />
 									)}
 								</button>
 								<button
 									onClick={() => setIsPropertyCardVisible(false)}
-									className="w-6 h-6 bg-gray-100 hover:bg-gray-200 rounded flex items-center justify-center transition-colors"
+									className="w-6 h-6 bg-surface-container-high hover:bg-surface-container-highest rounded flex items-center justify-center transition-colors"
 								>
-									<X className="w-3 h-3 text-gray-600" />
+									<X className="w-3 h-3 text-on-surface-variant" />
 								</button>
 							</div>
 						</div>
@@ -734,11 +734,11 @@ export default function Home() {
 						{/* Collapsed State - Only show basic info */}
 						{!isPropertyCardExpanded && (
 							<div className="px-4 pb-4">
-								<p className="text-gray-600 text-sm">
+								<p className="text-on-surface-variant text-sm">
 									{selectedProperty.address}
 								</p>
 								<div className="flex items-center justify-between mt-3">
-									<span className="text-xs text-gray-500">
+									<span className="text-xs text-outline">
 										{selectedProperty.area.toLocaleString()} m²
 									</span>
 									<span className="text-xs font-medium text-green-600">
@@ -760,13 +760,13 @@ export default function Home() {
 										className="w-full h-32 rounded-xl object-cover"
 									/>
 									<button className="absolute top-2 right-2 w-7 h-7 bg-white/90 backdrop-blur rounded-full flex items-center justify-center">
-										<Bookmark className="w-3 h-3 text-gray-600" />
+										<Bookmark className="w-3 h-3 text-on-surface-variant" />
 									</button>
 								</div>
 
 								{/* Property Info */}
 								<div className="mb-4">
-									<p className="text-gray-600 text-sm mb-3">
+									<p className="text-on-surface-variant text-sm mb-3">
 										{selectedProperty.address}
 									</p>
 								</div>
@@ -774,44 +774,44 @@ export default function Home() {
 								{/* Property Stats */}
 								<div className="grid grid-cols-3 gap-3 mb-4">
 									<div className="text-center">
-										<div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-lg mb-1 mx-auto">
-											<Calendar className="w-4 h-4 text-gray-600" />
+										<div className="flex items-center justify-center w-8 h-8 bg-surface-container-high rounded-lg mb-1 mx-auto">
+											<Calendar className="w-4 h-4 text-on-surface-variant" />
 										</div>
-										<div className="text-xs text-gray-500">Building Age</div>
-										<div className="text-sm font-bold text-gray-900">12Y</div>
+										<div className="text-xs text-outline">Building Age</div>
+										<div className="text-sm font-bold text-on-surface">12Y</div>
 									</div>
 									<div className="text-center">
-										<div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-lg mb-1 mx-auto">
-											<Eye className="w-4 h-4 text-gray-600" />
+										<div className="flex items-center justify-center w-8 h-8 bg-surface-container-high rounded-lg mb-1 mx-auto">
+											<Eye className="w-4 h-4 text-on-surface-variant" />
 										</div>
-										<div className="text-xs text-gray-500">Daily Visitors</div>
-										<div className="text-sm font-bold text-gray-900">7,980</div>
+										<div className="text-xs text-outline">Daily Visitors</div>
+										<div className="text-sm font-bold text-on-surface">7,980</div>
 									</div>
 									<div className="text-center">
-										<div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-lg mb-1 mx-auto">
-											<Thermometer className="w-4 h-4 text-gray-600" />
+										<div className="flex items-center justify-center w-8 h-8 bg-surface-container-high rounded-lg mb-1 mx-auto">
+											<Thermometer className="w-4 h-4 text-on-surface-variant" />
 										</div>
-										<div className="text-xs text-gray-500">Temperature</div>
-										<div className="text-sm font-bold text-gray-900">34°F</div>
+										<div className="text-xs text-outline">Temperature</div>
+										<div className="text-sm font-bold text-on-surface">34°F</div>
 									</div>
 								</div>
 
 								{/* Tenants Section */}
 								<div className="mb-4">
-									<h3 className="text-sm font-semibold text-gray-900 mb-2">
+									<h3 className="text-sm font-semibold text-on-surface mb-2">
 										Tenants
 									</h3>
-									<p className="text-xs text-gray-600 mb-3">
+									<p className="text-xs text-on-surface-variant mb-3">
 										Join over 800 active tenants benefiting from being part of
 										our community.
 									</p>
 
 									{/* Tenant Count */}
 									<div className="flex items-center mb-3">
-										<span className="text-2xl font-bold text-gray-900">
+										<span className="text-2xl font-bold text-on-surface">
 											650+
 										</span>
-										<span className="text-gray-500 ml-1 text-xs">members</span>
+										<span className="text-outline ml-1 text-xs">members</span>
 									</div>
 
 									{/* Avatar Stack */}

@@ -124,7 +124,7 @@ function PlacesSearch({
 				ref={inputRef}
 				type="text"
 				placeholder="Search address..."
-				className="w-full pl-9 pr-3 py-2.5 text-sm bg-white dark:bg-surface-container border border-slate-200 dark:border-outline-variant rounded-lg text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+				className="w-full pl-9 pr-3 py-2.5 text-sm bg-card border border-border rounded-lg text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
 			/>
 		</div>
 	);
@@ -158,11 +158,11 @@ export default function MapLocationPicker({
 	return (
 		<div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
 			<div
-				className="relative bg-white dark:bg-surface-container-low rounded-2xl shadow-2xl overflow-hidden max-w-5xl w-full mx-4 flex flex-col"
+				className="relative bg-card rounded-2xl shadow-2xl overflow-hidden max-w-5xl w-full mx-4 flex flex-col"
 				style={{ maxHeight: "90vh" }}
 			>
 				{/* Header */}
-				<div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-outline-variant">
+				<div className="flex items-center justify-between px-5 py-3 border-b border-border">
 					<div className="flex items-center gap-2">
 						<MapPin className="w-4 h-4 text-primary" />
 						<h3 className="font-headline text-sm font-bold text-primary uppercase tracking-wider">
@@ -179,7 +179,7 @@ export default function MapLocationPicker({
 				</div>
 
 				{/* Search bar */}
-				<div className="px-5 py-3 border-b border-slate-200 dark:border-outline-variant">
+				<div className="px-5 py-3 border-b border-border">
 					<PlacesSearch onPlaceSelect={handlePlaceSelect} />
 				</div>
 
@@ -202,7 +202,7 @@ export default function MapLocationPicker({
 				</div>
 
 				{/* Footer */}
-				<div className="px-5 py-3 border-t border-slate-200 dark:border-outline-variant flex items-center justify-between">
+				<div className="px-5 py-3 border-t border-border flex items-center justify-between">
 					<div className="text-xs text-slate-500 dark:text-on-surface-variant font-body">
 						{selected ? (
 							<span>
@@ -216,7 +216,7 @@ export default function MapLocationPicker({
 						<button
 							type="button"
 							onClick={onClose}
-							className="px-4 py-2 rounded-lg border border-slate-200 dark:border-outline-variant bg-white dark:bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-slate-50 dark:hover:bg-surface-container-high transition-colors font-label"
+							className="px-4 py-2 rounded-lg border border-border bg-card text-xs font-medium text-on-surface-variant hover:bg-slate-50 dark:hover:bg-surface-container-high transition-colors font-label"
 						>
 							Cancel
 						</button>

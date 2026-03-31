@@ -12,7 +12,7 @@ export default function PlotGridInfo({ className = "" }: PlotGridInfoProps) {
 		return (
 			<button
 				onClick={() => setIsVisible(true)}
-				className={`absolute bottom-4 left-4 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors ${className}`}
+				className={`absolute bottom-4 left-4 bg-card rounded-full p-2 shadow-lg border border-border hover:bg-gray-50 transition-colors ${className}`}
 				style={{ zIndex: 1000 }}
 				title="Show grid info"
 			>
@@ -23,7 +23,7 @@ export default function PlotGridInfo({ className = "" }: PlotGridInfoProps) {
 
 	return (
 		<div
-			className={`absolute bottom-4 left-4 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-xs ${className}`}
+			className={`absolute bottom-4 left-4 bg-card rounded-lg shadow-lg border border-border p-4 max-w-xs ${className}`}
 			style={{ zIndex: 1000 }}
 		>
 			<div className="flex items-start justify-between mb-2">
