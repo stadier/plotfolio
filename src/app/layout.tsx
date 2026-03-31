@@ -1,3 +1,5 @@
+import { AuthProvider } from "@/components/AuthContext";
+import { FavouritesProvider } from "@/components/FavouritesContext";
 import ThemeProvider from "@/components/ThemeProvider";
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
@@ -32,7 +34,11 @@ export default function RootLayout({
 				className={`${manrope.variable} ${inter.variable} antialiased`}
 				suppressHydrationWarning
 			>
-				<ThemeProvider>{children}</ThemeProvider>
+				<ThemeProvider>
+					<AuthProvider>
+						<FavouritesProvider>{children}</FavouritesProvider>
+					</AuthProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);
