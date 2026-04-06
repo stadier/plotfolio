@@ -266,7 +266,7 @@ function ListingCard({
 
 			{/* Info */}
 			<div className="px-4 pt-3 pb-4">
-				<h3 className="font-semibold text-sm text-on-surface truncate mb-2 group-hover:text-black">
+				<h3 className="font-semibold text-sm text-on-surface truncate mb-2">
 					{property.name}
 				</h3>
 				<div className="flex items-center gap-1 text-outline text-xs mb-1">

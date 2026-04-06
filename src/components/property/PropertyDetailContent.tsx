@@ -414,7 +414,7 @@ function DocumentCard({
 	}
 
 	return (
-		<div className="w-32 flex flex-col rounded-xl border border-border border-border overflow-hidden bg-card group relative shrink-0">
+		<div className="w-36 flex flex-col rounded-xl border border-border border-border overflow-hidden bg-card group relative shrink-0">
 			{/* Thumbnail / icon area */}
 			<div className="h-40 flex flex-col items-center justify-center bg-surface-container dark:bg-surface-container relative">
 				{kind === "image" ? (
@@ -684,7 +684,10 @@ export function DocumentsGrid({
 	if (!hasDocuments && !isOwner) return null;
 
 	return (
-		<div className="flex flex-row-reverse flex-wrap gap-3 items-start">
+		<div className="flex flex-wrap gap-3 items-start">
+			{isOwner && (
+				<DocumentUploadButton propertyId={propertyId} onUploaded={onUploaded} />
+			)}
 			{documents.map((doc) => (
 				<DocumentCard
 					key={doc.id}
@@ -702,9 +705,6 @@ export function DocumentsGrid({
 					onAccessRequested={onAccessRequested}
 				/>
 			))}
-			{isOwner && (
-				<DocumentUploadButton propertyId={propertyId} onUploaded={onUploaded} />
-			)}
 		</div>
 	);
 }

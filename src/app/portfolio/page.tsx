@@ -30,6 +30,7 @@ export default function DashboardPage() {
 	const [loading, setLoading] = useState(true);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const { user, loading: authLoading } = useRequireAuth();
+	const animate = useAnimateOnce("dashboard");
 
 	useEffect(() => {
 		if (!user) return;
@@ -81,7 +82,6 @@ export default function DashboardPage() {
 	const heroProperty = properties[0];
 	// Simulate tracked listings: own properties + some marked as marketplace
 	const trackedProperties = properties.slice(0, 6);
-	const animate = useAnimateOnce("dashboard");
 
 	return (
 		<AppShell>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
 				{/* ── Right: Tracking Board (standalone sticky card) ── */}
 				{!loading && properties.length > 0 && (
 					<aside className="hidden lg:block w-80 shrink-0">
-						<div className="sticky top-24 bg-card rounded-2xl border border-slate-300 p-5 max-h-[calc(100vh-120px)] overflow-y-auto animate-fade-in-up">
+						<div className="sticky top-24 bg-card rounded-2xl border border-border p-5 max-h-[calc(100vh-120px)] overflow-y-auto animate-fade-in-up">
 							{/* Header */}
 							<div className="flex items-center justify-between mb-5">
 								<div className="flex items-center gap-2">
@@ -243,7 +243,7 @@ export default function DashboardPage() {
 										Tracking Board
 									</h2>
 								</div>
-								<span className="text-[10px] font-bold text-on-surface-variant bg-slate-50 dark:bg-surface-container px-2 py-1 rounded-full">
+								<span className="text-[10px] font-bold text-on-surface-variant bg-surface-container-high dark:bg-surface-container px-2 py-1 rounded-full">
 									{trackedProperties.length} tracked
 								</span>
 							</div>

@@ -401,7 +401,7 @@ function PropertyCard({
 			{/* Header */}
 			<div className="flex items-start justify-between mb-3 gap-3">
 				<div className="flex-1 min-w-0">
-					<h3 className="font-semibold text-on-surface text-base truncate group-hover:text-black">
+					<h3 className="font-semibold text-on-surface text-base truncate">
 						{property.name}
 					</h3>
 					<div className="flex items-center gap-1 mt-1 text-outline text-sm">
@@ -521,7 +521,10 @@ function PropertyCard({
 				</div>
 				{property.boughtFrom && (
 					<div className="text-xs text-outline truncate max-w-[180px]">
-						From: <span className="text-on-surface-variant">{property.boughtFrom}</span>
+						From:{" "}
+						<span className="text-on-surface-variant">
+							{property.boughtFrom}
+						</span>
 					</div>
 				)}
 			</div>

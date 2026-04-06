@@ -1,16 +1,7 @@
-import UserAvatar from "@/components/ui/UserAvatar";
-import { formatArea, formatCurrency } from "@/lib/utils";
-import { Property, PropertyStatus, SurveyData } from "@/types/property";
-import {
-	Calendar,
-	DollarSign,
-	FileText,
-	MessageCircle,
-	Phone,
-	Square,
-	X,
-} from "lucide-react";
+import { Property, SurveyData } from "@/types/property";
+import { X } from "lucide-react";
 import SurveyManager from "../survey/SurveyManager";
+import ListingDetailView from "./ListingDetailView";
 
 interface PropertyDetailCardProps {
 	property: Property;
@@ -29,169 +20,28 @@ export default function PropertyDetailCard({
 	isBoundaryVisible = false,
 	className = "",
 }: PropertyDetailCardProps) {
-	const getStatusColor = (status: PropertyStatus) => {
-		switch (status) {
-			case PropertyStatus.OWNED:
-				return "bg-green-100 text-green-800";
-			case PropertyStatus.UNDER_CONTRACT:
-				return "bg-blue-100 text-blue-800";
-			case PropertyStatus.FOR_SALE:
-				return "bg-yellow-100 text-yellow-800";
-			case PropertyStatus.RENTED:
-				return "bg-purple-100 text-purple-800";
-			case PropertyStatus.DEVELOPMENT:
-				return "bg-orange-100 text-orange-800";
-			default:
-				return "bg-surface-container-high text-on-surface";
-		}
-	};
-
-	const getStatusText = (status: PropertyStatus) => {
-		switch (status) {
-			case PropertyStatus.OWNED:
-				return "Owned";
-			case PropertyStatus.UNDER_CONTRACT:
-				return "Under Contract";
-			case PropertyStatus.FOR_SALE:
-				return "For Sale";
-			case PropertyStatus.RENTED:
-				return "Rented";
-			case PropertyStatus.DEVELOPMENT:
-				return "Development";
-			default:
-				return "Unknown";
-		}
-	};
-
 	return (
 		<div
 			className={`bg-card rounded-xl border border-border p-6 animate-fade-in-up ${className}`}
 		>
-			{/* Header */}
-			<div className="flex items-start justify-between mb-6">
-				<div>
-					<div className="flex items-center gap-3 mb-2">
-						<h2 className="text-lg font-semibold text-on-surface">
-							{property.name}
-						</h2>
-						<span
-							className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-								property.status,
-							)}`}
-						>
-							{getStatusText(property.status)}
-						</span>
-					</div>
-					<p className="text-sm text-on-surface-variant">Property #{property.id}</p>
-				</div>
-				{onClose && (
+			{/* Close button */}
+			{onClose && (
+				<div className="flex justify-end mb-2">
 					<button
 						onClick={onClose}
 						className="p-2 hover:bg-surface-container-high rounded-lg icon-btn-hover"
 					>
 						<X className="w-5 h-5 text-outline" />
 					</button>
-				)}
-			</div>
-
-			{/* Property Timeline */}
-			<div className="space-y-4 mb-6">
-				<div className="flex items-start gap-3">
-					<div className="w-3 h-3 bg-gray-900 rounded-full mt-2 shrink-0"></div>
-					<div className="flex-1">
-						<p className="text-sm font-medium text-on-surface mb-1">Location</p>
-						<p className="text-sm text-on-surface-variant leading-relaxed">
-							{property.address}
-						</p>
-					</div>
-				</div>
-
-				<div className="flex items-start gap-3">
-					<div className="w-3 h-3 bg-gray-400 rounded-full mt-2 shrink-0"></div>
-					<div className="flex-1">
-						<p className="text-sm font-medium text-on-surface mb-1">
-							Purchase Date
-						</p>
-						<p className="text-sm text-on-surface-variant">
-							{property.purchaseDate.toLocaleDateString()}
-						</p>
-					</div>
-				</div>
-			</div>
-
-			{/* Property Details Grid */}
-			<div className="grid grid-cols-2 gap-4 mb-6">
-				<div className="bg-surface-container rounded-lg p-4">
-					<div className="flex items-center gap-2 mb-2">
-						<Square className="w-4 h-4 text-on-surface-variant" />
-						<span className="text-sm font-medium text-on-surface">Area</span>
-					</div>
-					<p className="text-lg font-semibold text-on-surface">
-						{formatArea(property.area)}
-					</p>
-				</div>
-
-				<div className="bg-surface-container rounded-lg p-4">
-					<div className="flex items-center gap-2 mb-2">
-						<DollarSign className="w-4 h-4 text-on-surface-variant" />
-						<span className="text-sm font-medium text-on-surface">
-							Current Value
-						</span>
-					</div>
-					<p className="text-lg font-semibold text-on-surface">
-						{formatCurrency(property.currentValue || property.purchasePrice)}
-					</p>
-				</div>
-
-				<div className="bg-surface-container rounded-lg p-4">
-					<div className="flex items-center gap-2 mb-2">
-						<Calendar className="w-4 h-4 text-on-surface-variant" />
-						<span className="text-sm font-medium text-on-surface">
-							Purchase Price
-						</span>
-					</div>
-					<p className="text-lg font-semibold text-on-surface">
-						{formatCurrency(property.purchasePrice)}
-					</p>
-				</div>
-
-				<div className="bg-surface-container rounded-lg p-4">
-					<div className="flex items-center gap-2 mb-2">
-						<FileText className="w-4 h-4 text-on-surface-variant" />
-						<span className="text-sm font-medium text-on-surface">Documents</span>
-					</div>
-					<p className="text-lg font-semibold text-on-surface">
-						{property.documents.length}
-					</p>
-				</div>
-			</div>
-
-			{/* Owner Information */}
-			{property.owner && (
-				<div className="border-t border-border pt-4">
-					<p className="text-sm font-medium text-on-surface mb-3">Owner</p>
-					<div className="flex items-center gap-3">
-						<UserAvatar
-							name={property.owner.name}
-							displayName={property.owner.displayName}
-							username={property.owner.username}
-							avatar={property.owner.avatar}
-							ownerId={property.owner.id}
-							size="lg"
-							showLabel
-							className="flex-1"
-						/>
-						<div className="flex items-center gap-2">
-							<button className="p-2 hover:bg-surface-container-high rounded-full icon-btn-hover">
-								<Phone className="w-4 h-4 text-outline" />
-							</button>
-							<button className="p-2 hover:bg-surface-container-high rounded-full icon-btn-hover">
-								<MessageCircle className="w-4 h-4 text-outline" />
-							</button>
-						</div>
-					</div>
 				</div>
 			)}
+
+			<ListingDetailView
+				property={property}
+				layout="compact"
+				showGallery={false}
+				isOwner
+			/>
 
 			{/* Survey Document Management */}
 			<div className="border-t border-border pt-4 mt-4">
@@ -207,7 +57,9 @@ export default function PropertyDetailCard({
 			{/* Description */}
 			{property.description && (
 				<div className="border-t border-border pt-4 mt-4">
-					<p className="text-sm font-medium text-on-surface mb-2">Description</p>
+					<p className="text-sm font-medium text-on-surface mb-2">
+						Description
+					</p>
 					<p className="text-sm text-on-surface-variant leading-relaxed">
 						{property.description}
 					</p>

@@ -3,11 +3,9 @@
 import { Property } from "@/types/property";
 import { Maximize2, Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
-import PropertyDetailContent, {
-	formatCurrency,
-	getStatusColor,
-} from "./PropertyDetailContent";
+import { useEffect, useRef, useState } from "react";
+import ListingDetailView from "./ListingDetailView";
+import { formatCurrency, getStatusColor } from "./PropertyDetailContent";
 
 interface PropertyDrawerProps {
 	propertyId: string | null;
@@ -71,40 +69,6 @@ export default function PropertyDrawer({
 			document.body.style.overflow = "";
 		};
 	}, [propertyId]);
-
-	const handlePatch = useCallback(
-		async (updates: Partial<Property>) => {
-			if (!property) return;
-			const res = await fetch(`/api/properties/${property.id}`, {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(updates),
-			});
-			if (res.ok) {
-				const updated = await res.json();
-				setProperty(updated);
-				onChange?.(updated);
-			}
-		},
-		[property, onChange],
-	);
-
-	const handleDocUploaded = useCallback((doc: Property["documents"][0]) => {
-		setProperty((prev) =>
-			prev ? { ...prev, documents: [...(prev.documents ?? []), doc] } : prev,
-		);
-	}, []);
-
-	const handleDocDeleted = useCallback((docId: string) => {
-		setProperty((prev) =>
-			prev
-				? {
-						...prev,
-						documents: (prev.documents ?? []).filter((d) => d.id !== docId),
-					}
-				: prev,
-		);
-	}, []);
 
 	const isOpen = Boolean(propertyId);
 
@@ -205,12 +169,12 @@ export default function PropertyDrawer({
 					)}
 
 					{property && !loading && (
-						<PropertyDetailContent
+						<ListingDetailView
 							property={property}
-							onPatch={handlePatch}
-							onDocUploaded={handleDocUploaded}
-							onDocDeleted={handleDocDeleted}
-							layout="stack"
+							layout="compact"
+							showGallery={false}
+							showOwner={false}
+							isOwner
 						/>
 					)}
 				</div>
