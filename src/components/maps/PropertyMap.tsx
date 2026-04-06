@@ -1,5 +1,6 @@
 "use client";
 
+import { getMapTiles } from "@/lib/mapTiles";
 import { getPropertyImageUrls, getPropertyTypeColor } from "@/lib/utils";
 import {
 	MapViewport,
@@ -112,40 +113,8 @@ function MapController({
 	return null;
 }
 
-// Tile layer configurations
-const TILE_LAYERS = {
-	standard: {
-		url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-		attribution:
-			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-		maxZoom: 19,
-	},
-	satellite: {
-		url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-		attribution:
-			"&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
-		maxZoom: 19,
-	},
-	terrain: {
-		url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-		attribution:
-			'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
-		maxZoom: 17,
-	},
-	hybrid: {
-		url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-		attribution:
-			"&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
-		maxZoom: 19,
-		overlay: {
-			url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-			attribution:
-				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-			maxZoom: 19,
-			opacity: 0.3,
-		},
-	},
-};
+// Tile layer configurations (from centralized provider)
+const TILE_LAYERS = getMapTiles();
 
 export default function PropertyMap({
 	properties,

@@ -1,5 +1,6 @@
 "use client";
 
+import { getDefaultTile } from "@/lib/mapTiles";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Expand } from "lucide-react";
@@ -36,7 +37,7 @@ export default function PropertyMiniMap({
 	const leafletMap = useRef<L.Map | null>(null);
 	const [expanded, setExpanded] = useState(false);
 
-	useEffect(() => {
+	useEffect(async () => {
 		if (!mapRef.current) return;
 
 		// If map already exists, just update view
@@ -55,9 +56,11 @@ export default function PropertyMiniMap({
 			dragging: expanded,
 		});
 
-		L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
-			map,
-		);
+		const tile = getDefaultTile();
+		L.tileLayer(tile.url, {
+			attribution: tile.attribution,
+			maxZoom: tile.maxZoom,
+		}).addTo(map);
 		L.marker([lat, lng]).addTo(map).bindPopup(propertyName);
 
 		leafletMap.current = map;

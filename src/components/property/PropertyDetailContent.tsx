@@ -720,7 +720,9 @@ export function WorthEditor({
 	onSave: (value: number) => void;
 }) {
 	const [editing, setEditing] = useState(false);
-	const [draft, setDraft] = useState(String(currentValue ?? ""));
+	const [draft, setDraft] = useState(
+		currentValue != null ? currentValue.toLocaleString("en-US") : "",
+	);
 	const [saving, setSaving] = useState(false);
 
 	const worthChange =
@@ -747,7 +749,11 @@ export function WorthEditor({
 				{!editing && (
 					<button
 						onClick={() => {
-							setDraft(String(currentValue ?? ""));
+							setDraft(
+								currentValue != null
+									? currentValue.toLocaleString("en-US")
+									: "",
+							);
 							setEditing(true);
 						}}
 						className="p-1 hover:bg-surface-container-high rounded text-outline hover:text-on-surface-variant"
@@ -759,9 +765,15 @@ export function WorthEditor({
 			{editing ? (
 				<div className="flex gap-2 items-center">
 					<input
-						type="number"
+						type="text"
+						inputMode="numeric"
 						value={draft}
-						onChange={(e) => setDraft(e.target.value)}
+						onChange={(e) => {
+							const raw = e.target.value.replace(/[^0-9.]/g, "");
+							const parts = raw.split(".");
+							parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+							setDraft(parts.join("."));
+						}}
 						placeholder="Enter amount"
 						className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:outline-none"
 					/>

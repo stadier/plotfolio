@@ -38,6 +38,16 @@ const MapLocationPicker = dynamic(
 	{ ssr: false },
 );
 
+const LocationPreviewMap = dynamic(
+	() => import("@/components/maps/LocationPreviewMap"),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="w-full h-full bg-surface-container animate-pulse rounded-lg" />
+		),
+	},
+);
+
 /* ── helpers ──────────────────────────────────────────── */
 
 function inferDocumentType(file: File): DocumentType {
@@ -152,10 +162,12 @@ const selectCls = `${inputCls} appearance-none bg-[url("data:image/svg+xml,%3Csv
 
 interface CreatePropertyFormProps {
 	initialName?: string;
+	onNameChange?: (name: string) => void;
 }
 
 export default function CreatePropertyForm({
 	initialName,
+	onNameChange,
 }: CreatePropertyFormProps) {
 	const router = useRouter();
 	const { user } = useAuth();
@@ -250,8 +262,18 @@ export default function CreatePropertyForm({
 			if (fields.lat) setLat(fields.lat);
 			if (fields.lng) setLng(fields.lng);
 			if (fields.purchaseDate) setPurchaseDate(fields.purchaseDate);
-			if (fields.purchasePrice) setPurchasePrice(fields.purchasePrice ?? "");
-			if (fields.currentValue) setCurrentValue(fields.currentValue ?? "");
+			if (fields.purchasePrice) {
+				const raw = (fields.purchasePrice ?? "").replace(/[^0-9.]/g, "");
+				const parts = raw.split(".");
+				parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+				setPurchasePrice(parts.join("."));
+			}
+			if (fields.currentValue) {
+				const raw = (fields.currentValue ?? "").replace(/[^0-9.]/g, "");
+				const parts = raw.split(".");
+				parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+				setCurrentValue(parts.join("."));
+			}
 			if (fields.boughtFrom) setBoughtFrom(fields.boughtFrom ?? "");
 			if (fields.witnesses) setWitnesses(fields.witnesses ?? "");
 			if (fields.signatures) setSignatures(fields.signatures ?? "");
@@ -324,8 +346,12 @@ export default function CreatePropertyForm({
 				area: area ? parseFloat(area) : undefined,
 				propertyType,
 				purchaseDate: purchaseDate ? new Date(purchaseDate) : undefined,
-				purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
-				currentValue: currentValue ? parseFloat(currentValue) : undefined,
+				purchasePrice: purchasePrice
+					? parseFloat(purchasePrice.replace(/,/g, ""))
+					: undefined,
+				currentValue: currentValue
+					? parseFloat(currentValue.replace(/,/g, ""))
+					: undefined,
 				status,
 				conditions: conditions.length > 0 ? conditions : undefined,
 				quantity: quantity ? Math.max(1, parseInt(quantity, 10)) : 1,
@@ -462,7 +488,10 @@ export default function CreatePropertyForm({
 										className={inputCls}
 										placeholder="e.g. Riverside Executive Property"
 										value={name}
-										onChange={(e) => setName(e.target.value)}
+										onChange={(e) => {
+											setName(e.target.value);
+											onNameChange?.(e.target.value);
+										}}
 									/>
 								</Field>
 
@@ -588,7 +617,37 @@ export default function CreatePropertyForm({
 
 						{/* ── Location ────────────────────────────── */}
 						<FormSection icon={MapPin} title="Location">
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							{/* Map preview + prompt bar */}
+							<div className="rounded-lg border border-border overflow-hidden max-w-md">
+								<div
+									className="relative w-full bg-surface-container cursor-pointer"
+									style={{ height: 180 }}
+									onClick={() => setMapPickerOpen(true)}
+								>
+									{lat && lng ? (
+										<LocationPreviewMap
+											lat={parseFloat(lat)}
+											lng={parseFloat(lng)}
+											onClick={() => setMapPickerOpen(true)}
+										/>
+									) : (
+										<div className="w-full h-full flex flex-col items-center justify-center gap-2 text-outline">
+											<MapPin className="w-8 h-8 opacity-40" />
+											<span className="text-xs">No location selected</span>
+										</div>
+									)}
+								</div>
+								<button
+									type="button"
+									onClick={() => setMapPickerOpen(true)}
+									className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-card hover:bg-surface-container-high transition-colors text-primary font-label border-t border-border"
+								>
+									<MapPin className="w-3.5 h-3.5" />
+									{lat && lng ? "Change location" : "Pick a location"}
+								</button>
+							</div>
+
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
 								<Field label="Latitude">
 									<input
 										type="number"
@@ -612,16 +671,7 @@ export default function CreatePropertyForm({
 								</Field>
 							</div>
 
-							<button
-								type="button"
-								onClick={() => setMapPickerOpen(true)}
-								className="mt-3 w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-2.5 text-xs font-medium text-primary hover:border-primary/40 hover:bg-slate-100 transition-colors font-label"
-							>
-								<MapPin className="w-3.5 h-3.5" />
-								Pick from map
-							</button>
-
-							<p className="mt-2 text-xs text-slate-400 font-body">
+							<p className="mt-2 text-xs text-outline font-body">
 								Coordinates in decimal degrees.
 							</p>
 
@@ -669,25 +719,33 @@ export default function CreatePropertyForm({
 
 								<Field label="Purchase Price">
 									<input
-										type="number"
+										type="text"
+										inputMode="numeric"
 										className={inputCls}
-										placeholder="e.g. 50000000"
+										placeholder="e.g. 50,000,000"
 										value={purchasePrice}
-										onChange={(e) => setPurchasePrice(e.target.value)}
-										min={0}
-										step="any"
+										onChange={(e) => {
+											const raw = e.target.value.replace(/[^0-9.]/g, "");
+											const parts = raw.split(".");
+											parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+											setPurchasePrice(parts.join("."));
+										}}
 									/>
 								</Field>
 
 								<Field label="Current Value">
 									<input
-										type="number"
+										type="text"
+										inputMode="numeric"
 										className={inputCls}
-										placeholder="e.g. 65000000"
+										placeholder="e.g. 65,000,000"
 										value={currentValue}
-										onChange={(e) => setCurrentValue(e.target.value)}
-										min={0}
-										step="any"
+										onChange={(e) => {
+											const raw = e.target.value.replace(/[^0-9.]/g, "");
+											const parts = raw.split(".");
+											parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+											setCurrentValue(parts.join("."));
+										}}
 									/>
 								</Field>
 							</div>
@@ -815,9 +873,18 @@ export default function CreatePropertyForm({
 				<MapLocationPicker
 					initialLat={lat ? parseFloat(lat) : undefined}
 					initialLng={lng ? parseFloat(lng) : undefined}
-					onConfirm={(pickedLat, pickedLng) => {
+					initialQuery={[address, city, propertyState, country]
+						.filter(Boolean)
+						.join(", ")}
+					onConfirm={(pickedLat, pickedLng, address) => {
 						setLat(String(pickedLat));
 						setLng(String(pickedLng));
+						if (address) {
+							if (address.state) setPropertyState(address.state);
+							if (address.city) setCity(address.city);
+							if (address.country) setCountry(address.country);
+							if (address.street) setAddress(address.street);
+						}
 						setMapPickerOpen(false);
 					}}
 					onClose={() => setMapPickerOpen(false)}

@@ -2,7 +2,7 @@
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Search, X } from "lucide-react";
+import { Loader2, LocateFixed, MapPin, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	MapContainer,
@@ -24,12 +24,30 @@ L.Icon.Default.mergeOptions({
 		"https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+interface NominatimResult {
+	place_id: number;
+	display_name: string;
+	lat: string;
+	lon: string;
+}
+
+export interface PickedLocationAddress {
+	city: string;
+	state: string;
+	country: string;
+	street: string;
+	display_name: string;
+}
 
 interface MapLocationPickerProps {
 	initialLat?: number;
 	initialLng?: number;
-	onConfirm: (lat: number, lng: number) => void;
+	initialQuery?: string;
+	onConfirm: (
+		lat: number,
+		lng: number,
+		address?: PickedLocationAddress,
+	) => void;
 	onClose: () => void;
 }
 
@@ -58,74 +76,150 @@ function FlyToHandler({ target }: { target: [number, number] | null }) {
 	return null;
 }
 
-/** Google Places Autocomplete search input */
-function PlacesSearch({
+/** Requests geolocation on mount and flies to the user's position */
+function GeolocationHandler({
+	onLocated,
+	hasInitial,
+}: {
+	onLocated: (lat: number, lng: number) => void;
+	hasInitial: boolean;
+}) {
+	const map = useMap();
+	const requested = useRef(false);
+
+	useEffect(() => {
+		if (requested.current || hasInitial) return;
+		requested.current = true;
+
+		if (!navigator.geolocation) return;
+
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				const { latitude, longitude } = pos.coords;
+				map.flyTo([latitude, longitude], 15, { duration: 1.2 });
+				onLocated(latitude, longitude);
+			},
+			() => {
+				// Permission denied or error — stay on default view
+			},
+			{ enableHighAccuracy: true, timeout: 8000 },
+		);
+	}, [map, onLocated, hasInitial]);
+
+	return null;
+}
+
+/** Address search with Nominatim autocomplete */
+function AddressSearch({
 	onPlaceSelect,
+	initialQuery = "",
 }: {
 	onPlaceSelect: (lat: number, lng: number, address: string) => void;
+	initialQuery?: string;
 }) {
-	const inputRef = useRef<HTMLInputElement>(null);
-	const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-	const [loaded, setLoaded] = useState(
-		typeof google !== "undefined" && !!google.maps?.places,
-	);
+	const [query, setQuery] = useState(initialQuery);
+	const [results, setResults] = useState<NominatimResult[]>([]);
+	const [open, setOpen] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+	const abortRef = useRef<AbortController | null>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 
-	// Load Google Maps Places library if not already present
-	useEffect(() => {
-		if (!GOOGLE_MAPS_API_KEY) return;
-		if (typeof google !== "undefined" && google.maps?.places) {
-			setLoaded(true);
-			return;
+	const doSearch = useCallback(async (q: string) => {
+		// Cancel any in-flight request
+		if (abortRef.current) abortRef.current.abort();
+		const controller = new AbortController();
+		abortRef.current = controller;
+
+		setLoading(true);
+		try {
+			const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`, {
+				signal: controller.signal,
+			});
+			if (!res.ok) throw new Error("Search failed");
+			const data: NominatimResult[] = await res.json();
+			setResults(data);
+			setOpen(data.length > 0);
+		} catch (err) {
+			if (err instanceof DOMException && err.name === "AbortError") return;
+			setResults([]);
+			setOpen(false);
+		} finally {
+			setLoading(false);
 		}
-
-		const existing = document.querySelector(
-			'script[src*="maps.googleapis.com/maps/api/js"]',
-		);
-		if (existing) {
-			existing.addEventListener("load", () => setLoaded(true));
-			return;
-		}
-
-		const script = document.createElement("script");
-		script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&libraries=places`;
-		script.async = true;
-		script.defer = true;
-		script.onload = () => setLoaded(true);
-		document.head.appendChild(script);
 	}, []);
 
-	// Initialize autocomplete once the library is ready
-	useEffect(() => {
-		if (!loaded || !inputRef.current || autocompleteRef.current) return;
+	const handleInputChange = useCallback(
+		(value: string) => {
+			setQuery(value);
 
-		const ac = new google.maps.places.Autocomplete(inputRef.current, {
-			types: ["geocode", "establishment"],
-			fields: ["geometry", "formatted_address"],
-		});
+			if (debounceRef.current) clearTimeout(debounceRef.current);
 
-		ac.addListener("place_changed", () => {
-			const place = ac.getPlace();
-			if (place.geometry?.location) {
-				const lat = place.geometry.location.lat();
-				const lng = place.geometry.location.lng();
-				onPlaceSelect(lat, lng, place.formatted_address || "");
+			if (value.trim().length < 3) {
+				setResults([]);
+				setOpen(false);
+				setLoading(false);
+				return;
 			}
-		});
 
-		autocompleteRef.current = ac;
-	}, [loaded, onPlaceSelect]);
+			debounceRef.current = setTimeout(() => {
+				doSearch(value.trim());
+			}, 400);
+		},
+		[doSearch],
+	);
 
-	if (!GOOGLE_MAPS_API_KEY) return null;
+	// Close dropdown on outside click
+	useEffect(() => {
+		function handleClick(e: MouseEvent) {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(e.target as Node)
+			) {
+				setOpen(false);
+			}
+		}
+		document.addEventListener("mousedown", handleClick);
+		return () => document.removeEventListener("mousedown", handleClick);
+	}, []);
+
+	const handleSelect = (result: NominatimResult) => {
+		const lat = parseFloat(result.lat);
+		const lng = parseFloat(result.lon);
+		setQuery(result.display_name);
+		setOpen(false);
+		onPlaceSelect(lat, lng, result.display_name);
+	};
 
 	return (
-		<div className="relative">
-			<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-on-surface-variant pointer-events-none" />
+		<div ref={containerRef} className="relative">
+			<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+			{loading && (
+				<Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline animate-spin" />
+			)}
 			<input
-				ref={inputRef}
 				type="text"
-				placeholder="Search address..."
-				className="w-full pl-9 pr-3 py-2.5 text-sm bg-card border border-border rounded-lg text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+				value={query}
+				onChange={(e) => handleInputChange(e.target.value)}
+				onFocus={() => results.length > 0 && setOpen(true)}
+				placeholder="Search for an address or place..."
+				className="w-full pl-9 pr-9 py-2.5 text-sm bg-card border border-border rounded-lg text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
 			/>
+			{open && (
+				<ul className="absolute z-[10000] mt-1 w-full bg-card border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+					{results.map((r) => (
+						<li key={r.place_id}>
+							<button
+								type="button"
+								className="w-full text-left px-3 py-2.5 text-sm text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+								onClick={() => handleSelect(r)}
+							>
+								{r.display_name}
+							</button>
+						</li>
+					))}
+				</ul>
+			)}
 		</div>
 	);
 }
@@ -133,15 +227,21 @@ function PlacesSearch({
 export default function MapLocationPicker({
 	initialLat,
 	initialLng,
+	initialQuery,
 	onConfirm,
 	onClose,
 }: MapLocationPickerProps) {
+	const hasInitial = !!(initialLat && initialLng);
 	const [selected, setSelected] = useState<{ lat: number; lng: number } | null>(
-		initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null,
+		hasInitial ? { lat: initialLat!, lng: initialLng! } : null,
 	);
 	const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
+	const [geoCenter, setGeoCenter] = useState<[number, number] | null>(null);
+	const [confirming, setConfirming] = useState(false);
 
-	const center: [number, number] = [initialLat || 20, initialLng || 0];
+	const center: [number, number] = hasInitial
+		? [initialLat!, initialLng!]
+		: [20, 0];
 
 	const handleLocationSelect = useCallback((lat: number, lng: number) => {
 		setSelected({ lat, lng });
@@ -154,6 +254,42 @@ export default function MapLocationPicker({
 		},
 		[handleLocationSelect],
 	);
+
+	const handleGeoLocated = useCallback((lat: number, lng: number) => {
+		setGeoCenter([lat, lng]);
+	}, []);
+
+	const handleRecenter = useCallback(() => {
+		if (geoCenter) {
+			setFlyTarget([...geoCenter]);
+		} else if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(pos) => {
+					const { latitude, longitude } = pos.coords;
+					setGeoCenter([latitude, longitude]);
+					setFlyTarget([latitude, longitude]);
+				},
+				() => {},
+				{ enableHighAccuracy: true, timeout: 8000 },
+			);
+		}
+	}, [geoCenter]);
+
+	const handleConfirm = useCallback(async () => {
+		if (!selected) return;
+		setConfirming(true);
+		try {
+			const res = await fetch(
+				`/api/geocode/reverse?lat=${selected.lat}&lon=${selected.lng}`,
+			);
+			const address = res.ok ? await res.json() : null;
+			onConfirm(selected.lat, selected.lng, address ?? undefined);
+		} catch {
+			onConfirm(selected.lat, selected.lng);
+		} finally {
+			setConfirming(false);
+		}
+	}, [selected, onConfirm]);
 
 	return (
 		<div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -172,22 +308,25 @@ export default function MapLocationPicker({
 					<button
 						type="button"
 						onClick={onClose}
-						className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-surface-container transition-colors"
+						className="p-1.5 rounded-lg hover:bg-surface-container-high transition-colors"
 					>
-						<X className="w-4 h-4 text-slate-500 dark:text-on-surface-variant" />
+						<X className="w-4 h-4 text-on-surface-variant" />
 					</button>
 				</div>
 
 				{/* Search bar */}
 				<div className="px-5 py-3 border-b border-border">
-					<PlacesSearch onPlaceSelect={handlePlaceSelect} />
+					<AddressSearch
+						onPlaceSelect={handlePlaceSelect}
+						initialQuery={initialQuery}
+					/>
 				</div>
 
 				{/* Map */}
-				<div className="h-[60vh]">
+				<div className="relative h-[60vh]">
 					<MapContainer
 						center={center}
-						zoom={initialLat && initialLng ? 15 : 3}
+						zoom={hasInitial ? 15 : 3}
 						className="h-full w-full"
 						style={{ height: "100%", width: "100%" }}
 					>
@@ -197,8 +336,22 @@ export default function MapLocationPicker({
 						/>
 						<ClickHandler onLocationSelect={handleLocationSelect} />
 						<FlyToHandler target={flyTarget} />
+						<GeolocationHandler
+							onLocated={handleGeoLocated}
+							hasInitial={hasInitial}
+						/>
 						{selected && <Marker position={[selected.lat, selected.lng]} />}
 					</MapContainer>
+
+					{/* My Location button */}
+					<button
+						type="button"
+						onClick={handleRecenter}
+						title="Go to my location"
+						className="absolute bottom-4 right-4 z-1000 bg-card border border-border rounded-full p-2.5 shadow-lg hover:bg-surface-container-high transition-colors"
+					>
+						<LocateFixed className="w-5 h-5 text-primary" />
+					</button>
 				</div>
 
 				{/* Footer */}
@@ -222,8 +375,8 @@ export default function MapLocationPicker({
 						</button>
 						<button
 							type="button"
-							disabled={!selected}
-							onClick={() => selected && onConfirm(selected.lat, selected.lng)}
+							disabled={!selected || confirming}
+							onClick={handleConfirm}
 							className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-lg shadow-md active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
 						>
 							Confirm

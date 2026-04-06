@@ -4,12 +4,38 @@ import { useAuth } from "@/components/AuthContext";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+declare global {
+	interface Window {
+		google?: {
+			accounts: {
+				id: {
+					initialize: (config: {
+						client_id: string;
+						callback: (response: { credential: string }) => void;
+						auto_select?: boolean;
+					}) => void;
+					renderButton: (
+						element: HTMLElement,
+						config: {
+							theme?: string;
+							size?: string;
+							width?: number;
+							text?: string;
+							shape?: string;
+						},
+					) => void;
+				};
+			};
+		};
+	}
+}
 
 type Mode = "login" | "signup";
 
 export default function LoginPage() {
-	const { user, loading: authLoading, login, signup } = useAuth();
+	const { user, loading: authLoading, login, signup, googleLogin } = useAuth();
 	const router = useRouter();
 
 	const [mode, setMode] = useState<Mode>("login");
@@ -19,6 +45,85 @@ export default function LoginPage() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
+	const [googleReady, setGoogleReady] = useState(false);
+	const googleBtnRef = useRef<HTMLDivElement>(null);
+
+	// Handle Google credential response
+	const handleGoogleResponse = useCallback(
+		async (response: { credential: string }) => {
+			setError(null);
+			setSubmitting(true);
+			try {
+				const result = await googleLogin(response.credential);
+				if (result.error) {
+					setError(result.error);
+				} else {
+					router.replace("/portfolio");
+				}
+			} catch {
+				setError("Google sign-in failed. Please try again.");
+			} finally {
+				setSubmitting(false);
+			}
+		},
+		[googleLogin, router],
+	);
+
+	// Load Google Identity Services script and render button
+	useEffect(() => {
+		let cancelled = false;
+
+		async function initGoogle() {
+			// Fetch client ID from our API
+			try {
+				const res = await fetch("/api/auth/google-client-id");
+				if (!res.ok) return;
+				const { clientId } = await res.json();
+				if (!clientId || cancelled) return;
+
+				// Load GSI script if not already loaded
+				if (!document.getElementById("google-gsi-script")) {
+					const script = document.createElement("script");
+					script.id = "google-gsi-script";
+					script.src = "https://accounts.google.com/gsi/client";
+					script.async = true;
+					script.defer = true;
+					script.onload = () => {
+						if (!cancelled) renderGoogleButton(clientId);
+					};
+					document.head.appendChild(script);
+				} else {
+					renderGoogleButton(clientId);
+				}
+			} catch {
+				// Google sign-in not available — silently degrade
+			}
+		}
+
+		function renderGoogleButton(clientId: string) {
+			if (!window.google || !googleBtnRef.current) return;
+
+			window.google.accounts.id.initialize({
+				client_id: clientId,
+				callback: handleGoogleResponse,
+			});
+
+			window.google.accounts.id.renderButton(googleBtnRef.current, {
+				theme: "outline",
+				size: "large",
+				width: 320,
+				text: "continue_with",
+				shape: "rectangular",
+			});
+
+			setGoogleReady(true);
+		}
+
+		initGoogle();
+		return () => {
+			cancelled = true;
+		};
+	}, [handleGoogleResponse]);
 
 	// Redirect if already logged in
 	useEffect(() => {
@@ -221,6 +326,30 @@ export default function LoginPage() {
 							)}
 						</button>
 					</form>
+
+					{/* Divider */}
+					<div className="flex items-center gap-3 my-5">
+						<div className="flex-1 h-px bg-border" />
+						<span className="text-[11px] font-medium uppercase tracking-widest text-outline">
+							or
+						</span>
+						<div className="flex-1 h-px bg-border" />
+					</div>
+
+					{/* Google Sign-In button */}
+					<div className="flex justify-center">
+						<div ref={googleBtnRef} className={googleReady ? "" : "hidden"} />
+						{!googleReady && (
+							<button
+								type="button"
+								disabled
+								className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-border bg-card text-sm text-on-surface-variant opacity-50"
+							>
+								<Loader2 className="w-4 h-4 animate-spin" />
+								Loading Google Sign-In…
+							</button>
+						)}
+					</div>
 				</div>
 
 				{/* Footer */}

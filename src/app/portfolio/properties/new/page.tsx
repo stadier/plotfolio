@@ -42,7 +42,10 @@ export default function NewPropertyPage() {
 
 			{/* Body */}
 			<div className="px-8 pt-6 pb-0">
-				<CreatePropertyForm initialName={propertyName} />
+				<CreatePropertyForm
+					initialName={propertyName}
+					onNameChange={setPropertyName}
+				/>
 			</div>
 		</AppShell>
 	);
