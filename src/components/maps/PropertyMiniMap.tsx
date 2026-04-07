@@ -37,7 +37,7 @@ export default function PropertyMiniMap({
 	const leafletMap = useRef<L.Map | null>(null);
 	const [expanded, setExpanded] = useState(false);
 
-	useEffect(async () => {
+	useEffect(() => {
 		if (!mapRef.current) return;
 
 		// If map already exists, just update view
