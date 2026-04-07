@@ -217,7 +217,7 @@ export default function PropertyMap({
 				/>
 
 				{/* Overlay layer for hybrid view */}
-				{layerType === "hybrid" && "overlay" in currentLayer && (
+				{layerType === "hybrid" && "overlay" in currentLayer && currentLayer.overlay && (
 					<TileLayer
 						url={currentLayer.overlay.url}
 						attribution={currentLayer.overlay.attribution}
