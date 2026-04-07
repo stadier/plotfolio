@@ -14,9 +14,7 @@ import { useEffect, useRef } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import CustomPlotBoundary from "./CustomPlotBoundary";
 import ManualBoundaryDrawer from "./ManualBoundaryDrawer";
-import PlotGridInfo from "./PlotGridInfo";
 import PlotGridOverlay from "./PlotGridOverlay";
-import PlotZoomControl from "./PlotZoomControl";
 import PropertyGridOverlayComponent from "./PropertyGridOverlayComponent";
 import PropertyGridSelector from "./PropertyGridSelector";
 
@@ -206,7 +204,7 @@ export default function PropertyMap({
 				center={viewport.center}
 				zoom={viewport.zoom}
 				className="h-full w-full rounded-lg"
-				zoomControl={true}
+				zoomControl={false}
 				scrollWheelZoom={true}
 				minZoom={10}
 				maxZoom={19}
@@ -240,15 +238,6 @@ export default function PropertyMap({
 					showGrid={showGrid}
 					gridColor="#059669"
 					gridOpacity={0.4}
-				/>
-
-				{/* Custom Plot Zoom Control */}
-				<PlotZoomControl
-					minZoom={10}
-					maxZoom={19}
-					plotViewZoom={16}
-					onGridToggle={onGridToggle}
-					showGrid={showGrid}
 				/>
 
 				{/* Custom Plot Boundaries from Survey Documents */}
@@ -334,9 +323,6 @@ export default function PropertyMap({
 					showPropertyGrids={showPropertyGrids}
 				/>
 			</MapContainer>
-
-			{/* Plot Grid Information Panel */}
-			<PlotGridInfo />
 		</div>
 	);
 }

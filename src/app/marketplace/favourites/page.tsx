@@ -3,13 +3,12 @@
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
-import { PropertyAPI } from "@/lib/api";
+import { useAllProperties } from "@/hooks/usePropertyQueries";
 import { getPropertyImageUrls } from "@/lib/utils";
-import { Property } from "@/types/property";
 import { Bookmark, Heart, MapPin, ShoppingBag, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 function formatCurrency(amount: number): string {
 	return new Intl.NumberFormat("en-US", {
@@ -31,32 +30,13 @@ export default function FavouritesPage() {
 		toggleFavourite,
 		loading: favsLoading,
 	} = useFavourites();
-	const [properties, setProperties] = useState<Property[]>([]);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		if (favsLoading) return;
-
-		const load = async () => {
-			if (favourites.size === 0) {
-				setProperties([]);
-				setLoading(false);
-				return;
-			}
-
-			try {
-				setLoading(true);
-				const all = await PropertyAPI.getAllProperties();
-				const favProps = all.filter((p) => favourites.has(p.id));
-				setProperties(favProps);
-			} catch {
-				setProperties([]);
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, [favourites, favsLoading]);
+	const { data: allProperties = [], isLoading: propertiesLoading } =
+		useAllProperties();
+	const loading = favsLoading || propertiesLoading;
+	const properties = useMemo(
+		() => allProperties.filter((p) => favourites.has(p.id)),
+		[allProperties, favourites],
+	);
 
 	return (
 		<AppShell>

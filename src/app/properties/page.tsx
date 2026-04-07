@@ -5,7 +5,7 @@ import PropertyDrawer from "@/components/property/PropertyDrawer";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
-import { PropertyAPI } from "@/lib/api";
+import { useAllProperties } from "@/hooks/usePropertyQueries";
 import { getPropertyImageUrls } from "@/lib/utils";
 import { Property, PropertyStatus, PropertyType } from "@/types/property";
 import {
@@ -24,7 +24,7 @@ import {
 	X,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface PropertyPreviewConfig {
 	src: string;
@@ -449,9 +449,16 @@ function PropertyCard({
 }
 
 export default function PropertiesPage() {
-	const [properties, setProperties] = useState<Property[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const {
+		data: rawProperties = [],
+		isLoading: loading,
+		error: queryError,
+	} = useAllProperties();
+	const properties = useMemo(
+		() => rawProperties.map(hydratePropertyPreview),
+		[rawProperties],
+	);
+	const error = queryError ? "Failed to load properties" : null;
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 
 	// Search & filter state
@@ -472,21 +479,6 @@ export default function PropertiesPage() {
 		setViewMode(mode);
 		localStorage.setItem("plotfolio:propertiesViewMode", mode);
 	}
-
-	useEffect(() => {
-		const load = async () => {
-			try {
-				setLoading(true);
-				const data = await PropertyAPI.getAllProperties();
-				setProperties(data.map(hydratePropertyPreview));
-			} catch {
-				setError("Failed to load properties");
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, []);
 
 	// Filtered + sorted list
 	const filtered = useMemo(() => {

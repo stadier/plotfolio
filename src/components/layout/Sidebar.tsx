@@ -52,9 +52,13 @@ const STORAGE_KEY = "plotfolio-sidebar-collapsed";
 
 interface SidebarProps {
 	className?: string;
+	hideAddProperty?: boolean;
 }
 
-export default function Sidebar({ className = "" }: SidebarProps) {
+export default function Sidebar({
+	className = "",
+	hideAddProperty,
+}: SidebarProps) {
 	const pathname = usePathname();
 	const isMarketplace = pathname.startsWith("/marketplace");
 	const navItems = isMarketplace ? marketplaceNav : portfolioNav;
@@ -175,59 +179,59 @@ export default function Sidebar({ className = "" }: SidebarProps) {
 						</span>
 					</Link>
 				) : (
-					<Link
-						href="/portfolio/properties/new"
-						title={collapsed ? "Add Property" : undefined}
-						className={`signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest py-3 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 btn-press ${
-							collapsed ? "px-0" : ""
-						}`}
-					>
-						{collapsed ? <Plus className="w-5 h-5" /> : "Add Property"}
-					</Link>
+					!hideAddProperty && (
+						<Link
+							href="/portfolio/properties/new"
+							title={collapsed ? "Add Property" : undefined}
+							className={`signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest py-3 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 btn-press ${
+								collapsed ? "px-0" : ""
+							}`}
+						>
+							{collapsed ? <Plus className="w-5 h-5" /> : "Add Property"}
+						</Link>
+					)
 				)}
 
 				{/* Secondary links */}
 				<div className="flex flex-col gap-1 border-t border-border pt-4">
-					<Link
-						href="/settings"
-						data-sidebar-link
-						title={collapsed ? "Settings" : undefined}
-						className={`text-slate-500 dark:text-on-surface-variant flex items-center py-2 text-xs hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-surface-container ${
-							collapsed ? "justify-center" : "gap-3 px-4"
-						}`}
-					>
-						<Settings className="w-4 h-4 shrink-0" />
-						<span
-							data-sidebar-label
-							className={`whitespace-nowrap transition-all duration-300 ${
-								collapsed
-									? "w-0 opacity-0 overflow-hidden"
-									: "w-auto opacity-100"
-							}`}
-						>
-							Settings
-						</span>
-					</Link>
-					<Link
-						href="/help"
-						data-sidebar-link
-						title={collapsed ? "Help Center" : undefined}
-						className={`text-slate-500 dark:text-on-surface-variant flex items-center py-2 text-xs hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-surface-container ${
-							collapsed ? "justify-center" : "gap-3 px-4"
-						}`}
-					>
-						<HelpCircle className="w-4 h-4 shrink-0" />
-						<span
-							data-sidebar-label
-							className={`whitespace-nowrap transition-all duration-300 ${
-								collapsed
-									? "w-0 opacity-0 overflow-hidden"
-									: "w-auto opacity-100"
-							}`}
-						>
-							Help Center
-						</span>
-					</Link>
+					{(
+						[
+							{ name: "Settings", href: "/settings", icon: Settings },
+							{ name: "Help Center", href: "/help", icon: HelpCircle },
+						] as NavItem[]
+					).map((item) => {
+						const Icon = item.icon;
+						const isActive = pathname.startsWith(item.href);
+						return (
+							<Link
+								key={item.href}
+								href={item.href}
+								data-sidebar-link
+								title={collapsed ? item.name : undefined}
+								className={`py-3 flex items-center rounded-lg transition-all ${
+									collapsed ? "justify-center" : "gap-3 px-4"
+								} ${
+									isActive
+										? "bg-nav-active text-primary font-bold shadow-sm dark:shadow-none"
+										: "text-slate-600 dark:text-on-surface-variant hover:translate-x-1 hover:bg-slate-100 dark:hover:bg-surface-container"
+								}`}
+							>
+								<Icon
+									className={`w-5 h-5 shrink-0 ${isActive ? "text-primary" : "text-slate-500 dark:text-on-surface-variant"}`}
+								/>
+								<span
+									data-sidebar-label
+									className={`font-label text-xs uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${
+										collapsed
+											? "w-0 opacity-0 overflow-hidden"
+											: "w-auto opacity-100"
+									}`}
+								>
+									{item.name}
+								</span>
+							</Link>
+						);
+					})}
 				</div>
 			</div>
 		</aside>

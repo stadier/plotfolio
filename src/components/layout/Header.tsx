@@ -6,6 +6,54 @@ import { Bell, Briefcase, LogOut, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+
+/** Sliding pill that animates position & colour between Portfolio / Marketplace */
+function SwitcherPill({
+	isMarketplace,
+	hasUser,
+}: {
+	isMarketplace: boolean;
+	hasUser: boolean;
+}) {
+	const pillRef = useRef<HTMLDivElement>(null);
+	const [style, setStyle] = useState<React.CSSProperties>({});
+
+	useEffect(() => {
+		const pill = pillRef.current;
+		if (!pill) return;
+		const container = pill.parentElement;
+		if (!container) return;
+
+		const selector = isMarketplace || !hasUser ? "marketplace" : "portfolio";
+		const target = container.querySelector(
+			`[data-switcher="${selector}"]`,
+		) as HTMLElement | null;
+		if (!target) return;
+
+		const containerRect = container.getBoundingClientRect();
+		const targetRect = target.getBoundingClientRect();
+
+		setStyle({
+			left: targetRect.left - containerRect.left,
+			width: targetRect.width,
+			height: targetRect.height,
+		});
+	}, [isMarketplace, hasUser]);
+
+	const bg =
+		isMarketplace || !hasUser
+			? "rgb(37 99 235)" /* blue-600 */
+			: "var(--color-primary)";
+
+	return (
+		<div
+			ref={pillRef}
+			className="absolute top-1 rounded-full shadow-sm transition-all duration-300 ease-in-out"
+			style={{ ...style, backgroundColor: bg }}
+		/>
+	);
+}
 
 export default function Header() {
 	const pathname = usePathname();
@@ -13,8 +61,8 @@ export default function Header() {
 	const { user, logout } = useAuth();
 
 	return (
-		<header className="fixed top-0 w-full z-50 bg-card border-b border-border">
-			<div className="flex items-center justify-between px-8 py-4 w-full">
+		<header className="fixed top-0 w-full z-[1100] bg-card border-b border-border">
+			<div className="relative flex items-center justify-between px-8 py-4 w-full">
 				{/* Logo */}
 				<Link href="/" className="flex items-center gap-2.5">
 					<Image
@@ -29,14 +77,16 @@ export default function Header() {
 					</span>
 				</Link>
 
-				{/* Portfolio / Marketplace switcher */}
-				<div className="hidden md:flex items-center bg-slate-100 dark:bg-surface-container rounded-full p-1">
+				{/* Portfolio / Marketplace switcher — absolutely centered */}
+				<div className="hidden md:flex items-center bg-slate-100 dark:bg-surface-container rounded-full p-1 absolute left-1/2 -translate-x-1/2">
+					<SwitcherPill isMarketplace={isMarketplace} hasUser={!!user} />
 					{user && (
 						<Link
 							href="/portfolio"
-							className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+							data-switcher="portfolio"
+							className={`relative z-10 flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors duration-300 ${
 								!isMarketplace
-									? "bg-primary text-on-primary shadow-sm"
+									? "text-white"
 									: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
 							}`}
 						>
@@ -46,10 +96,11 @@ export default function Header() {
 					)}
 					<Link
 						href="/marketplace"
-						className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+						data-switcher="marketplace"
+						className={`relative z-10 flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors duration-300 ${
 							isMarketplace || !user
-								? "bg-primary text-on-primary shadow-sm"
-								: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
+								? "text-white"
+								: "text-slate-500 dark:text-on-surface-variant hover:text-blue-600"
 						}`}
 					>
 						<ShoppingBag className="w-4 h-4" />

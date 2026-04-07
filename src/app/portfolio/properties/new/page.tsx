@@ -24,7 +24,7 @@ export default function NewPropertyPage() {
 	return (
 		<AppShell>
 			{/* Page header */}
-			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-5 sticky top-0 z-10">
+			<div className="bg-card border-b border-border px-8 py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
 					<Link
 						href="/portfolio/properties"
@@ -33,8 +33,8 @@ export default function NewPropertyPage() {
 						<ArrowLeft className="w-4 h-4" />
 						Properties
 					</Link>
-					<span className="text-outline-variant">/</span>
-					<h1 className="font-headline text-base font-semibold text-primary">
+					<span className="text-outline">/</span>
+					<h1 className="font-headline text-lg font-bold text-on-surface">
 						{propertyName}
 					</h1>
 				</div>

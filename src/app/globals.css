@@ -34,6 +34,7 @@
 	--color-border: #e2e8f0;
 	--color-glass: rgba(255, 255, 255, 0.95);
 	--color-nav-active: #ffffff;
+	--color-input: #f8fafc;
 	--color-divider: #f1f5f9;
 	/* Fonts */
 	--font-headline: var(--font-manrope), "Manrope", sans-serif;
@@ -98,6 +99,7 @@ body {
 	--color-border: #1e293b;
 	--color-glass: rgba(30, 41, 59, 0.95);
 	--color-nav-active: #334155;
+	--color-input: #475569;
 	--color-divider: #334155;
 
 	/* Chart / SVG tokens (dark) */

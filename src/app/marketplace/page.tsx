@@ -3,7 +3,7 @@
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
-import { PropertyAPI } from "@/lib/api";
+import { useMarketplaceListings } from "@/hooks/usePropertyQueries";
 import { getPropertyImageUrls } from "@/lib/utils";
 import { Property, PropertyType } from "@/types/property";
 import {
@@ -626,9 +626,12 @@ function FilterSidebar({
 /* ─── marketplace page ────────────────────────────────────────── */
 
 export default function MarketplacePage() {
-	const [allProperties, setAllProperties] = useState<Property[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const {
+		data: allProperties = [],
+		isLoading: loading,
+		error: queryError,
+	} = useMarketplaceListings();
+	const error = queryError ? "Failed to load marketplace listings" : null;
 	const { isFavourite, toggleFavourite } = useFavourites();
 
 	// Filters
@@ -644,26 +647,6 @@ export default function MarketplacePage() {
 	const [activePricePreset, setActivePricePreset] = useState<number | null>(
 		null,
 	);
-
-	useEffect(() => {
-		const load = async () => {
-			try {
-				setLoading(true);
-				setError(null);
-				let data = await PropertyAPI.getMarketplaceListings();
-				if (data.length === 0) {
-					const all = await PropertyAPI.getAllProperties();
-					data = all.filter((p) => p.status === "for_sale");
-				}
-				setAllProperties(data);
-			} catch {
-				setError("Failed to load marketplace listings");
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, []);
 
 	// Counts computed from ALL listings (before filters, so users see total stock)
 	const typeCounts = useMemo(

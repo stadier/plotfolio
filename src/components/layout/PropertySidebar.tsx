@@ -73,7 +73,9 @@ export default function PropertySidebar({
 				{/* Filters (if visible) */}
 				{showFilters && (
 					<div className="mt-4 p-3 bg-surface-container rounded-lg">
-						<div className="text-sm text-on-surface-variant mb-2">Filter by status:</div>
+						<div className="text-sm text-on-surface-variant mb-2">
+							Filter by status:
+						</div>
 						<div className="flex flex-wrap gap-2">
 							{Object.values(PropertyStatus).map((status) => (
 								<button

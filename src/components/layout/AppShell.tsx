@@ -10,6 +10,8 @@ interface AppShellProps {
 	 * Default: true (overflow-y-auto).
 	 */
 	scrollable?: boolean;
+	/** Hide the "Add Property" CTA in the sidebar. */
+	hideAddProperty?: boolean;
 }
 
 /**
@@ -19,13 +21,14 @@ interface AppShellProps {
 export default function AppShell({
 	children,
 	scrollable = true,
+	hideAddProperty,
 }: AppShellProps) {
 	return (
 		<>
 			<Header />
 			{/* pt-[65px] accounts for the fixed header height */}
 			<div className="flex h-screen pt-[65px] overflow-hidden">
-				<Sidebar />
+				<Sidebar hideAddProperty={hideAddProperty} />
 				<main
 					className={`flex-1 bg-background ${
 						scrollable ? "overflow-y-auto" : "overflow-hidden"

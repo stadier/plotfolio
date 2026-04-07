@@ -4,8 +4,9 @@ import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import ListingDetailViewAlt from "@/components/property/ListingDetailViewAlt";
 import ShareModal from "@/components/property/ShareModal";
+import { useProperty } from "@/hooks/usePropertyQueries";
 import { PropertyAPI } from "@/lib/api";
-import { DocumentAccessRequest, Property } from "@/types/property";
+import { DocumentAccessRequest } from "@/types/property";
 import { ArrowLeft, Bookmark, Share2 } from "lucide-react";
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
@@ -24,9 +25,16 @@ export default function MarketplaceListingPage({
 	params: Promise<{ id: string }>;
 }) {
 	const { id } = use(params);
-	const [property, setProperty] = useState<Property | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const {
+		data: property,
+		isLoading: loading,
+		error: queryError,
+	} = useProperty(id);
+	const error = queryError
+		? "Failed to load listing"
+		: !loading && !property
+			? "Listing not found"
+			: null;
 	const [accessRequests, setAccessRequests] = useState<DocumentAccessRequest[]>(
 		[],
 	);
@@ -41,21 +49,8 @@ export default function MarketplaceListingPage({
 	}, []);
 
 	useEffect(() => {
-		const load = async () => {
-			try {
-				setLoading(true);
-				const data = await PropertyAPI.getProperty(id);
-				if (!data) throw new Error("Listing not found");
-				setProperty(data);
-				await loadAccessRequests(id);
-			} catch {
-				setError("Failed to load listing");
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, [id, loadAccessRequests]);
+		if (property) loadAccessRequests(id);
+	}, [id, property, loadAccessRequests]);
 
 	function handleAccessRequested(req: DocumentAccessRequest) {
 		setAccessRequests((prev) => [...prev, req]);

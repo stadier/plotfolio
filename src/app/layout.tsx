@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/components/AuthContext";
 import { FavouritesProvider } from "@/components/FavouritesContext";
+import QueryProvider from "@/components/QueryProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
@@ -35,9 +36,11 @@ export default function RootLayout({
 				suppressHydrationWarning
 			>
 				<ThemeProvider>
-					<AuthProvider>
-						<FavouritesProvider>{children}</FavouritesProvider>
-					</AuthProvider>
+					<QueryProvider>
+						<AuthProvider>
+							<FavouritesProvider>{children}</FavouritesProvider>
+						</AuthProvider>
+					</QueryProvider>
 				</ThemeProvider>
 			</body>
 		</html>

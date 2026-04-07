@@ -6,7 +6,7 @@ import PropertyDrawer from "@/components/property/PropertyDrawer";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
-import { PropertyAPI } from "@/lib/api";
+import { queryKeys, useMyProperties } from "@/hooks/usePropertyQueries";
 import { getPropertyImageUrls } from "@/lib/utils";
 import {
 	Property,
@@ -14,6 +14,7 @@ import {
 	PropertyStatus,
 	PropertyType,
 } from "@/types/property";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	ArrowUpDown,
 	Building2,
@@ -30,7 +31,7 @@ import {
 	X,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface PropertyPreviewConfig {
 	src: string;
@@ -533,11 +534,19 @@ function PropertyCard({
 }
 
 export default function PropertiesPage() {
-	const [properties, setProperties] = useState<Property[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const { user, loading: authLoading } = useRequireAuth();
+	const queryClient = useQueryClient();
+	const {
+		data: rawProperties = [],
+		isLoading: loading,
+		error: queryError,
+	} = useMyProperties(user?.id);
+	const properties = useMemo(
+		() => rawProperties.map(hydratePropertyPreview),
+		[rawProperties],
+	);
+	const error = queryError ? "Failed to load properties" : null;
+	const [selectedId, setSelectedId] = useState<string | null>(null);
 
 	// Search & filter state
 	const [search, setSearch] = useState("");
@@ -546,22 +555,6 @@ export default function PropertiesPage() {
 	const [sortBy, setSortBy] = useState<string>("newest");
 	const [viewMode, setViewMode] = useState<"card" | "table">("card");
 	const animate = useAnimateOnce("properties");
-
-	useEffect(() => {
-		if (!user) return;
-		const load = async () => {
-			try {
-				setLoading(true);
-				const data = await PropertyAPI.getMyProperties(user.id);
-				setProperties(data.map(hydratePropertyPreview));
-			} catch {
-				setError("Failed to load properties");
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, [user]);
 
 	// Filtered + sorted list
 	const filtered = useMemo(() => {
@@ -1003,12 +996,10 @@ export default function PropertiesPage() {
 			<PropertyDrawer
 				propertyId={selectedId}
 				onClose={() => setSelectedId(null)}
-				onChange={(updated) =>
-					setProperties((prev) =>
-						prev.map((p) =>
-							p.id === updated.id ? hydratePropertyPreview(updated) : p,
-						),
-					)
+				onChange={() =>
+					queryClient.invalidateQueries({
+						queryKey: queryKeys.properties.my(user?.id ?? ""),
+					})
 				}
 			/>
 		</AppShell>

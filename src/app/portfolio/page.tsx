@@ -17,39 +17,21 @@ import ValueTrendWidget from "@/components/dashboard/ValueTrendWidget";
 import AppShell from "@/components/layout/AppShell";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
-import { PropertyAPI } from "@/lib/api";
-import { Property, PropertyStatus } from "@/types/property";
+import { useMyProperties } from "@/hooks/usePropertyQueries";
+import { PropertyStatus } from "@/types/property";
 import { Eye, Loader2, MapPin, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // ── Dashboard page ────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-	const [properties, setProperties] = useState<Property[]>([]);
-	const [loading, setLoading] = useState(true);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const { user, loading: authLoading } = useRequireAuth();
 	const animate = useAnimateOnce("dashboard");
-
-	useEffect(() => {
-		if (!user) return;
-		const load = async () => {
-			try {
-				let data = await PropertyAPI.getMyProperties(user.id);
-				if (data.length === 0) {
-					await PropertyAPI.seedDatabase();
-					data = await PropertyAPI.getMyProperties(user.id);
-				}
-				setProperties(data);
-			} catch {
-				// api error – handled silently
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, [user]);
+	const { data: properties = [], isLoading: loading } = useMyProperties(
+		user?.id,
+	);
 
 	// Show loading while checking auth
 	if (authLoading || !user) {
@@ -107,20 +89,18 @@ export default function DashboardPage() {
 
 					{/* Empty state */}
 					{!loading && properties.length === 0 && (
-						<div className="flex flex-col items-center justify-center py-24 text-center">
-							<MapPin className="w-14 h-14 text-slate-200 dark:text-outline mb-4" />
+						<div className="flex flex-col items-center justify-center py-16 text-center mx-auto max-w-2xl pt-30">
+							<img
+								src="/empty-dashboard.png"
+								alt="No properties illustration"
+								className="w-[clamp(16rem,50vw,38rem)] h-auto object-contain mb-8"
+							/>
 							<h3 className="font-headline text-xl font-bold text-primary mb-2">
-								No properties yet
+								No portfolio data yet
 							</h3>
 							<p className="text-on-surface-variant text-sm mb-6">
 								Add your first property to start managing your portfolio.
 							</p>
-							<Link
-								href="/portfolio/properties"
-								className="signature-gradient text-white font-bold text-xs uppercase tracking-widest px-8 py-3 rounded-full active:scale-95 transition-all btn-press"
-							>
-								Add Property
-							</Link>
 						</div>
 					)}
 

@@ -153,12 +153,14 @@ function DocumentCard({
 	onPreview,
 	onExtract,
 	extracting,
+	uploading,
 }: {
 	file: File;
 	onRemove: () => void;
 	onPreview: () => void;
 	onExtract: () => void;
 	extracting: boolean;
+	uploading?: boolean;
 }) {
 	const kind = getFileKind(file);
 	const [showMenu, setShowMenu] = useState(false);
@@ -178,11 +180,15 @@ function DocumentCard({
 
 	return (
 		<div
-			className="group relative rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-			onClick={onPreview}
+			className={`group relative rounded-xl overflow-hidden transition-all cursor-pointer ${
+				uploading
+					? "opacity-50 animate-pulse pointer-events-none"
+					: "bg-card hover:shadow-md"
+			}`}
+			onClick={uploading ? undefined : onPreview}
 			onContextMenu={(e) => {
 				e.preventDefault();
-				setShowMenu(true);
+				if (!uploading) setShowMenu(true);
 			}}
 		>
 			{/* thumbnail */}
@@ -197,9 +203,27 @@ function DocumentCard({
 				<p className="text-[11px] font-medium text-on-surface truncate font-body leading-tight">
 					{file.name}
 				</p>
-				<p className="text-[10px] text-on-surface-variant mt-0.5 font-body">
-					{kindLabel(kind)} &middot; {formatSize(file.size)}
-				</p>
+				{uploading ? (
+					<div className="flex items-center gap-2 mt-1">
+						<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+							<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
+						</div>
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								onRemove();
+							}}
+							className="text-[10px] text-red-500 hover:text-red-600 font-medium"
+						>
+							Cancel
+						</button>
+					</div>
+				) : (
+					<p className="text-[10px] text-on-surface-variant mt-0.5 font-body">
+						{kindLabel(kind)} &middot; {formatSize(file.size)}
+					</p>
+				)}
 			</div>
 
 			{/* hover actions */}
@@ -297,6 +321,22 @@ export default function DocumentSidebar({
 	extracting,
 }: DocumentSidebarProps) {
 	const [previewFile, setPreviewFile] = useState<File | null>(null);
+	const [readyIndices, setReadyIndices] = useState<Set<number>>(new Set());
+
+	// Simulate a brief "uploading" state for each newly added file
+	useEffect(() => {
+		files.forEach((_, i) => {
+			if (!readyIndices.has(i)) {
+				const timer = setTimeout(
+					() => {
+						setReadyIndices((prev) => new Set(prev).add(i));
+					},
+					800 + Math.random() * 600,
+				);
+				return () => clearTimeout(timer);
+			}
+		});
+	}, [files, readyIndices]);
 
 	if (files.length === 0) return null;
 
@@ -308,21 +348,21 @@ export default function DocumentSidebar({
 					onClose={() => setPreviewFile(null)}
 				/>
 			)}
-			<aside className="w-[220px] shrink-0 bg-slate-50/80 border-l border-slate-200 flex flex-col h-full">
+			<aside className="w-[220px] shrink-0 flex flex-col self-stretch">
 				{/* header */}
-				<div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+				<div className="flex items-center justify-between px-3 py-3">
 					<div>
-						<h3 className="text-xs font-bold text-primary uppercase tracking-wider font-headline">
+						<h3 className="text-xs font-bold text-on-surface font-headline">
 							Documents
 						</h3>
 						<p className="text-[10px] text-on-surface-variant mt-0.5 font-body">
-							{files.length} file{files.length !== 1 ? "s" : ""} uploaded
+							{files.length} file{files.length !== 1 ? "s" : ""}
 						</p>
 					</div>
 					<button
 						type="button"
 						onClick={onClose}
-						className="w-6 h-6 rounded-md hover:bg-slate-200 flex items-center justify-center text-on-surface-variant transition-colors"
+						className="w-6 h-6 rounded-md hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors"
 						title="Close panel"
 					>
 						<X className="w-3.5 h-3.5" />
@@ -330,17 +370,21 @@ export default function DocumentSidebar({
 				</div>
 
 				{/* scrollable file list */}
-				<div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin">
-					{files.map((file, i) => (
-						<DocumentCard
-							key={`${file.name}-${file.size}-${i}`}
-							file={file}
-							onRemove={() => onRemoveFile(i)}
-							onPreview={() => setPreviewFile(file)}
-							onExtract={() => onExtract(file)}
-							extracting={extracting}
-						/>
-					))}
+				<div className="flex-1 overflow-y-auto px-3 pb-3 space-y-3 scrollbar-thin">
+					{files.map((file, i) => {
+						const isUploading = !readyIndices.has(i);
+						return (
+							<DocumentCard
+								key={`${file.name}-${file.size}-${i}`}
+								file={file}
+								uploading={isUploading}
+								onRemove={() => onRemoveFile(i)}
+								onPreview={() => setPreviewFile(file)}
+								onExtract={() => onExtract(file)}
+								extracting={extracting}
+							/>
+						);
+					})}
 				</div>
 			</aside>
 		</>

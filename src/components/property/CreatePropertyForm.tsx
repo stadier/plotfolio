@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/AuthContext";
 import ChipInput from "@/components/ui/ChipInput";
+import MasonryGrid from "@/components/ui/MasonryGrid";
 import { extractFieldsFromDocument } from "@/lib/documentExtractor";
 import {
 	DocumentType,
@@ -9,16 +10,7 @@ import {
 	PropertyStatus,
 	PropertyType,
 } from "@/types/property";
-import {
-	Building2,
-	DollarSign,
-	Loader2,
-	MapPin,
-	Save,
-	Upload,
-	User,
-	Users,
-} from "lucide-react";
+import { Loader2, MapPin, Save, Upload } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -107,25 +99,221 @@ const CONDITION_LABELS: Record<PropertyCondition, string> = {
 	[PropertyCondition.NEEDS_REPAIR]: "Needs Repair",
 };
 
+const COUNTRIES = [
+	"Afghanistan",
+	"Albania",
+	"Algeria",
+	"Andorra",
+	"Angola",
+	"Antigua and Barbuda",
+	"Argentina",
+	"Armenia",
+	"Australia",
+	"Austria",
+	"Azerbaijan",
+	"Bahamas",
+	"Bahrain",
+	"Bangladesh",
+	"Barbados",
+	"Belarus",
+	"Belgium",
+	"Belize",
+	"Benin",
+	"Bhutan",
+	"Bolivia",
+	"Bosnia and Herzegovina",
+	"Botswana",
+	"Brazil",
+	"Brunei",
+	"Bulgaria",
+	"Burkina Faso",
+	"Burundi",
+	"Cabo Verde",
+	"Cambodia",
+	"Cameroon",
+	"Canada",
+	"Central African Republic",
+	"Chad",
+	"Chile",
+	"China",
+	"Colombia",
+	"Comoros",
+	"Congo",
+	"Costa Rica",
+	"Croatia",
+	"Cuba",
+	"Cyprus",
+	"Czech Republic",
+	"Democratic Republic of the Congo",
+	"Denmark",
+	"Djibouti",
+	"Dominica",
+	"Dominican Republic",
+	"Ecuador",
+	"Egypt",
+	"El Salvador",
+	"Equatorial Guinea",
+	"Eritrea",
+	"Estonia",
+	"Eswatini",
+	"Ethiopia",
+	"Fiji",
+	"Finland",
+	"France",
+	"Gabon",
+	"Gambia",
+	"Georgia",
+	"Germany",
+	"Ghana",
+	"Greece",
+	"Grenada",
+	"Guatemala",
+	"Guinea",
+	"Guinea-Bissau",
+	"Guyana",
+	"Haiti",
+	"Honduras",
+	"Hungary",
+	"Iceland",
+	"India",
+	"Indonesia",
+	"Iran",
+	"Iraq",
+	"Ireland",
+	"Israel",
+	"Italy",
+	"Ivory Coast",
+	"Jamaica",
+	"Japan",
+	"Jordan",
+	"Kazakhstan",
+	"Kenya",
+	"Kiribati",
+	"Kuwait",
+	"Kyrgyzstan",
+	"Laos",
+	"Latvia",
+	"Lebanon",
+	"Lesotho",
+	"Liberia",
+	"Libya",
+	"Liechtenstein",
+	"Lithuania",
+	"Luxembourg",
+	"Madagascar",
+	"Malawi",
+	"Malaysia",
+	"Maldives",
+	"Mali",
+	"Malta",
+	"Marshall Islands",
+	"Mauritania",
+	"Mauritius",
+	"Mexico",
+	"Micronesia",
+	"Moldova",
+	"Monaco",
+	"Mongolia",
+	"Montenegro",
+	"Morocco",
+	"Mozambique",
+	"Myanmar",
+	"Namibia",
+	"Nauru",
+	"Nepal",
+	"Netherlands",
+	"New Zealand",
+	"Nicaragua",
+	"Niger",
+	"Nigeria",
+	"North Korea",
+	"North Macedonia",
+	"Norway",
+	"Oman",
+	"Pakistan",
+	"Palau",
+	"Palestine",
+	"Panama",
+	"Papua New Guinea",
+	"Paraguay",
+	"Peru",
+	"Philippines",
+	"Poland",
+	"Portugal",
+	"Qatar",
+	"Romania",
+	"Russia",
+	"Rwanda",
+	"Saint Kitts and Nevis",
+	"Saint Lucia",
+	"Saint Vincent and the Grenadines",
+	"Samoa",
+	"San Marino",
+	"Sao Tome and Principe",
+	"Saudi Arabia",
+	"Senegal",
+	"Serbia",
+	"Seychelles",
+	"Sierra Leone",
+	"Singapore",
+	"Slovakia",
+	"Slovenia",
+	"Solomon Islands",
+	"Somalia",
+	"South Africa",
+	"South Korea",
+	"South Sudan",
+	"Spain",
+	"Sri Lanka",
+	"Sudan",
+	"Suriname",
+	"Sweden",
+	"Switzerland",
+	"Syria",
+	"Taiwan",
+	"Tajikistan",
+	"Tanzania",
+	"Thailand",
+	"Timor-Leste",
+	"Togo",
+	"Tonga",
+	"Trinidad and Tobago",
+	"Tunisia",
+	"Turkey",
+	"Turkmenistan",
+	"Tuvalu",
+	"Uganda",
+	"Ukraine",
+	"United Arab Emirates",
+	"United Kingdom",
+	"United States",
+	"Uruguay",
+	"Uzbekistan",
+	"Vanuatu",
+	"Vatican City",
+	"Venezuela",
+	"Vietnam",
+	"Yemen",
+	"Zambia",
+	"Zimbabwe",
+];
+
 /* ── section card wrapper ────────────────────────────── */
 
 function FormSection({
-	icon: Icon,
+	icon: _Icon,
 	title,
 	children,
 }: {
-	icon: React.ComponentType<{ className?: string }>;
+	icon?: React.ComponentType<{ className?: string }>;
 	title: string;
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="bg-card border border-border rounded-2xl p-6 min-w-[420px] flex-1">
-			<div className="flex items-center gap-2.5 mb-5">
-				<Icon className="w-5 h-5 text-primary" />
-				<h2 className="font-headline text-sm font-bold text-primary uppercase tracking-wider">
-					{title}
-				</h2>
-			</div>
+		<div className="bg-card border border-border rounded-xl p-6">
+			<h2 className="font-headline text-base font-bold text-on-surface mb-5">
+				{title}
+			</h2>
 			{children}
 		</div>
 	);
@@ -144,7 +332,7 @@ function Field({
 }) {
 	return (
 		<label className="flex flex-col gap-1.5">
-			<span className="text-xs font-medium text-on-surface-variant uppercase tracking-wider font-label">
+			<span className="text-xs font-medium text-on-surface-variant font-label">
 				{label}
 				{required && <span className="text-error ml-0.5">*</span>}
 			</span>
@@ -154,7 +342,7 @@ function Field({
 }
 
 const inputCls =
-	"w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-on-surface placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-body";
+	"w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors font-body";
 
 const selectCls = `${inputCls} appearance-none bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2374777f' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E")] bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-8`;
 
@@ -436,17 +624,17 @@ export default function CreatePropertyForm({
 	}, []);
 
 	return (
-		<div className="flex h-screen">
+		<div className="flex flex-col h-screen">
 			<form
 				onSubmit={handleSubmit}
 				className="flex flex-col justify-between flex-1 min-w-0"
 			>
 				<div>
 					{/* ── Document Upload Banner ──────────────── */}
-					<div className="mb-6">
+					<div className="mb-5">
 						<label
 							htmlFor="doc-upload"
-							className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-2xl border-2 border-dashed cursor-pointer transition-colors border-border bg-card hover:border-primary/40 hover:bg-slate-50"
+							className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-xl border border-dashed cursor-pointer transition-colors border-border bg-card hover:border-primary/40"
 						>
 							<input
 								ref={fileInputRef}
@@ -458,12 +646,12 @@ export default function CreatePropertyForm({
 								onChange={handleDocumentUpload}
 							/>
 
-							<div className="shrink-0 w-11 h-11 rounded-xl signature-gradient flex items-center justify-center">
-								<Upload className="w-5 h-5 text-white" />
+							<div className="shrink-0 w-10 h-10 rounded-lg signature-gradient flex items-center justify-center">
+								<Upload className="w-4.5 h-4.5 text-white" />
 							</div>
 
 							<div className="text-center sm:text-left flex-1">
-								<p className="font-headline text-sm font-bold text-primary">
+								<p className="font-headline text-sm font-bold text-on-surface">
 									Upload documents for this property
 								</p>
 								<p className="text-xs text-on-surface-variant mt-0.5 font-body">
@@ -479,376 +667,407 @@ export default function CreatePropertyForm({
 						</label>
 					</div>
 
-					<div className="flex flex-wrap gap-4">
-						{/* ── Basic Info ──────────────────────────── */}
-						<FormSection icon={Building2} title="Basic Information">
-							<div className="grid grid-cols-1 gap-4">
-								<Field label="Property Name">
-									<input
-										className={inputCls}
-										placeholder="e.g. Riverside Executive Property"
-										value={name}
-										onChange={(e) => {
-											setName(e.target.value);
-											onNameChange?.(e.target.value);
-										}}
-									/>
-								</Field>
+					{/* ── Masonry grid + Document sidebar row ── */}
+					<div className="flex items-start gap-5">
+						<div className="flex-1 min-w-0">
+							<MasonryGrid minColWidth={320} maxCols={3} gap={20}>
+								{/* ── Basic Info ──────────────────────────── */}
+								<FormSection title="Basic Information">
+									<div className="grid grid-cols-1 gap-4">
+										<Field label="Property Name">
+											<input
+												className={inputCls}
+												placeholder="e.g. Riverside Executive Property"
+												value={name}
+												onChange={(e) => {
+													setName(e.target.value);
+													onNameChange?.(e.target.value);
+												}}
+											/>
+										</Field>
 
-								<Field label="Address">
-									<input
-										className={inputCls}
-										placeholder="e.g. 42 Oak Street, Springfield"
-										value={address}
-										onChange={(e) => setAddress(e.target.value)}
-									/>
-								</Field>
+										<Field label="Address">
+											<input
+												className={inputCls}
+												placeholder="e.g. 42 Oak Street, Springfield"
+												value={address}
+												onChange={(e) => setAddress(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Description">
-									<textarea
-										className={`${inputCls} resize-none`}
-										rows={3}
-										placeholder="Brief description of the property…"
-										value={description}
-										onChange={(e) => setDescription(e.target.value)}
-									/>
-								</Field>
-							</div>
-						</FormSection>
+										<Field label="Description">
+											<textarea
+												className={`${inputCls} resize-none`}
+												rows={3}
+												placeholder="Brief description of the property…"
+												value={description}
+												onChange={(e) => setDescription(e.target.value)}
+											/>
+										</Field>
+									</div>
+								</FormSection>
 
-						{/* ── Property Details ────────────────────── */}
-						<FormSection icon={Building2} title="Property Details">
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								<Field label="Property Type">
-									<select
-										className={selectCls}
-										value={propertyType}
-										onChange={(e) =>
-											setPropertyType(e.target.value as PropertyType)
-										}
-									>
-										{Object.entries(PROPERTY_TYPE_LABELS).map(
-											([val, label]) => (
-												<option key={val} value={val}>
-													{label}
-												</option>
-											),
-										)}
-									</select>
-								</Field>
-								<Field label="Status">
-									<select
-										className={selectCls}
-										value={status}
-										onChange={(e) =>
-											setStatus(e.target.value as PropertyStatus)
-										}
-									>
-										{Object.entries(STATUS_LABELS).map(([val, label]) => (
-											<option key={val} value={val}>
-												{label}
-											</option>
-										))}
-									</select>
-								</Field>
-								<Field label="Area (sqm)">
-									<input
-										type="number"
-										className={inputCls}
-										placeholder="e.g. 800"
-										value={area}
-										onChange={(e) => setArea(e.target.value)}
-										min={0}
-										step="any"
-									/>
-								</Field>
-								<Field label="Zoning">
-									<input
-										className={inputCls}
-										placeholder="e.g. R-2 Residential"
-										value={zoning}
-										onChange={(e) => setZoning(e.target.value)}
-									/>
-								</Field>
-								<Field label="Tax ID">
-									<input
-										className={inputCls}
-										placeholder="e.g. ABJ-TAX-2024-001"
-										value={taxId}
-										onChange={(e) => setTaxId(e.target.value)}
-									/>
-								</Field>
-								<Field label="Quantity">
-									<input
-										type="number"
-										className={inputCls}
-										placeholder="e.g. 1"
-										value={quantity}
-										onChange={(e) => setQuantity(e.target.value)}
-										min={1}
-										step="1"
-									/>
-									<p className="text-[11px] text-slate-400 mt-1 font-body">
-										How many identical units (plots, buildings) at this
-										location?
-									</p>
-								</Field>{" "}
-							</div>
+								{/* ── Property Details ────────────────────── */}
+								<FormSection title="Property Details">
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+										<Field label="Property Type">
+											<select
+												className={selectCls}
+												value={propertyType}
+												onChange={(e) =>
+													setPropertyType(e.target.value as PropertyType)
+												}
+											>
+												{Object.entries(PROPERTY_TYPE_LABELS).map(
+													([val, label]) => (
+														<option key={val} value={val}>
+															{label}
+														</option>
+													),
+												)}
+											</select>
+										</Field>
+										<Field label="Status">
+											<select
+												className={selectCls}
+												value={status}
+												onChange={(e) =>
+													setStatus(e.target.value as PropertyStatus)
+												}
+											>
+												{Object.entries(STATUS_LABELS).map(([val, label]) => (
+													<option key={val} value={val}>
+														{label}
+													</option>
+												))}
+											</select>
+										</Field>
+										<Field label="Area (sqm)">
+											<input
+												type="number"
+												className={inputCls}
+												placeholder="e.g. 800"
+												value={area}
+												onChange={(e) => setArea(e.target.value)}
+												min={0}
+												step="any"
+											/>
+										</Field>
+										<Field label="Zoning">
+											<input
+												className={inputCls}
+												placeholder="e.g. R-2 Residential"
+												value={zoning}
+												onChange={(e) => setZoning(e.target.value)}
+											/>
+										</Field>
+										<Field label="Tax ID">
+											<input
+												className={inputCls}
+												placeholder="e.g. ABJ-TAX-2024-001"
+												value={taxId}
+												onChange={(e) => setTaxId(e.target.value)}
+											/>
+										</Field>
+										<Field label="Quantity">
+											<input
+												type="number"
+												className={inputCls}
+												placeholder="e.g. 1"
+												value={quantity}
+												onChange={(e) => setQuantity(e.target.value)}
+												min={1}
+												step="1"
+											/>
+											<p className="text-[11px] text-outline mt-1 font-body">
+												How many identical units (plots, buildings) at this
+												location?
+											</p>
+										</Field>{" "}
+									</div>
 
-							{/* Condition Tags */}
-							<div className="mt-4">
-								<span className="text-xs font-medium text-on-surface-variant uppercase tracking-wider font-label">
-									Property Condition
-								</span>
-								<p className="text-[11px] text-slate-400 mt-0.5 mb-2 font-body">
-									Type to search or add your own
-								</p>
-								<ChipInput
-									value={conditions}
-									onChange={setConditions}
-									suggestions={Object.keys(CONDITION_LABELS)}
-									formatLabel={(v) =>
-										CONDITION_LABELS[v as PropertyCondition] ?? v
-									}
-									placeholder="e.g. Cleared, Fenced, Flat terrain…"
-								/>
-							</div>
-						</FormSection>
-
-						{/* ── Location ────────────────────────────── */}
-						<FormSection icon={MapPin} title="Location">
-							{/* Map preview + prompt bar */}
-							<div className="rounded-lg border border-border overflow-hidden max-w-md">
-								<div
-									className="relative w-full bg-surface-container cursor-pointer"
-									style={{ height: 180 }}
-									onClick={() => setMapPickerOpen(true)}
-								>
-									{lat && lng ? (
-										<LocationPreviewMap
-											lat={parseFloat(lat)}
-											lng={parseFloat(lng)}
-											onClick={() => setMapPickerOpen(true)}
+									{/* Condition Tags */}
+									<div className="mt-4">
+										<span className="text-xs font-medium text-on-surface-variant font-label">
+											Property Condition
+										</span>
+										<p className="text-[11px] text-outline mt-0.5 mb-2 font-body">
+											Type to search or add your own
+										</p>
+										<ChipInput
+											value={conditions}
+											onChange={setConditions}
+											suggestions={Object.keys(CONDITION_LABELS)}
+											formatLabel={(v) =>
+												CONDITION_LABELS[v as PropertyCondition] ?? v
+											}
+											placeholder="e.g. Cleared, Fenced, Flat terrain…"
 										/>
-									) : (
-										<div className="w-full h-full flex flex-col items-center justify-center gap-2 text-outline">
-											<MapPin className="w-8 h-8 opacity-40" />
-											<span className="text-xs">No location selected</span>
+									</div>
+								</FormSection>
+
+								{/* ── Location ────────────────────────────── */}
+								<FormSection title="Location">
+									{/* Map preview + prompt bar */}
+									<div className="rounded-lg border border-border overflow-hidden max-w-md">
+										<div
+											className="relative w-full bg-surface-container cursor-pointer"
+											style={{ height: 180 }}
+											onClick={() => setMapPickerOpen(true)}
+										>
+											{lat && lng ? (
+												<LocationPreviewMap
+													lat={parseFloat(lat)}
+													lng={parseFloat(lng)}
+													onClick={() => setMapPickerOpen(true)}
+												/>
+											) : (
+												<div className="w-full h-full flex flex-col items-center justify-center gap-2 text-outline">
+													<MapPin className="w-8 h-8 opacity-40" />
+													<span className="text-xs">No location selected</span>
+												</div>
+											)}
 										</div>
-									)}
-								</div>
-								<button
-									type="button"
-									onClick={() => setMapPickerOpen(true)}
-									className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-card hover:bg-surface-container-high transition-colors text-primary font-label border-t border-border"
-								>
-									<MapPin className="w-3.5 h-3.5" />
-									{lat && lng ? "Change location" : "Pick a location"}
-								</button>
-							</div>
+										<button
+											type="button"
+											onClick={() => setMapPickerOpen(true)}
+											className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-card hover:bg-surface-container-high transition-colors text-primary font-label border-t border-border"
+										>
+											<MapPin className="w-3.5 h-3.5" />
+											{lat && lng ? "Change location" : "Pick a location"}
+										</button>
+									</div>
 
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-								<Field label="Latitude">
-									<input
-										type="number"
-										className={inputCls}
-										placeholder="e.g. 40.7128"
-										value={lat}
-										onChange={(e) => setLat(e.target.value)}
-										step="any"
-									/>
-								</Field>
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+										<Field label="Latitude">
+											<input
+												type="number"
+												className={inputCls}
+												placeholder="e.g. 40.7128"
+												value={lat}
+												onChange={(e) => setLat(e.target.value)}
+												step="any"
+											/>
+										</Field>
 
-								<Field label="Longitude">
-									<input
-										type="number"
-										className={inputCls}
-										placeholder="e.g. -74.0060"
-										value={lng}
-										onChange={(e) => setLng(e.target.value)}
-										step="any"
-									/>
-								</Field>
-							</div>
+										<Field label="Longitude">
+											<input
+												type="number"
+												className={inputCls}
+												placeholder="e.g. -74.0060"
+												value={lng}
+												onChange={(e) => setLng(e.target.value)}
+												step="any"
+											/>
+										</Field>
+									</div>
 
-							<p className="mt-2 text-xs text-outline font-body">
-								Coordinates in decimal degrees.
-							</p>
+									<p className="mt-2 text-xs text-outline font-body">
+										Coordinates in decimal degrees.
+									</p>
 
-							<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-								<Field label="State">
-									<input
-										className={inputCls}
-										placeholder="e.g. California"
-										value={propertyState}
-										onChange={(e) => setPropertyState(e.target.value)}
-									/>
-								</Field>
+									<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+										<Field label="Country">
+											<select
+												className={selectCls}
+												value={country}
+												onChange={(e) => setCountry(e.target.value)}
+											>
+												<option value="">Select country</option>
+												{COUNTRIES.map((c) => (
+													<option key={c} value={c}>
+														{c}
+													</option>
+												))}
+											</select>
+										</Field>
 
-								<Field label="City">
-									<input
-										className={inputCls}
-										placeholder="e.g. Los Angeles"
-										value={city}
-										onChange={(e) => setCity(e.target.value)}
-									/>
-								</Field>
+										<Field label="State">
+											<input
+												className={inputCls}
+												placeholder="e.g. California"
+												value={propertyState}
+												onChange={(e) => setPropertyState(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Country">
-									<input
-										className={inputCls}
-										placeholder="e.g. United States"
-										value={country}
-										onChange={(e) => setCountry(e.target.value)}
-									/>
-								</Field>
-							</div>
-						</FormSection>
+										<Field label="City">
+											<input
+												className={inputCls}
+												placeholder="e.g. Los Angeles"
+												value={city}
+												onChange={(e) => setCity(e.target.value)}
+											/>
+										</Field>
+									</div>
+								</FormSection>
 
-						{/* ── Financial ───────────────────────────── */}
-						<FormSection icon={DollarSign} title="Financial">
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								<Field label="Purchase Date">
-									<input
-										type="date"
-										className={inputCls}
-										value={purchaseDate}
-										onChange={(e) => setPurchaseDate(e.target.value)}
-									/>
-								</Field>
+								{/* ── Financial ───────────────────────────── */}
+								<FormSection title="Financial">
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+										<Field label="Purchase Date">
+											<input
+												type="date"
+												className={inputCls}
+												value={purchaseDate}
+												onChange={(e) => setPurchaseDate(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Purchase Price">
-									<input
-										type="text"
-										inputMode="numeric"
-										className={inputCls}
-										placeholder="e.g. 50,000,000"
-										value={purchasePrice}
-										onChange={(e) => {
-											const raw = e.target.value.replace(/[^0-9.]/g, "");
-											const parts = raw.split(".");
-											parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-											setPurchasePrice(parts.join("."));
-										}}
-									/>
-								</Field>
+										<Field label="Purchase Price">
+											<input
+												type="text"
+												inputMode="numeric"
+												className={inputCls}
+												placeholder="e.g. 50,000,000"
+												value={purchasePrice}
+												onChange={(e) => {
+													const raw = e.target.value.replace(/[^0-9.]/g, "");
+													const parts = raw.split(".");
+													parts[0] = parts[0].replace(
+														/\B(?=(\d{3})+(?!\d))/g,
+														",",
+													);
+													setPurchasePrice(parts.join("."));
+												}}
+											/>
+										</Field>
 
-								<Field label="Current Value">
-									<input
-										type="text"
-										inputMode="numeric"
-										className={inputCls}
-										placeholder="e.g. 65,000,000"
-										value={currentValue}
-										onChange={(e) => {
-											const raw = e.target.value.replace(/[^0-9.]/g, "");
-											const parts = raw.split(".");
-											parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-											setCurrentValue(parts.join("."));
-										}}
-									/>
-								</Field>
-							</div>
-						</FormSection>
+										<Field label="Current Value">
+											<input
+												type="text"
+												inputMode="numeric"
+												className={inputCls}
+												placeholder="e.g. 65,000,000"
+												value={currentValue}
+												onChange={(e) => {
+													const raw = e.target.value.replace(/[^0-9.]/g, "");
+													const parts = raw.split(".");
+													parts[0] = parts[0].replace(
+														/\B(?=(\d{3})+(?!\d))/g,
+														",",
+													);
+													setCurrentValue(parts.join("."));
+												}}
+											/>
+										</Field>
+									</div>
+								</FormSection>
 
-						{/* ── Transaction Details ─────────────────── */}
-						<FormSection icon={Users} title="Transaction Details">
-							<div className="grid grid-cols-1 gap-4">
-								<Field label="Purchased From">
-									<input
-										className={inputCls}
-										placeholder="Seller or previous owner name"
-										value={boughtFrom}
-										onChange={(e) => setBoughtFrom(e.target.value)}
-									/>
-								</Field>
+								{/* ── Transaction Details ─────────────────── */}
+								<FormSection title="Transaction Details">
+									<div className="grid grid-cols-1 gap-4">
+										<Field label="Purchased From">
+											<input
+												className={inputCls}
+												placeholder="Seller or previous owner name"
+												value={boughtFrom}
+												onChange={(e) => setBoughtFrom(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Witnesses">
-									<input
-										className={inputCls}
-										placeholder="Comma-separated, e.g. John Doe, Jane Smith"
-										value={witnesses}
-										onChange={(e) => setWitnesses(e.target.value)}
-									/>
-								</Field>
+										<Field label="Witnesses">
+											<input
+												className={inputCls}
+												placeholder="Comma-separated, e.g. John Doe, Jane Smith"
+												value={witnesses}
+												onChange={(e) => setWitnesses(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Signatories">
-									<input
-										className={inputCls}
-										placeholder="Comma-separated, e.g. Buyer Name, Seller Name"
-										value={signatures}
-										onChange={(e) => setSignatures(e.target.value)}
-									/>
-								</Field>
-							</div>
-						</FormSection>
+										<Field label="Signatories">
+											<input
+												className={inputCls}
+												placeholder="Comma-separated, e.g. Buyer Name, Seller Name"
+												value={signatures}
+												onChange={(e) => setSignatures(e.target.value)}
+											/>
+										</Field>
+									</div>
+								</FormSection>
 
-						{/* ── Owner ───────────────────────────────── */}
-						<FormSection icon={User} title="Owner Information">
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								<Field label="Full Name">
-									<input
-										className={inputCls}
-										placeholder="Property owner name"
-										value={ownerName}
-										onChange={(e) => setOwnerName(e.target.value)}
-									/>
-								</Field>
+								{/* ── Owner ───────────────────────────────── */}
+								<FormSection title="Owner Information">
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+										<Field label="Full Name">
+											<input
+												className={inputCls}
+												placeholder="Property owner name"
+												value={ownerName}
+												onChange={(e) => setOwnerName(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Email">
-									<input
-										type="email"
-										className={inputCls}
-										placeholder="owner@email.com"
-										value={ownerEmail}
-										onChange={(e) => setOwnerEmail(e.target.value)}
-									/>
-								</Field>
+										<Field label="Email">
+											<input
+												type="email"
+												className={inputCls}
+												placeholder="owner@email.com"
+												value={ownerEmail}
+												onChange={(e) => setOwnerEmail(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Phone">
-									<input
-										type="tel"
-										className={inputCls}
-										placeholder="+1 ..."
-										value={ownerPhone}
-										onChange={(e) => setOwnerPhone(e.target.value)}
-									/>
-								</Field>
+										<Field label="Phone">
+											<input
+												type="tel"
+												className={inputCls}
+												placeholder="+1 ..."
+												value={ownerPhone}
+												onChange={(e) => setOwnerPhone(e.target.value)}
+											/>
+										</Field>
 
-								<Field label="Owner Type">
-									<select
-										className={selectCls}
-										value={ownerType}
-										onChange={(e) =>
-											setOwnerType(
-												e.target.value as "individual" | "company" | "trust",
-											)
-										}
-									>
-										{OWNER_TYPES.map((t) => (
-											<option key={t.value} value={t.value}>
-												{t.label}
-											</option>
-										))}
-									</select>
-								</Field>
-							</div>
-						</FormSection>
+										<Field label="Owner Type">
+											<select
+												className={selectCls}
+												value={ownerType}
+												onChange={(e) =>
+													setOwnerType(
+														e.target.value as
+															| "individual"
+															| "company"
+															| "trust",
+													)
+												}
+											>
+												{OWNER_TYPES.map((t) => (
+													<option key={t.value} value={t.value}>
+														{t.label}
+													</option>
+												))}
+											</select>
+										</Field>
+									</div>
+								</FormSection>
+							</MasonryGrid>
+						</div>
+
+						{/* Document sidebar — inline next to masonry grid */}
+						{uploadedFiles.length > 0 && sidebarOpen && (
+							<DocumentSidebar
+								files={uploadedFiles}
+								onRemoveFile={handleRemoveFile}
+								onClose={() => setSidebarOpen(false)}
+								onExtract={handleExtractFromFile}
+								extracting={extracting}
+							/>
+						)}
 					</div>
 
 					{/* ── Error ───────────────────────────────── */}
 					{error && (
-						<div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 font-body">
+						<div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 font-body">
 							{error}
 						</div>
 					)}
 				</div>
 
 				{/* ── Sticky Actions Bar ─────────────────── */}
-				<div className="sticky bottom-0 left-0 right-0 bg-slate-50/90 backdrop-blur-sm py-3 -mx-8 px-8 flex items-center gap-3 justify-center sm:justify-end">
+				<div className="sticky bottom-0 left-0 right-0 py-4 -mx-8 px-8 flex items-center gap-3 justify-center sm:justify-end border-t border-border bg-background">
 					<Link
 						href="/portfolio/properties"
-						className="px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-medium text-on-surface-variant hover:bg-slate-50 transition-colors font-label"
+						className="px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors font-label"
 					>
 						Cancel
 					</Link>
@@ -888,17 +1107,6 @@ export default function CreatePropertyForm({
 						setMapPickerOpen(false);
 					}}
 					onClose={() => setMapPickerOpen(false)}
-				/>
-			)}
-
-			{/* Document sidebar — appears when files are uploaded */}
-			{uploadedFiles.length > 0 && sidebarOpen && (
-				<DocumentSidebar
-					files={uploadedFiles}
-					onRemoveFile={handleRemoveFile}
-					onClose={() => setSidebarOpen(false)}
-					onExtract={handleExtractFromFile}
-					extracting={extracting}
 				/>
 			)}
 		</div>

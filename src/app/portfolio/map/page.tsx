@@ -2,8 +2,15 @@
 
 import { useRequireAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import {
+	queryKeys,
+	useMyProperties,
+	useProviderSettings,
+} from "@/hooks/usePropertyQueries";
 import { PropertyAPI } from "@/lib/api";
 import { Property, SurveyData } from "@/types/property";
+import { PROVIDER_DEFAULTS } from "@/types/providers";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	ChevronDown,
 	ChevronUp,
@@ -37,22 +44,26 @@ export default function Home() {
 		null,
 	);
 	const { user } = useRequireAuth();
+	const queryClient = useQueryClient();
+	const {
+		data: properties = [],
+		isLoading: loading,
+		error: queryError,
+	} = useMyProperties(user?.id);
+	const error = queryError ? "Failed to load properties" : null;
 	const [searchQuery, setSearchQuery] = useState("");
-	const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
 	const [isBoundaryVisible, setIsBoundaryVisible] = useState(true);
 	const [isGridVisible, setIsGridVisible] = useState(false);
 	const [isPropertyGridVisible, setIsPropertyGridVisible] = useState(true);
 	const [isStateBordersVisible, setIsStateBordersVisible] = useState(true);
-	const [properties, setProperties] = useState<Property[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const [isDrawingBoundary, setIsDrawingBoundary] = useState(false);
 	const [isSelectingGrid, setIsSelectingGrid] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [isPropertyCardExpanded, setIsPropertyCardExpanded] = useState(true);
 	const [isPropertyCardVisible, setIsPropertyCardVisible] = useState(true);
+	const { data: providerSettings } = useProviderSettings();
 	const [mapType, setMapType] = useState<"leaflet" | "mapbox" | "google">(
-		"google",
+		PROVIDER_DEFAULTS.mapRenderer as "leaflet" | "mapbox" | "google",
 	);
 	const [mapLayerType, setMapLayerType] = useState<
 		"standard" | "satellite" | "terrain" | "hybrid"
@@ -93,47 +104,46 @@ export default function Home() {
 		[],
 	);
 
-	// Set mounted state
+	// Sync mapType from saved provider settings whenever they change
+	useEffect(() => {
+		if (providerSettings?.mapRenderer) {
+			setMapType(
+				providerSettings.mapRenderer as "leaflet" | "mapbox" | "google",
+			);
+		}
+	}, [providerSettings?.mapRenderer]);
+
+	// Set mounted state and geolocate user
 	useEffect(() => {
 		setIsMounted(true);
+
+		if (typeof navigator !== "undefined" && navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					setViewport((prev) => ({
+						...prev,
+						center: [position.coords.latitude, position.coords.longitude],
+						zoom: 13,
+					}));
+				},
+				(err) => {
+					console.warn("Geolocation failed, using default view:", err.message);
+				},
+				{ enableHighAccuracy: true, timeout: 10000 },
+			);
+		}
 	}, []);
 
-	// Load properties from API on component mount
-	useEffect(() => {
-		if (!user) return;
-		const loadProperties = async () => {
-			try {
-				setLoading(true);
-				setError(null);
-
-				let propertyData = await PropertyAPI.getMyProperties(user.id);
-
-				// If no properties exist, seed the database
-				if (propertyData.length === 0) {
-					console.log("No properties found, seeding database...");
-					const seeded = await PropertyAPI.seedDatabase();
-					if (seeded) {
-						propertyData = await PropertyAPI.getMyProperties(user.id);
-					} else {
-						throw new Error("Failed to seed database");
-					}
-				}
-
-				console.log("✅ Loaded properties:", propertyData.length, "properties");
-				setProperties(propertyData);
-				setFilteredProperties(propertyData);
-			} catch (err) {
-				console.error("Error loading properties:", err);
-				setError(
-					err instanceof Error ? err.message : "Failed to load properties",
-				);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		loadProperties();
-	}, [user]);
+	const filteredProperties = useMemo(() => {
+		if (!searchQuery.trim()) return properties;
+		const q = searchQuery.toLowerCase();
+		return properties.filter(
+			(property) =>
+				property.name.toLowerCase().includes(q) ||
+				property.address.toLowerCase().includes(q) ||
+				property.owner.name.toLowerCase().includes(q),
+		);
+	}, [properties, searchQuery]);
 
 	const handlePropertySelect = (property: Property) => {
 		setSelectedProperty(property);
@@ -149,17 +159,6 @@ export default function Home() {
 
 	const handleSearch = (query: string) => {
 		setSearchQuery(query);
-		if (!query.trim()) {
-			setFilteredProperties(properties);
-		} else {
-			const filtered = properties.filter(
-				(property) =>
-					property.name.toLowerCase().includes(query.toLowerCase()) ||
-					property.address.toLowerCase().includes(query.toLowerCase()) ||
-					property.owner.name.toLowerCase().includes(query.toLowerCase()),
-			);
-			setFilteredProperties(filtered);
-		}
 	};
 
 	const handleSurveyUpload = async (
@@ -179,13 +178,10 @@ export default function Home() {
 			if (updatedProperty) {
 				console.log("✅ Property updated successfully:", updatedProperty);
 
-				// Update local state
-				setProperties((prev) =>
-					prev.map((p) => (p.id === propertyId ? updatedProperty : p)),
-				);
-				setFilteredProperties((prev) =>
-					prev.map((p) => (p.id === propertyId ? updatedProperty : p)),
-				);
+				// Invalidate cache to refresh data
+				queryClient.invalidateQueries({
+					queryKey: queryKeys.properties.my(user?.id ?? ""),
+				});
 
 				// Update selected property if it's the one being updated
 				if (selectedProperty?.id === propertyId) {
@@ -286,13 +282,10 @@ export default function Home() {
 			);
 
 			if (updatedProperty) {
-				// Update local state
-				setProperties((prev) =>
-					prev.map((p) => (p.id === selectedProperty.id ? updatedProperty : p)),
-				);
-				setFilteredProperties((prev) =>
-					prev.map((p) => (p.id === selectedProperty.id ? updatedProperty : p)),
-				);
+				// Invalidate cache to refresh data
+				queryClient.invalidateQueries({
+					queryKey: queryKeys.properties.my(user?.id ?? ""),
+				});
 				setSelectedProperty(updatedProperty);
 			}
 			setIsSelectingGrid(false);
@@ -317,13 +310,10 @@ export default function Home() {
 			);
 
 			if (updatedProperty) {
-				// Update local state
-				setProperties((prev) =>
-					prev.map((p) => (p.id === selectedProperty.id ? updatedProperty : p)),
-				);
-				setFilteredProperties((prev) =>
-					prev.map((p) => (p.id === selectedProperty.id ? updatedProperty : p)),
-				);
+				// Invalidate cache to refresh data
+				queryClient.invalidateQueries({
+					queryKey: queryKeys.properties.my(user?.id ?? ""),
+				});
 				setSelectedProperty(updatedProperty);
 			}
 		} catch (error) {
@@ -415,7 +405,7 @@ export default function Home() {
 
 					{/* Hovered State Indicator */}
 					{hoveredState && (
-						<div className="absolute top-6 right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-3 z-20">
+						<div className="absolute top-6 right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-3 z-1000">
 							<div className="flex items-center space-x-2">
 								<div className="w-3 h-3 bg-blue-500 rounded-full"></div>
 								<span className="text-sm font-medium text-on-surface">
@@ -430,7 +420,7 @@ export default function Home() {
 						<div
 							className={`absolute ${
 								hoveredState ? "top-20" : "top-6"
-							} right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-20`}
+							} right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000`}
 						>
 							<div className="flex items-center space-x-3">
 								<div className="flex items-center space-x-2">
@@ -465,7 +455,7 @@ export default function Home() {
 
 					{/* Map Options Panel */}
 					{showMapOptions && (
-						<div className="absolute top-6 left-4 bg-glass backdrop-blur-sm rounded-lg shadow-lg border border-border/50 p-4 w-64 z-20">
+						<div className="absolute top-6 left-4 bg-glass backdrop-blur-sm rounded-lg shadow-lg border border-border/50 p-4 w-64 z-1000">
 							<div className="flex items-center justify-between mb-3">
 								<h3 className="text-sm font-semibold text-on-surface">
 									Map Options
@@ -641,7 +631,7 @@ export default function Home() {
 					)}
 
 					{/* Map Controls at Bottom */}
-					<div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-3 z-20">
+					<div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-3 z-1000">
 						{/* Map Options Toggle */}
 						<button
 							onClick={() => setShowMapOptions(!showMapOptions)}
@@ -723,7 +713,7 @@ export default function Home() {
 
 					{/* Property Details Overlay */}
 					{selectedProperty && isPropertyCardVisible && (
-						<div className="absolute top-2 left-2 w-80 max-h-[calc(100%-1rem)] bg-glass backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-10 transition-all duration-300 flex flex-col">
+						<div className="absolute top-2 left-2 w-80 max-h-[calc(100%-1rem)] bg-glass backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-999 transition-all duration-300 flex flex-col">
 							{/* Header with Controls */}
 							<div className="flex items-center justify-between p-4 pb-0 shrink-0">
 								<h2 className="text-lg font-semibold text-on-surface truncate flex-1 mr-3">
@@ -786,7 +776,7 @@ export default function Home() {
 
 					{/* Minimized Property Indicator */}
 					{selectedProperty && !isPropertyCardVisible && (
-						<div className="absolute top-6 left-2 z-10">
+						<div className="absolute top-6 left-2 z-999">
 							<button
 								onClick={() => setIsPropertyCardVisible(true)}
 								className="bg-black/80 backdrop-blur text-white px-3 py-1.5 rounded-full text-xs font-medium hover:bg-black/90 transition-colors flex items-center space-x-1"

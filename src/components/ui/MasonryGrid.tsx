@@ -11,6 +11,8 @@ import React, {
 interface MasonryGridProps {
 	/** Minimum width of each column in pixels. Columns are added when space allows. */
 	minColWidth?: number;
+	/** Maximum number of columns */
+	maxCols?: number;
 	/** Gap between columns and rows in pixels */
 	gap?: number;
 	children: ReactNode;
@@ -24,6 +26,7 @@ interface MasonryGridProps {
  */
 export default function MasonryGrid({
 	minColWidth = 340,
+	maxCols,
 	gap = 20,
 	children,
 }: MasonryGridProps) {
@@ -35,9 +38,10 @@ export default function MasonryGrid({
 		if (!containerRef.current) return;
 		const width = containerRef.current.offsetWidth;
 		// How many columns of minColWidth fit, accounting for gaps between them?
-		const cols = Math.max(1, Math.floor((width + gap) / (minColWidth + gap)));
+		let cols = Math.max(1, Math.floor((width + gap) / (minColWidth + gap)));
+		if (maxCols) cols = Math.min(cols, maxCols);
 		setNumCols(cols);
-	}, [minColWidth, gap]);
+	}, [minColWidth, maxCols, gap]);
 
 	useEffect(() => {
 		updateCols();

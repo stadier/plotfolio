@@ -72,7 +72,7 @@ export default function MapPropertySidebar({
 			: properties.filter((p) => p.status === statusFilter);
 
 	return (
-		<div className="h-full flex flex-col bg-card border-r border-border">
+		<div className="h-full flex flex-col bg-card border-r border-border m-2 mx-1">
 			{/* Header */}
 			<div className="shrink-0 px-4 pt-4 pb-3">
 				<h2 className="text-lg font-semibold text-on-surface mb-3">
@@ -87,12 +87,12 @@ export default function MapPropertySidebar({
 						value={searchQuery}
 						onChange={(e) => onSearch(e.target.value)}
 						placeholder="Search properties..."
-						className="w-full pl-9 pr-3 py-2 text-sm bg-surface-container-high border border-border rounded-lg text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary/40"
+						className="w-full pl-9 pr-3 py-2 text-sm bg-input border border-border rounded-lg text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary/40"
 					/>
 				</div>
 
 				{/* Status filter pills */}
-				<div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+				<div className="flex items-center gap-2 overflow-x-auto pt-1 text-xs pb-5">
 					<button
 						onClick={() => setStatusFilter("all")}
 						className={`shrink-0 px-2.5 py-1 rounded-full transition-colors ${

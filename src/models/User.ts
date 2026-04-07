@@ -1,3 +1,4 @@
+import { ProviderSettings } from "@/types/providers";
 import crypto from "crypto";
 import mongoose, { Document, Schema } from "mongoose";
 
@@ -16,6 +17,7 @@ export interface IUser {
 	salesCount: number;
 	followerCount: number;
 	allowBookings: boolean;
+	providerSettings?: Partial<ProviderSettings>;
 }
 
 const UserSchema = new Schema<IUser & Document>(
@@ -38,6 +40,17 @@ const UserSchema = new Schema<IUser & Document>(
 		salesCount: { type: Number, default: 0 },
 		followerCount: { type: Number, default: 0 },
 		allowBookings: { type: Boolean, default: false },
+		providerSettings: {
+			type: {
+				mapRenderer: String,
+				mapTiles: String,
+				geocoding: String,
+				ocr: String,
+				aiModel: String,
+				fileStorage: String,
+			},
+			default: undefined,
+		},
 	},
 	{ timestamps: true },
 );
