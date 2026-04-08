@@ -2,12 +2,13 @@
 
 import {
 	DocumentsGrid,
-	formatCurrency,
 	formatDate,
 	getStatusColor,
 } from "@/components/property/PropertyDetailContent";
+import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
-import { getPropertyMedia } from "@/lib/utils";
+import { countryFlag } from "@/lib/locale";
+import { formatCurrency, getPropertyMedia } from "@/lib/utils";
 import {
 	DocumentAccessRequest,
 	MediaType,
@@ -41,46 +42,16 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 const PropertyMiniMap = dynamic(
 	() => import("@/components/maps/PropertyMiniMap"),
 	{ ssr: false },
 );
 
-/* ─── Country → Flag Emoji ───────────────────────────────────── */
+/* ─── Media Gallery (masonry, natural aspect ratios) ─────────── */
 
-function countryFlag(country?: string): string {
-	if (!country) return "";
-	const map: Record<string, string> = {
-		nigeria: "🇳🇬",
-		"united states": "🇺🇸",
-		usa: "🇺🇸",
-		"united kingdom": "🇬🇧",
-		uk: "🇬🇧",
-		canada: "🇨🇦",
-		ghana: "🇬🇭",
-		"south africa": "🇿🇦",
-		kenya: "🇰🇪",
-		egypt: "🇪🇬",
-		uae: "🇦🇪",
-		"united arab emirates": "🇦🇪",
-		india: "🇮🇳",
-		australia: "🇦🇺",
-		france: "🇫🇷",
-		germany: "🇩🇪",
-		brazil: "🇧🇷",
-		japan: "🇯🇵",
-		china: "🇨🇳",
-		singapore: "🇸🇬",
-		mexico: "🇲🇽",
-	};
-	return map[country.toLowerCase()] ?? "🌍";
-}
-
-/* ─── Photo Gallery ──────────────────────────────────────────── */
-
-function PhotoGallery({
+function MediaGallery({
 	media,
 	name,
 }: {
@@ -88,163 +59,72 @@ function PhotoGallery({
 	name: string;
 }) {
 	const [lightbox, setLightbox] = useState<number | null>(null);
-	const [loadedSet, setLoadedSet] = useState<Set<number>>(new Set());
-	const count = media.length;
 
-	const markLoaded = (idx: number) =>
-		setLoadedSet((prev) => {
-			if (prev.has(idx)) return prev;
-			const next = new Set(prev);
-			next.add(idx);
-			return next;
-		});
-
-	useEffect(() => {
-		media.forEach((item, idx) => {
-			if (item.type === MediaType.AUDIO && !item.thumbnail) markLoaded(idx);
-		});
-	}, [media]);
-
-	function Thumb({
-		idx,
-		className,
-		overlay,
-	}: {
-		idx: number;
-		className: string;
-		overlay?: React.ReactNode;
-	}) {
-		const item = media[idx];
+	if (media.length === 0) {
 		return (
-			<button
-				type="button"
-				className={`relative cursor-pointer group overflow-hidden ${className}`}
-				onClick={() => setLightbox(idx)}
-			>
-				{!loadedSet.has(idx) && (
-					<div className="absolute inset-0 z-2 flex items-center justify-center bg-surface-container">
-						<div className="w-6 h-6 border-2 border-outline/30 border-t-outline rounded-full animate-spin" />
-					</div>
-				)}
-				{item.type === MediaType.VIDEO ? (
-					<>
-						{item.thumbnail ? (
-							<Image
-								src={item.thumbnail}
-								alt={`${name} video ${idx + 1}`}
-								fill
-								className="object-cover group-hover:scale-105 transition-transform duration-300"
-								onLoad={() => markLoaded(idx)}
-							/>
-						) : (
-							<video
-								src={item.url}
-								className="w-full h-full object-cover"
-								muted
-								preload="metadata"
-								onLoadedData={() => markLoaded(idx)}
-							/>
-						)}
-						<div className="absolute inset-0 flex items-center justify-center z-1">
-							<div className="bg-black/50 rounded-full p-2">
-								<Play className="w-6 h-6 text-white fill-white" />
-							</div>
-						</div>
-					</>
-				) : item.type === MediaType.AUDIO ? (
-					<div className="w-full h-full bg-linear-to-br from-violet-600 to-indigo-800 flex flex-col items-center justify-center text-white">
-						{item.thumbnail && (
-							<Image
-								src={item.thumbnail}
-								alt={`${name} audio ${idx + 1}`}
-								fill
-								className="object-cover opacity-40"
-								onLoad={() => markLoaded(idx)}
-							/>
-						)}
-						<Mic className="w-8 h-8 relative z-1" />
-						<span className="text-xs mt-1 relative z-1">
-							{item.caption ?? "Audio"}
-						</span>
-					</div>
-				) : (
-					<Image
-						src={item.url}
-						alt={`${name} ${idx + 1}`}
-						fill
-						className="object-cover group-hover:scale-105 transition-transform duration-300"
-						sizes={idx === 0 ? "(max-width:768px) 100vw, 50vw" : "25vw"}
-						priority={idx === 0}
-						onLoad={() => markLoaded(idx)}
-					/>
-				)}
-				{overlay}
-			</button>
-		);
-	}
-
-	const extra = count - 5;
-	const showAllOverlay = extra > 0 && (
-		<div className="absolute inset-0 bg-black/50 flex items-center justify-center z-1 group-hover:bg-black/60 transition-colors">
-			<span className="text-white font-semibold text-sm bg-black/40 px-4 py-2 rounded-lg backdrop-blur-sm">
-				Show all photos
-			</span>
-		</div>
-	);
-
-	function renderGallery() {
-		if (count === 0) return null;
-		if (count === 1) {
-			return (
-				<div className="h-[380px]">
-					<Thumb idx={0} className="w-full h-full rounded-xl" />
-				</div>
-			);
-		}
-		if (count === 2) {
-			return (
-				<div className="grid grid-cols-2 gap-2 h-[380px]">
-					<Thumb idx={0} className="rounded-l-xl" />
-					<Thumb idx={1} className="rounded-r-xl" />
-				</div>
-			);
-		}
-		if (count === 3) {
-			return (
-				<div className="grid grid-cols-2 grid-rows-2 gap-2 h-[380px]">
-					<Thumb idx={0} className="row-span-2 rounded-l-xl" />
-					<Thumb idx={1} className="rounded-tr-xl" />
-					<Thumb idx={2} className="rounded-br-xl" />
-				</div>
-			);
-		}
-		if (count === 4) {
-			return (
-				<div className="grid grid-cols-4 grid-rows-2 gap-2 h-[380px]">
-					<Thumb idx={0} className="col-span-2 row-span-2 rounded-l-xl" />
-					<Thumb idx={1} className="" />
-					<Thumb idx={2} className="rounded-tr-xl" />
-					<Thumb idx={3} className="col-span-2 rounded-br-xl" />
-				</div>
-			);
-		}
-		return (
-			<div className="grid grid-cols-4 grid-rows-2 gap-2 h-[380px]">
-				<Thumb idx={0} className="col-span-2 row-span-2 rounded-l-xl" />
-				<Thumb idx={1} className="" />
-				<Thumb idx={2} className="rounded-tr-xl" />
-				<Thumb idx={3} className="" />
-				<Thumb idx={4} className="rounded-br-xl" overlay={showAllOverlay} />
+			<div className="rounded-xl bg-surface-container flex items-center justify-center h-64">
+				<p className="text-on-surface-variant text-sm">No media available</p>
 			</div>
 		);
 	}
 
 	return (
 		<>
-			{renderGallery()}
+			{/* Natural-size media items, top-left aligned */}
+			<div className="flex flex-wrap items-start content-start gap-3">
+				{media.map((item, idx) => (
+					<button
+						key={idx}
+						type="button"
+						className="inline-block max-w-sm cursor-pointer group overflow-hidden rounded-xl"
+						onClick={() => setLightbox(idx)}
+					>
+						{item.type === MediaType.VIDEO ? (
+							<div className="relative">
+								<video
+									src={item.url}
+									className="w-full h-auto rounded-xl"
+									muted
+									preload="metadata"
+								/>
+								<div className="absolute inset-0 flex items-center justify-center">
+									<div className="bg-black/50 rounded-full p-3">
+										<Play className="w-8 h-8 text-white fill-white" />
+									</div>
+								</div>
+							</div>
+						) : item.type === MediaType.AUDIO ? (
+							<div className="relative w-full h-40 rounded-xl bg-linear-to-br from-violet-600 to-indigo-800 flex flex-col items-center justify-center text-white">
+								{item.thumbnail && (
+									<Image
+										src={item.thumbnail}
+										alt={`${name} audio ${idx + 1}`}
+										fill
+										className="object-cover opacity-40 rounded-xl"
+									/>
+								)}
+								<Mic className="w-10 h-10 relative z-1" />
+								<span className="text-xs mt-2 relative z-1 font-medium text-center break-words px-10">
+									{item.caption ?? "Audio"}
+								</span>
+							</div>
+						) : (
+							/* eslint-disable-next-line @next/next/no-img-element */
+							<img
+								src={item.url}
+								alt={`${name} ${idx + 1}`}
+								className="w-full h-auto rounded-xl group-hover:scale-[1.02] transition-transform duration-300"
+								loading={idx < 2 ? "eager" : "lazy"}
+							/>
+						)}
+					</button>
+				))}
+			</div>
+
+			{/* Lightbox */}
 			{lightbox !== null && (
 				<div
-					className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8"
+					className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-8"
 					onClick={() => setLightbox(null)}
 				>
 					<div
@@ -330,34 +210,18 @@ function TitleRow({
 	const askingPrice = property.currentValue ?? property.purchasePrice ?? 0;
 	return (
 		<div className="flex flex-wrap items-start justify-between gap-4">
-			{/* Left: avatar + name */}
+			{/* name */}
 			<div className="flex items-center gap-3 min-w-0 flex-1">
-				<UserAvatar
-					name={property.owner?.name || "Unknown"}
-					displayName={property.owner?.displayName}
-					username={property.owner?.username}
-					avatar={property.owner?.avatar}
-					ownerId={property.owner?.id}
-					size="lg"
-				/>
 				<div className="min-w-0">
 					<h1 className="font-headline text-xl font-bold text-on-surface truncate">
 						{property.name}
 					</h1>
-					<p className="text-sm text-on-surface-variant truncate">
-						{property.description
-							? property.description.slice(0, 60) +
-								(property.description.length > 60 ? "…" : "")
-							: property.propertyType
-									?.replace(/_/g, " ")
-									.replace(/\b\w/g, (c) => c.toUpperCase()) + " Property"}
-					</p>
 				</div>
 			</div>
 			{/* Right: price */}
 			<div className="flex items-center gap-3 shrink-0">
-				<span className="font-headline text-2xl font-bold text-primary italic">
-					{formatCurrency(askingPrice)}
+				<span className="font-headline text-2xl font-bold text-primary">
+					{formatCurrency(askingPrice, property.country)}
 				</span>
 				{actions}
 			</div>
@@ -568,7 +432,7 @@ function PropertyFeatures({ property }: { property: Property }) {
 				{additionalFeatures.length > 0 && (
 					<div className="border border-border rounded-xl p-4 space-y-3 max-w-md">
 						<h3 className="text-sm font-semibold text-on-surface">
-							Amenities &amp; Conditions
+							Conditions
 						</h3>
 						<div className="grid grid-cols-2 gap-y-2 gap-x-4">
 							{additionalFeatures.map((f) => (
@@ -611,7 +475,7 @@ function OwnerCard({ property }: { property: Property }) {
 		: null;
 
 	return (
-		<div className="bg-card border border-border rounded-2xl p-5 space-y-4 max-w-xs">
+		<div className="bg-card border border-border rounded-2xl p-5 space-y-4">
 			{/* Top row: avatar + name + rating */}
 			<div className="flex items-start justify-between gap-2">
 				<div className="flex items-center gap-3 min-w-0">
@@ -739,7 +603,7 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 
 	items.push({
 		label: "Asking Price",
-		value: formatCurrency(askingPrice),
+		value: formatCurrency(askingPrice, property.country),
 		bold: true,
 	});
 
@@ -750,22 +614,25 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 	) {
 		items.push({
 			label: "Original Price",
-			value: formatCurrency(purchasePrice),
+			value: formatCurrency(purchasePrice, property.country),
 		});
 		const diff = property.currentValue - property.purchasePrice;
 		items.push({
 			label: diff >= 0 ? "Value Increase" : "Value Decrease",
-			value: formatCurrency(Math.abs(diff)),
+			value: formatCurrency(Math.abs(diff), property.country),
 		});
 	}
 
 	if ((property.quantity ?? 1) > 1) {
 		const perUnit = askingPrice / (property.quantity ?? 1);
-		items.push({ label: "Price Per Unit", value: formatCurrency(perUnit) });
+		items.push({
+			label: "Price Per Unit",
+			value: formatCurrency(perUnit, property.country),
+		});
 	}
 
 	return (
-		<div className="bg-card border border-border rounded-2xl p-5 space-y-3 max-w-xs">
+		<div className="bg-card border border-border rounded-2xl p-5 space-y-3">
 			<h3 className="font-headline text-sm font-semibold text-on-surface">
 				Price Breakdown
 			</h3>
@@ -789,7 +656,7 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 					Total:
 				</span>
 				<span className="font-headline text-lg font-bold text-on-surface">
-					{formatCurrency(askingPrice)}
+					{formatCurrency(askingPrice, property.country)}
 				</span>
 			</div>
 		</div>
@@ -876,7 +743,7 @@ function ScheduleViewingCard({ property }: { property: Property }) {
 	};
 
 	return (
-		<div className="bg-card border border-border rounded-2xl p-5 space-y-4 max-w-xs">
+		<div className="bg-card border border-border rounded-2xl p-5 space-y-4">
 			<h3 className="font-headline text-sm font-semibold text-on-surface">
 				{property.owner?.allowBookings
 					? "Schedule a Viewing"
@@ -1056,92 +923,82 @@ export default function ListingDetailViewAlt({
 		.join(", ");
 
 	return (
-		<div className={`space-y-6 ${className}`}>
-			{/* Location bar */}
-			<div className="flex items-center gap-2 text-sm text-on-surface-variant">
-				<MapPin className="w-4 h-4 shrink-0" />
-				<span>{locationText || "Location not specified"}</span>
-				{property.country && (
-					<span className="text-base">{countryFlag(property.country)}</span>
-				)}
+		<div className={`flex flex-col lg:flex-row h-full ${className}`}>
+			{/* ─── Left column: Media only (50%, independently scrollable) ── */}
+			<div className="w-full lg:w-3/5 overflow-y-auto p-4 space-y-6">
+				<MediaGallery media={mediaItems} name={property.name} />
+
+				{/* Documents */}
+				<DocumentsSection
+					property={property}
+					accessRequests={accessRequests}
+					onAccessRequested={onAccessRequested}
+					viewer={viewer}
+					isOwner={isOwner}
+				/>
 			</div>
 
-			{/* Photo gallery */}
-			{mediaItems.length > 0 && (
-				<PhotoGallery media={mediaItems} name={property.name} />
-			)}
-
-			{/* Title row */}
-			<TitleRow property={property} actions={actions} />
-
-			{/* Two-column layout */}
-			<div className="flex flex-wrap items-start gap-8">
-				{/* Left column: main content */}
-				<div className="flex-1 min-w-[320px] space-y-6">
-					{/* Description */}
-					{property.description && (
-						<DescriptionBlock text={property.description} />
+			{/* ─── Right column: All property info (50%, independently scrollable) ── */}
+			<div className="w-full lg:w-2/5 overflow-y-auto p-4 space-y-6 border-l border-border">
+				{/* Location bar */}
+				<div className="flex items-center gap-2 text-sm text-on-surface-variant">
+					<MapPin className="w-4 h-4 shrink-0" />
+					<span>{locationText || "Location not specified"}</span>
+					{property.country && (
+						<span className="text-base">{countryFlag(property.country)}</span>
 					)}
-
-					{/* Property Specification */}
-					<PropertySpecs property={property} />
-
-					{/* Property Features */}
-					<PropertyFeatures property={property} />
-
-					{/* Map */}
-					{hasCoordinates && (
-						<section>
-							<h2 className="font-headline text-base font-semibold text-on-surface mb-3">
-								Location
-							</h2>
-							<div className="rounded-xl overflow-hidden border border-border">
-								<PropertyMiniMap
-									lat={property.coordinates.lat}
-									lng={property.coordinates.lng}
-									propertyName={property.name}
-								/>
-							</div>
-						</section>
-					)}
-
-					{/* Documents */}
-					<DocumentsSection
-						property={property}
-						accessRequests={accessRequests}
-						onAccessRequested={onAccessRequested}
-						viewer={viewer}
-						isOwner={isOwner}
-					/>
 				</div>
 
-				{/* Right column: sidebar */}
-				<div className="w-full max-w-xs space-y-5 shrink-0">
+				{/* Title row */}
+				<TitleRow property={property} actions={actions} />
+
+				{/* Description */}
+				{property.description && (
+					<DescriptionBlock text={property.description} />
+				)}
+
+				{/* Property Specification */}
+				<PropertySpecs property={property} />
+
+				{/* Property Features */}
+				<PropertyFeatures property={property} />
+
+				{/* Map */}
+				{hasCoordinates && (
+					<PropertyMiniMap
+						lat={property.coordinates.lat}
+						lng={property.coordinates.lng}
+						propertyName={property.name}
+					/>
+				)}
+
+				{/* Owner / Price / Schedule — masonry grid */}
+				<MasonryGrid minColWidth={250} gap={16}>
 					<OwnerCard property={property} />
 					<PriceBreakdownCard property={property} />
 					<ScheduleViewingCard property={property} />
+				</MasonryGrid>
 
-					{/* Listing meta */}
-					<div className="text-xs text-outline space-y-1 px-1 max-w-xs">
-						{property.createdAt && (
-							<p>
-								Listed:{" "}
-								<span className="text-on-surface font-medium">
-									{formatDate(property.createdAt)}
-								</span>
-							</p>
-						)}
-						{property.status && (
-							<p>
-								Status:{" "}
-								<span
-									className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
-								>
-									{property.status.replace(/_/g, " ").toUpperCase()}
-								</span>
-							</p>
-						)}
-					</div>
+				{/* Listing meta */}
+				<div className="text-xs text-outline space-y-1 px-1">
+					{property.createdAt && (
+						<p>
+							Listed:{" "}
+							<span className="text-on-surface font-medium">
+								{formatDate(property.createdAt)}
+							</span>
+						</p>
+					)}
+					{property.status && (
+						<p>
+							Status:{" "}
+							<span
+								className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+							>
+								{property.status.replace(/_/g, " ").toUpperCase()}
+							</span>
+						</p>
+					)}
 				</div>
 			</div>
 		</div>

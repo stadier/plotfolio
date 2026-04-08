@@ -87,9 +87,9 @@ export default function MarketplaceListingPage({
 	}
 
 	return (
-		<AppShell>
+		<AppShell scrollable={false}>
 			{/* Breadcrumb header */}
-			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-4 sticky top-0 z-10">
+			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-4 z-10">
 				<div className="flex items-center gap-3">
 					<Link
 						href="/marketplace"
@@ -105,7 +105,7 @@ export default function MarketplaceListingPage({
 				</div>
 			</div>
 
-			<div className="px-8 py-6 max-w-7xl mx-auto w-full">
+			<div className="flex-1 min-h-0 overflow-hidden">
 				<ListingDetailViewAlt
 					property={property}
 					accessRequests={accessRequests}

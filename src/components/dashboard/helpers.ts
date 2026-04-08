@@ -1,30 +1,7 @@
 import { PropertyStatus } from "@/types/property";
 
-export function formatCurrencyCompact(
-	amount: number,
-	currency = "USD",
-	locale = "en-US",
-) {
-	return new Intl.NumberFormat(locale, {
-		style: "currency",
-		currency,
-		minimumFractionDigits: 0,
-		notation: "compact",
-		compactDisplay: "short",
-	}).format(amount);
-}
-
-export function formatCurrencyFull(
-	amount: number,
-	currency = "USD",
-	locale = "en-US",
-) {
-	return new Intl.NumberFormat(locale, {
-		style: "currency",
-		currency,
-		minimumFractionDigits: 0,
-	}).format(amount);
-}
+// Re-export from canonical source
+export { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 
 export function getStatusBadge(status: PropertyStatus) {
 	switch (status) {

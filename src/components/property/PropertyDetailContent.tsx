@@ -43,14 +43,8 @@ const PropertyMiniMap = dynamic(
 
 const API_BASE = "/api";
 
-export function formatCurrency(amount: number): string {
-	const safe = Number.isFinite(amount) ? amount : 0;
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 0,
-	}).format(safe);
-}
+import { formatCurrency } from "@/lib/utils";
+export { formatCurrency };
 
 export function formatDate(date: Date | string | undefined): string {
 	if (!date) return "—";
@@ -714,10 +708,12 @@ export function WorthEditor({
 	currentValue,
 	purchasePrice,
 	onSave,
+	country,
 }: {
 	currentValue?: number;
 	purchasePrice: number;
 	onSave: (value: number) => void;
+	country?: string;
 }) {
 	const [editing, setEditing] = useState(false);
 	const [draft, setDraft] = useState(
@@ -795,7 +791,7 @@ export function WorthEditor({
 				<div>
 					<div className="text-xl font-bold text-on-surface">
 						{currentValue != null ? (
-							formatCurrency(currentValue)
+							formatCurrency(currentValue, country)
 						) : (
 							<span className="text-outline text-base font-normal italic">
 								Not set — click edit to add
@@ -1033,7 +1029,7 @@ export default function PropertyDetailContent({
 						<span className="font-medium">Purchase Price</span>
 					</div>
 					<div className="text-xl font-bold text-on-surface">
-						{formatCurrency(property.purchasePrice)}
+						{formatCurrency(property.purchasePrice, property.country)}
 					</div>
 				</div>
 
@@ -1043,6 +1039,7 @@ export default function PropertyDetailContent({
 					currentValue={property.currentValue}
 					purchasePrice={property.purchasePrice}
 					onSave={(val) => onPatch({ currentValue: val })}
+					country={property.country}
 				/>
 
 				<div className="border-t border-divider" />

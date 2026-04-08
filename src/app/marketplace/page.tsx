@@ -4,7 +4,7 @@ import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useMarketplaceListings } from "@/hooks/usePropertyQueries";
-import { getPropertyImageUrls } from "@/lib/utils";
+import { formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import { Property, PropertyType } from "@/types/property";
 import {
 	Bookmark,
@@ -22,14 +22,6 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 /* ─── helpers ─────────────────────────────────────────────────── */
-
-function formatCurrency(amount: number): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 0,
-	}).format(amount);
-}
 
 function getTypeLabel(type: PropertyType): string {
 	return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -282,7 +274,7 @@ function ListingCard({
 				<div className="flex items-center gap-1.5 mb-3">
 					<Tag className="w-3.5 h-3.5 text-outline" />
 					<span className="text-sm font-bold text-on-surface">
-						{formatCurrency(askingPrice)}
+						{formatCurrency(askingPrice, property.country)}
 					</span>
 					{(property.quantity ?? 1) > 1 && (
 						<span className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full">

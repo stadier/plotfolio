@@ -41,10 +41,7 @@ function SwitcherPill({
 		});
 	}, [isMarketplace, hasUser]);
 
-	const bg =
-		isMarketplace || !hasUser
-			? "rgb(37 99 235)" /* blue-600 */
-			: "var(--color-primary)";
+	const bg = "rgb(37 99 235)"; /* blue-600 for both states */
 
 	return (
 		<div
@@ -87,7 +84,7 @@ export default function Header() {
 							className={`relative z-10 flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors duration-300 ${
 								!isMarketplace
 									? "text-white"
-									: "text-slate-500 dark:text-on-surface-variant hover:text-primary"
+									: "text-slate-500 dark:text-on-surface-variant hover:text-blue-600"
 							}`}
 						>
 							<Briefcase className="w-4 h-4" />

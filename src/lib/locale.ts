@@ -1,0 +1,311 @@
+/**
+ * Country → currency, locale, and flag resolution.
+ *
+ * Properties store `country` as a free-text string (e.g. "Nigeria").
+ * This module resolves that to the correct ISO code, currency, locale,
+ * and flag emoji so prices render in the property's local currency.
+ */
+
+/* ─── Country name → ISO 3166-1 alpha-2 ────────────────────── */
+
+const COUNTRY_CODES: Record<string, string> = {
+	nigeria: "NG",
+	"united states": "US",
+	usa: "US",
+	"united kingdom": "GB",
+	uk: "GB",
+	canada: "CA",
+	ghana: "GH",
+	"south africa": "ZA",
+	kenya: "KE",
+	egypt: "EG",
+	uae: "AE",
+	"united arab emirates": "AE",
+	india: "IN",
+	australia: "AU",
+	france: "FR",
+	germany: "DE",
+	brazil: "BR",
+	japan: "JP",
+	china: "CN",
+	singapore: "SG",
+	mexico: "MX",
+	spain: "ES",
+	italy: "IT",
+	portugal: "PT",
+	netherlands: "NL",
+	belgium: "BE",
+	switzerland: "CH",
+	sweden: "SE",
+	norway: "NO",
+	denmark: "DK",
+	finland: "FI",
+	ireland: "IE",
+	"new zealand": "NZ",
+	"south korea": "KR",
+	korea: "KR",
+	thailand: "TH",
+	indonesia: "ID",
+	malaysia: "MY",
+	philippines: "PH",
+	vietnam: "VN",
+	turkey: "TR",
+	"saudi arabia": "SA",
+	qatar: "QA",
+	kuwait: "KW",
+	bahrain: "BH",
+	oman: "OM",
+	pakistan: "PK",
+	bangladesh: "BD",
+	"sri lanka": "LK",
+	tanzania: "TZ",
+	uganda: "UG",
+	ethiopia: "ET",
+	rwanda: "RW",
+	cameroon: "CM",
+	senegal: "SN",
+	"ivory coast": "CI",
+	"côte d'ivoire": "CI",
+	morocco: "MA",
+	tunisia: "TN",
+	algeria: "DZ",
+	angola: "AO",
+	mozambique: "MZ",
+	zambia: "ZM",
+	zimbabwe: "ZW",
+	botswana: "BW",
+	namibia: "NA",
+	argentina: "AR",
+	chile: "CL",
+	colombia: "CO",
+	peru: "PE",
+	venezuela: "VE",
+	ecuador: "EC",
+	uruguay: "UY",
+	"costa rica": "CR",
+	panama: "PA",
+	"dominican republic": "DO",
+	jamaica: "JM",
+	"trinidad and tobago": "TT",
+	poland: "PL",
+	"czech republic": "CZ",
+	czechia: "CZ",
+	austria: "AT",
+	hungary: "HU",
+	romania: "RO",
+	bulgaria: "BG",
+	croatia: "HR",
+	serbia: "RS",
+	ukraine: "UA",
+	russia: "RU",
+	greece: "GR",
+	israel: "IL",
+	lebanon: "LB",
+	jordan: "JO",
+	iraq: "IQ",
+	iran: "IR",
+	"hong kong": "HK",
+	taiwan: "TW",
+	nepal: "NP",
+	myanmar: "MM",
+	cambodia: "KH",
+};
+
+/* ─── ISO country code → currency code ─────────────────────── */
+
+const COUNTRY_CURRENCIES: Record<string, string> = {
+	NG: "NGN",
+	US: "USD",
+	GB: "GBP",
+	CA: "CAD",
+	GH: "GHS",
+	ZA: "ZAR",
+	KE: "KES",
+	EG: "EGP",
+	AE: "AED",
+	IN: "INR",
+	AU: "AUD",
+	FR: "EUR",
+	DE: "EUR",
+	ES: "EUR",
+	IT: "EUR",
+	PT: "EUR",
+	NL: "EUR",
+	BE: "EUR",
+	FI: "EUR",
+	IE: "EUR",
+	AT: "EUR",
+	GR: "EUR",
+	BR: "BRL",
+	JP: "JPY",
+	CN: "CNY",
+	SG: "SGD",
+	MX: "MXN",
+	CH: "CHF",
+	SE: "SEK",
+	NO: "NOK",
+	DK: "DKK",
+	NZ: "NZD",
+	KR: "KRW",
+	TH: "THB",
+	ID: "IDR",
+	MY: "MYR",
+	PH: "PHP",
+	VN: "VND",
+	TR: "TRY",
+	SA: "SAR",
+	QA: "QAR",
+	KW: "KWD",
+	BH: "BHD",
+	OM: "OMR",
+	PK: "PKR",
+	BD: "BDT",
+	LK: "LKR",
+	TZ: "TZS",
+	UG: "UGX",
+	ET: "ETB",
+	RW: "RWF",
+	CM: "XAF",
+	SN: "XOF",
+	CI: "XOF",
+	MA: "MAD",
+	TN: "TND",
+	DZ: "DZD",
+	AO: "AOA",
+	MZ: "MZN",
+	ZM: "ZMW",
+	ZW: "USD", // Zimbabwe uses USD
+	BW: "BWP",
+	NA: "NAD",
+	AR: "ARS",
+	CL: "CLP",
+	CO: "COP",
+	PE: "PEN",
+	VE: "VES",
+	EC: "USD", // Ecuador uses USD
+	UY: "UYU",
+	CR: "CRC",
+	PA: "USD", // Panama uses USD
+	DO: "DOP",
+	JM: "JMD",
+	TT: "TTD",
+	PL: "PLN",
+	CZ: "CZK",
+	HU: "HUF",
+	RO: "RON",
+	BG: "BGN",
+	HR: "EUR",
+	RS: "RSD",
+	UA: "UAH",
+	RU: "RUB",
+	IL: "ILS",
+	LB: "LBP",
+	JO: "JOD",
+	IQ: "IQD",
+	IR: "IRR",
+	HK: "HKD",
+	TW: "TWD",
+	NP: "NPR",
+	MM: "MMK",
+	KH: "KHR",
+};
+
+/* ─── ISO country code → preferred locale for number formatting ─ */
+
+const COUNTRY_LOCALES: Record<string, string> = {
+	NG: "en-NG",
+	US: "en-US",
+	GB: "en-GB",
+	CA: "en-CA",
+	GH: "en-GH",
+	ZA: "en-ZA",
+	KE: "en-KE",
+	EG: "ar-EG",
+	AE: "ar-AE",
+	IN: "en-IN",
+	AU: "en-AU",
+	FR: "fr-FR",
+	DE: "de-DE",
+	ES: "es-ES",
+	IT: "it-IT",
+	PT: "pt-PT",
+	NL: "nl-NL",
+	BE: "nl-BE",
+	FI: "fi-FI",
+	IE: "en-IE",
+	AT: "de-AT",
+	GR: "el-GR",
+	BR: "pt-BR",
+	JP: "ja-JP",
+	CN: "zh-CN",
+	SG: "en-SG",
+	MX: "es-MX",
+	CH: "de-CH",
+	SE: "sv-SE",
+	NO: "nb-NO",
+	DK: "da-DK",
+	NZ: "en-NZ",
+	KR: "ko-KR",
+	TH: "th-TH",
+	ID: "id-ID",
+	MY: "ms-MY",
+	PH: "en-PH",
+	VN: "vi-VN",
+	TR: "tr-TR",
+	SA: "ar-SA",
+	QA: "ar-QA",
+	KW: "ar-KW",
+	PK: "en-PK",
+	PL: "pl-PL",
+	CZ: "cs-CZ",
+	HU: "hu-HU",
+	RO: "ro-RO",
+	UA: "uk-UA",
+	RU: "ru-RU",
+	IL: "he-IL",
+	HK: "en-HK",
+	TW: "zh-TW",
+	AR: "es-AR",
+	CL: "es-CL",
+	CO: "es-CO",
+	PE: "es-PE",
+};
+
+/* ─── Public helpers ───────────────────────────────────────── */
+
+/** Resolve a free-text country name to its ISO 3166-1 alpha-2 code. */
+export function getCountryCode(country?: string): string | undefined {
+	if (!country) return undefined;
+	return COUNTRY_CODES[country.toLowerCase().trim()];
+}
+
+/** Return the ISO 4217 currency code for a country name. Falls back to USD. */
+export function getCurrencyForCountry(country?: string): string {
+	const code = getCountryCode(country);
+	if (!code) return "USD";
+	return COUNTRY_CURRENCIES[code] ?? "USD";
+}
+
+/** Return the locale string for a country name. Falls back to en-US. */
+export function getLocaleForCountry(country?: string): string {
+	const code = getCountryCode(country);
+	if (!code) return "en-US";
+	return COUNTRY_LOCALES[code] ?? "en-US";
+}
+
+/**
+ * Return a flag emoji for a country name.
+ * Uses regional indicator symbols derived from the ISO code,
+ * so every valid country is supported without a hardcoded emoji map.
+ * Falls back to 🌍 for unknown countries.
+ */
+export function countryFlag(country?: string): string {
+	const code = getCountryCode(country);
+	if (!code) return "🌍";
+	return String.fromCodePoint(
+		...code
+			.toUpperCase()
+			.split("")
+			.map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
+	);
+}

@@ -100,7 +100,7 @@ export default function PropertyMiniMap({
 				</div>
 				<div
 					ref={mapRef}
-					className={`w-full transition-all duration-300 ${expanded ? "h-80" : "h-44"}`}
+					className={`w-full transition-all duration-300 isolate ${expanded ? "h-80" : "h-44"}`}
 				/>
 				<div className="px-5 py-2 text-xs text-slate-500 dark:text-on-surface-variant">
 					{lat.toFixed(6)}, {lng.toFixed(6)}

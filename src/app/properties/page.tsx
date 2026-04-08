@@ -6,7 +6,7 @@ import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useAllProperties } from "@/hooks/usePropertyQueries";
-import { getPropertyImageUrls } from "@/lib/utils";
+import { formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import { Property, PropertyStatus, PropertyType } from "@/types/property";
 import {
 	ArrowUpDown,
@@ -69,14 +69,6 @@ function hydratePropertyPreview(property: Property): Property {
 		...property,
 		images: [preview.src],
 	};
-}
-
-function formatCurrency(amount: number): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 0,
-	}).format(amount);
 }
 
 function formatDate(date: Date | string): string {
@@ -390,7 +382,7 @@ function PropertyCard({
 					<div className="text-xs text-outline mb-0.5">Purchase Price</div>
 					<div className="text-sm font-semibold text-on-surface">
 						{property.purchasePrice != null
-							? formatCurrency(property.purchasePrice)
+							? formatCurrency(property.purchasePrice, property.country)
 							: "—"}
 					</div>
 				</div>
@@ -398,7 +390,9 @@ function PropertyCard({
 					<div className="text-xs text-outline mb-0.5">Current Worth</div>
 					<div className="flex items-center gap-1">
 						<span className="text-sm font-semibold text-on-surface">
-							{hasWorth ? formatCurrency(property.currentValue!) : "—"}
+							{hasWorth
+								? formatCurrency(property.currentValue!, property.country)
+								: "—"}
 						</span>
 						{worthChange !== null && (
 							<span
@@ -859,13 +853,19 @@ export default function PropertiesPage() {
 											</td>
 											<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
 												{property.purchasePrice != null
-													? formatCurrency(property.purchasePrice)
+													? formatCurrency(
+															property.purchasePrice,
+															property.country,
+														)
 													: "—"}
 											</td>
 											<td className="px-4 py-3 text-right whitespace-nowrap">
 												{property.currentValue != null ? (
 													<span className="text-on-surface font-medium">
-														{formatCurrency(property.currentValue)}
+														{formatCurrency(
+															property.currentValue,
+															property.country,
+														)}
 														{worthChange !== null && (
 															<span
 																className={`ml-1.5 text-xs ${

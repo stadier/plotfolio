@@ -162,7 +162,7 @@ function PublicPropertyCard({ property }: { property: Property }) {
 				<div className="flex items-center gap-3 mt-2">
 					{price > 0 && (
 						<span className="text-sm font-bold text-primary">
-							{formatCurrency(price)}
+							{formatCurrency(price, property.country)}
 						</span>
 					)}
 					{property.area > 0 && (

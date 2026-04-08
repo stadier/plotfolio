@@ -1,6 +1,6 @@
+import { formatCurrencyFull } from "@/lib/utils";
 import { Property } from "@/types/property";
 import { ArrowUpRight, Eye, MapPin } from "lucide-react";
-import { formatCurrencyFull } from "./helpers";
 
 interface TrackingCardProps {
 	property: Property;
@@ -40,7 +40,7 @@ export default function TrackingCard({
 					</p>
 				</div>
 				<p className="text-xs font-semibold text-on-surface-variant">
-					{formatCurrencyFull(worth)}
+					{formatCurrencyFull(worth, property.country)}
 				</p>
 				<div className="flex items-center gap-2 mt-1">
 					<span

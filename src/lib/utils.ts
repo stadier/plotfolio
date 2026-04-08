@@ -1,3 +1,4 @@
+import { getCurrencyForCountry, getLocaleForCountry } from "@/lib/locale";
 import { MediaType, type Property, type PropertyMedia } from "@/types/property";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -6,14 +7,56 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+/**
+ * Format an amount as currency.
+ * Pass `country` (e.g. "Nigeria") to auto-resolve the correct currency & locale.
+ * Explicit `currency` / `locale` overrides still work as before.
+ */
 export function formatCurrency(
 	amount: number,
-	currency = "USD",
-	locale = "en-US",
+	country?: string,
+	currency?: string,
+	locale?: string,
 ): string {
-	return new Intl.NumberFormat(locale, {
+	const resolvedCurrency = currency ?? getCurrencyForCountry(country);
+	const resolvedLocale = locale ?? getLocaleForCountry(country);
+	return new Intl.NumberFormat(resolvedLocale, {
 		style: "currency",
-		currency,
+		currency: resolvedCurrency,
+	}).format(amount);
+}
+
+/** Compact notation (e.g. "$1.2M" / "₦450M"). */
+export function formatCurrencyCompact(
+	amount: number,
+	country?: string,
+	currency?: string,
+	locale?: string,
+): string {
+	const resolvedCurrency = currency ?? getCurrencyForCountry(country);
+	const resolvedLocale = locale ?? getLocaleForCountry(country);
+	return new Intl.NumberFormat(resolvedLocale, {
+		style: "currency",
+		currency: resolvedCurrency,
+		minimumFractionDigits: 0,
+		notation: "compact",
+		compactDisplay: "short",
+	}).format(amount);
+}
+
+/** Full number, no decimals (e.g. "$1,200,000" / "₦450,000,000"). */
+export function formatCurrencyFull(
+	amount: number,
+	country?: string,
+	currency?: string,
+	locale?: string,
+): string {
+	const resolvedCurrency = currency ?? getCurrencyForCountry(country);
+	const resolvedLocale = locale ?? getLocaleForCountry(country);
+	return new Intl.NumberFormat(resolvedLocale, {
+		style: "currency",
+		currency: resolvedCurrency,
+		minimumFractionDigits: 0,
 	}).format(amount);
 }
 

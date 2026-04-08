@@ -372,6 +372,15 @@ Example patterns:
 
 The "(instructions)" marker means: **make this a permanent part of how the project works**.
 
+## TODOS Tracking Rule
+
+**Always reference `TODOS.md` when implementing features.** When a feature or improvement from the TODO list is completed:
+
+1. Read `TODOS.md` before starting any feature work to check for relevant items
+2. After completing a TODO item, mark it as done by changing `- [ ]` to `- [x]`
+3. If a new feature relates to a TODO item, reference the TODO number in commit messages (e.g., `feat: add pagination (TODO #6)`)
+4. If new work surfaces a TODO-worthy improvement, add it to the list with the next available number
+
 ---
 
-Last updated: November 2, 2025
+Last updated: April 8, 2026

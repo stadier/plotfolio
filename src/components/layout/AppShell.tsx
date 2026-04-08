@@ -30,7 +30,7 @@ export default function AppShell({
 			<div className="flex h-screen pt-[65px] overflow-hidden">
 				<Sidebar hideAddProperty={hideAddProperty} />
 				<main
-					className={`flex-1 bg-background ${
+					className={`flex-1 flex flex-col bg-background ${
 						scrollable ? "overflow-y-auto" : "overflow-hidden"
 					}`}
 				>

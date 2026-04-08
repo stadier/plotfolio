@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/lib/utils";
 import { Property, PropertyStatus } from "@/types/property";
 import { Filter, Search } from "lucide-react";
 import { useState } from "react";
@@ -25,14 +26,6 @@ function getStatusColor(status: PropertyStatus): string {
 		default:
 			return "bg-surface-container-high text-on-surface";
 	}
-}
-
-function formatCurrency(amount: number): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 0,
-	}).format(amount);
 }
 
 export default function PropertySidebar({
@@ -153,7 +146,10 @@ export default function PropertySidebar({
 										</div>
 										<div className="mt-2">
 											<div className="text-sm font-medium text-on-surface">
-												{formatCurrency(property.currentValue || 0)}
+												{formatCurrency(
+													property.currentValue || 0,
+													property.country,
+												)}
 											</div>
 											<div className="text-xs text-outline">Current Value</div>
 										</div>

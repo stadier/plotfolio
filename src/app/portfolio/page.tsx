@@ -2,11 +2,7 @@
 
 import { useRequireAuth } from "@/components/AuthContext";
 import DocumentCompletionWidget from "@/components/dashboard/DocumentCompletionWidget";
-import {
-	CARD_GRADIENTS,
-	formatCurrencyCompact,
-	formatCurrencyFull,
-} from "@/components/dashboard/helpers";
+import { CARD_GRADIENTS } from "@/components/dashboard/helpers";
 import MiniMapWidget from "@/components/dashboard/MiniMapWidget";
 import PortfolioStatsWidget from "@/components/dashboard/PortfolioStatsWidget";
 import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
@@ -18,6 +14,7 @@ import AppShell from "@/components/layout/AppShell";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties } from "@/hooks/usePropertyQueries";
+import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import { PropertyStatus } from "@/types/property";
 import { Eye, Loader2, MapPin, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -157,6 +154,7 @@ export default function DashboardPage() {
 															heroProperty.currentValue ||
 																heroProperty.purchasePrice ||
 																0,
+															heroProperty.country,
 														)}
 													</p>
 													<p className="text-white/50 text-xs">

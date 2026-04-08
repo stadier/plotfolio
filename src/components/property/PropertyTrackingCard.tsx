@@ -68,7 +68,9 @@ export default function PropertyTrackingCard({
 							{getStatusText(property.status)}
 						</span>
 					</div>
-					<p className="text-xs text-on-surface-variant">Property #{property.id}</p>
+					<p className="text-xs text-on-surface-variant">
+						Property #{property.id}
+					</p>
 				</div>
 				<button className="p-1 hover:bg-surface-container-high rounded">
 					<MoreHorizontal className="w-4 h-4 text-outline" />
@@ -81,7 +83,9 @@ export default function PropertyTrackingCard({
 				<div className="flex items-start gap-2">
 					<div className="w-2 h-2 bg-gray-400 rounded-full mt-2 shrink-0"></div>
 					<div className="flex-1">
-						<p className="text-xs font-medium text-on-surface-variant mb-1">Location</p>
+						<p className="text-xs font-medium text-on-surface-variant mb-1">
+							Location
+						</p>
 						<p className="text-xs text-on-surface-variant leading-relaxed">
 							{property.address}
 						</p>
@@ -102,6 +106,7 @@ export default function PropertyTrackingCard({
 							<span className="text-xs font-medium text-on-surface">
 								{formatCurrency(
 									property.currentValue || property.purchasePrice,
+									property.country,
 								)}
 							</span>
 						</div>
