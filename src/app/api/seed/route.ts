@@ -775,6 +775,13 @@ const sampleProperties: Property[] = [
 ];
 
 export async function POST() {
+	if (process.env.NODE_ENV === "production") {
+		return NextResponse.json(
+			{ error: "Seeding is disabled in production" },
+			{ status: 403 },
+		);
+	}
+
 	try {
 		await connectDB();
 

@@ -217,15 +217,17 @@ export default function PropertyMap({
 				/>
 
 				{/* Overlay layer for hybrid view */}
-				{layerType === "hybrid" && "overlay" in currentLayer && currentLayer.overlay && (
-					<TileLayer
-						url={currentLayer.overlay.url}
-						attribution={currentLayer.overlay.attribution}
-						maxZoom={currentLayer.overlay.maxZoom}
-						maxNativeZoom={currentLayer.overlay.maxZoom}
-						opacity={currentLayer.overlay.opacity}
-					/>
-				)}
+				{layerType === "hybrid" &&
+					"overlay" in currentLayer &&
+					currentLayer.overlay && (
+						<TileLayer
+							url={currentLayer.overlay.url}
+							attribution={currentLayer.overlay.attribution}
+							maxZoom={currentLayer.overlay.maxZoom}
+							maxNativeZoom={currentLayer.overlay.maxZoom}
+							opacity={currentLayer.overlay.opacity}
+						/>
+					)}
 
 				<MapController
 					viewport={viewport}

@@ -87,7 +87,7 @@ export default function MapPropertySidebar({
 						value={searchQuery}
 						onChange={(e) => onSearch(e.target.value)}
 						placeholder="Search properties..."
-						className="w-full pl-9 pr-3 py-2 text-sm bg-input border border-border rounded-lg text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary/40"
+						className="w-full pl-9 pr-3 py-2 text-sm bg-card border border-border rounded-4xl text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary/40"
 					/>
 				</div>
 
