@@ -25,6 +25,7 @@ import {
 	Users,
 	type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -138,10 +139,32 @@ export default function Sidebar({
 	return (
 		<aside
 			data-sidebar
-			className={`relative hidden md:flex flex-col h-full shrink-0 border-r border-border bg-sidebar pt-8 pb-8 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
+			className={`relative hidden md:flex flex-col h-full shrink-0 border-r border-border bg-sidebar pb-8 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
 				collapsed ? "w-[72px] px-2" : "w-64 px-4"
 			} ${className}`}
 		>
+			{/* Logo */}
+			<div
+				className={`flex items-center py-5 mb-4 border-b border-border ${collapsed ? "justify-center" : "px-2 gap-2.5"}`}
+			>
+				<Link href="/" className="flex items-center gap-2.5">
+					<Image
+						src="/plotfolio-logo.svg"
+						alt="Plotfolio"
+						width={32}
+						height={32}
+						className="w-8 h-8 shrink-0"
+					/>
+					<span
+						data-sidebar-label
+						className={`text-2xl font-bold tracking-tighter text-primary font-headline whitespace-nowrap transition-all duration-300 ${
+							collapsed ? "w-0 opacity-0 overflow-hidden" : "w-auto opacity-100"
+						}`}
+					>
+						Plotfolio
+					</span>
+				</Link>
+			</div>
 			{/* Collapse toggle — pinned to the right edge, vertically centered */}
 			<button
 				onClick={toggle}

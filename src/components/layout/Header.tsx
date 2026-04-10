@@ -3,7 +3,6 @@
 import { useAuth } from "@/components/AuthContext";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { Bell, Briefcase, LogOut, ShoppingBag } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -58,24 +57,10 @@ export default function Header() {
 	const { user, logout } = useAuth();
 
 	return (
-		<header className="fixed top-0 w-full z-[1100] bg-card border-b border-border">
+		<header className="shrink-0 bg-card border-b border-border">
 			<div className="relative flex items-center justify-between px-8 py-4 w-full">
-				{/* Logo */}
-				<Link href="/" className="flex items-center gap-2.5">
-					<Image
-						src="/plotfolio-logo.svg"
-						alt="Plotfolio"
-						width={32}
-						height={32}
-						className="w-8 h-8"
-					/>
-					<span className="text-2xl font-bold tracking-tighter text-primary font-headline">
-						Plotfolio
-					</span>
-				</Link>
-
-				{/* Portfolio / Marketplace switcher — absolutely centered */}
-				<div className="hidden md:flex items-center bg-slate-100 dark:bg-surface-container rounded-full p-1 absolute left-1/2 -translate-x-1/2">
+				{/* Portfolio / Marketplace switcher */}
+				<div className="hidden md:flex items-center relative bg-slate-100 dark:bg-surface-container rounded-full p-1">
 					<SwitcherPill isMarketplace={isMarketplace} hasUser={!!user} />
 					{user && (
 						<Link

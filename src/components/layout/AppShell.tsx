@@ -24,11 +24,10 @@ export default function AppShell({
 	hideAddProperty,
 }: AppShellProps) {
 	return (
-		<>
-			<Header />
-			{/* pt-[65px] accounts for the fixed header height */}
-			<div className="flex h-screen pt-[65px] overflow-hidden">
-				<Sidebar hideAddProperty={hideAddProperty} />
+		<div className="flex h-screen overflow-hidden">
+			<Sidebar hideAddProperty={hideAddProperty} />
+			<div className="flex-1 flex flex-col min-w-0">
+				<Header />
 				<main
 					className={`flex-1 flex flex-col bg-background ${
 						scrollable ? "overflow-y-auto" : "overflow-hidden"
@@ -37,6 +36,6 @@ export default function AppShell({
 					{children}
 				</main>
 			</div>
-		</>
+		</div>
 	);
 }
