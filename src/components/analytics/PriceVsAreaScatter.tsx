@@ -38,10 +38,7 @@ export default function PriceVsAreaScatter({
 	return (
 		<ResponsiveContainer width="100%" height={280}>
 			<ScatterChart>
-				<CartesianGrid
-					strokeDasharray="3 3"
-					stroke="var(--chart-grid)"
-				/>
+				<CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
 				<XAxis
 					dataKey="area"
 					type="number"
@@ -79,18 +76,12 @@ export default function PriceVsAreaScatter({
 						fontSize: 12,
 					}}
 					formatter={(value: number, name: string) => {
-						if (name === "Price")
-							return [`$${value.toLocaleString()}`, name];
+						if (name === "Price") return [`$${value.toLocaleString()}`, name];
 						if (name === "Area") return [`${value.toLocaleString()} sqm`, name];
 						return [value, name];
 					}}
 				/>
-				<Scatter
-					data={data}
-					fill="#34d399"
-					strokeWidth={0}
-					fillOpacity={0.7}
-				/>
+				<Scatter data={data} fill="#34d399" strokeWidth={0} fillOpacity={0.7} />
 			</ScatterChart>
 		</ResponsiveContainer>
 	);

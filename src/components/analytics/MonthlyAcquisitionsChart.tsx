@@ -103,8 +103,7 @@ export default function MonthlyAcquisitionsChart({
 						fontSize: 12,
 					}}
 					formatter={(value: number, name: string) => {
-						if (name === "Spent")
-							return [`$${value.toLocaleString()}`, name];
+						if (name === "Spent") return [`$${value.toLocaleString()}`, name];
 						return [value, name];
 					}}
 				/>

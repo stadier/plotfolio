@@ -20,7 +20,6 @@ import {
 	DollarSign,
 	FileText,
 	Loader2,
-	MapPin,
 	Ruler,
 	TrendingUp,
 } from "lucide-react";
@@ -209,9 +208,7 @@ export default function AnalyticsPage() {
 									/>
 									<InsightRow
 										label="Most Common Type"
-										value={getMostCommon(
-											properties.map((p) => p.propertyType),
-										)}
+										value={getMostCommon(properties.map((p) => p.propertyType))}
 									/>
 									<InsightRow
 										label="Properties w/ Docs"

@@ -41,7 +41,9 @@ export default function ConditionBreakdownChart({
 
 	const data = Object.entries(counts)
 		.map(([condition, count]) => ({
-			name: condition.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+			name: condition
+				.replace(/_/g, " ")
+				.replace(/\b\w/g, (c) => c.toUpperCase()),
 			value: count,
 			color: CONDITION_COLORS[condition] ?? "#94a3b8",
 		}))

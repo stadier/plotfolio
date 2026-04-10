@@ -1,6 +1,6 @@
 "use client";
 
-import { Property, DocumentType } from "@/types/property";
+import { DocumentType, Property } from "@/types/property";
 import {
 	PolarAngleAxis,
 	PolarGrid,

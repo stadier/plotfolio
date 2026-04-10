@@ -81,8 +81,7 @@ export default function ValueByCountryChart({
 						fontSize: 12,
 					}}
 					formatter={(value: number, name: string) => {
-						if (name === "Value")
-							return [`$${value.toLocaleString()}`, name];
+						if (name === "Value") return [`$${value.toLocaleString()}`, name];
 						return [value, name];
 					}}
 				/>
