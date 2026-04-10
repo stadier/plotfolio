@@ -1,4 +1,5 @@
 import connectDB from "@/lib/mongoose";
+import { createPersonalPortfolio } from "@/models/Portfolio";
 import { generateSessionToken, hashPassword, UserModel } from "@/models/User";
 import crypto from "crypto";
 import { cookies } from "next/headers";
@@ -87,6 +88,9 @@ export async function POST(request: NextRequest) {
 			followerCount: 0,
 			allowBookings: false,
 		});
+
+		// Create personal portfolio for new user
+		await createPersonalPortfolio(userId, user.displayName);
 
 		// Set session cookie
 		const token = generateSessionToken();

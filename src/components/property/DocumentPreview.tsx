@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileText, X, ZoomIn, ZoomOut } from "lucide-react";
+import { FileText, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /* ── helpers ──────────────────────────────────────────── */
@@ -55,8 +55,9 @@ function ImagePreview({ url, name }: { url: string; name: string }) {
 				<img
 					src={url}
 					alt={name}
-					className="max-w-none rounded-lg shadow-2xl transition-transform"
+					className="max-w-none rounded-lg shadow-2xl transition-transform select-none pointer-events-none"
 					style={{ transform: `scale(${scale})`, transformOrigin: "center" }}
+					draggable={false}
 				/>
 			</div>
 		</div>
@@ -65,11 +66,11 @@ function ImagePreview({ url, name }: { url: string; name: string }) {
 
 function PdfPreview({ url }: { url: string }) {
 	return (
-		<div className="flex-1 flex items-center justify-center p-4">
+		<div className="flex-1 flex items-stretch p-4">
 			<iframe
 				src={url}
 				title="PDF preview"
-				className="w-full h-full max-w-3xl rounded-lg border border-white/10 bg-white"
+				className="w-full h-full rounded-lg border border-white/10 bg-white"
 			/>
 		</div>
 	);
@@ -81,6 +82,9 @@ function VideoPreview({ url }: { url: string }) {
 			<video
 				src={url}
 				controls
+				controlsList="nodownload"
+				disablePictureInPicture
+				onContextMenu={(e) => e.preventDefault()}
 				className="max-w-3xl max-h-full rounded-lg shadow-2xl"
 			/>
 		</div>
@@ -94,7 +98,13 @@ function AudioPreview({ url, name }: { url: string; name: string }) {
 				<FileText className="w-10 h-10 text-white/60" />
 			</div>
 			<p className="text-sm text-white/80 font-medium">{name}</p>
-			<audio src={url} controls className="max-w-sm w-full" />
+			<audio
+				src={url}
+				controls
+				controlsList="nodownload"
+				onContextMenu={(e) => e.preventDefault()}
+				className="max-w-sm w-full"
+			/>
 		</div>
 	);
 }
@@ -115,22 +125,71 @@ function UnsupportedPreview({ name }: { name: string }) {
 	);
 }
 
-/* ── main component ──────────────────────────────────── */
+/* ── helpers: detect kind from URL extension ─────────── */
 
-export interface DocumentPreviewProps {
-	file: File;
-	onClose: () => void;
+function getFileKindFromUrl(name: string, url: string): FileKind {
+	const ext = (name || url).split("?")[0].split(".").pop()?.toLowerCase() ?? "";
+	const imageExts = new Set([
+		"png",
+		"jpg",
+		"jpeg",
+		"webp",
+		"gif",
+		"bmp",
+		"svg",
+		"heic",
+		"heif",
+	]);
+	if (imageExts.has(ext)) return "image";
+	if (ext === "pdf") return "pdf";
+	if (["mp4", "webm", "mov", "avi"].includes(ext)) return "video";
+	if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) return "audio";
+	return "document";
 }
 
-export default function DocumentPreview({
-	file,
-	onClose,
-}: DocumentPreviewProps) {
-	const kind = getFileKind(file);
-	const url = useMemo(() => URL.createObjectURL(file), [file]);
+/* ── main component ──────────────────────────────────── */
+
+export type DocumentPreviewProps =
+	| {
+			file: File;
+			remoteUrl?: undefined;
+			remoteName?: undefined;
+			remoteSize?: undefined;
+			onClose: () => void;
+	  }
+	| {
+			file?: undefined;
+			remoteUrl: string;
+			remoteName: string;
+			remoteSize?: number;
+			onClose: () => void;
+	  };
+
+export default function DocumentPreview(props: DocumentPreviewProps) {
+	const { onClose } = props;
+
+	const isRemote = !!props.remoteUrl;
+	const kind = isRemote
+		? getFileKindFromUrl(props.remoteName, props.remoteUrl)
+		: getFileKind(props.file!);
+	const name = isRemote ? props.remoteName : props.file!.name;
+	const size = isRemote ? props.remoteSize : props.file!.size;
+
+	const objectUrl = useMemo(
+		() => (isRemote ? null : URL.createObjectURL(props.file!)),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[isRemote, props.file],
+	);
+	const url = isRemote ? props.remoteUrl : objectUrl!;
+
 	const overlayRef = useRef<HTMLDivElement>(null);
 
-	useEffect(() => () => URL.revokeObjectURL(url), [url]);
+	useEffect(() => {
+		const u = objectUrl;
+		return () => {
+			if (u) URL.revokeObjectURL(u);
+		};
+	}, [objectUrl]);
 
 	// Close on Escape
 	useEffect(() => {
@@ -149,39 +208,27 @@ export default function DocumentPreview({
 		[onClose],
 	);
 
-	const handleDownload = useCallback(() => {
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = file.name;
-		a.click();
-	}, [url, file.name]);
-
 	return (
 		<div
 			ref={overlayRef}
 			onClick={handleBackdropClick}
+			onContextMenu={(e) => e.preventDefault()}
 			className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
 		>
 			{/* toolbar */}
 			<div className="flex items-center justify-between px-4 py-3 bg-black/40">
 				<div className="min-w-0 flex-1 mr-4">
 					<p className="text-sm font-medium text-white truncate font-body">
-						{file.name}
+						{name}
 					</p>
-					<p className="text-[11px] text-white/50 font-body">
-						{formatSize(file.size)}
-					</p>
+					{size != null && (
+						<p className="text-[11px] text-white/50 font-body">
+							{formatSize(size)}
+						</p>
+					)}
 				</div>
 
 				<div className="flex items-center gap-2 shrink-0">
-					<button
-						type="button"
-						onClick={handleDownload}
-						className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-						title="Download"
-					>
-						<Download className="w-4 h-4" />
-					</button>
 					<button
 						type="button"
 						onClick={onClose}
@@ -194,11 +241,11 @@ export default function DocumentPreview({
 			</div>
 
 			{/* preview content */}
-			{kind === "image" && <ImagePreview url={url} name={file.name} />}
+			{kind === "image" && <ImagePreview url={url} name={name} />}
 			{kind === "pdf" && <PdfPreview url={url} />}
 			{kind === "video" && <VideoPreview url={url} />}
-			{kind === "audio" && <AudioPreview url={url} name={file.name} />}
-			{kind === "document" && <UnsupportedPreview name={file.name} />}
+			{kind === "audio" && <AudioPreview url={url} name={name} />}
+			{kind === "document" && <UnsupportedPreview name={name} />}
 		</div>
 	);
 }

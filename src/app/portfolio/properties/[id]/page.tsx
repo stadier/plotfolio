@@ -1,16 +1,13 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
-import PropertyDetailContent, {
-	getStatusColor,
-} from "@/components/property/PropertyDetailContent";
+import ListingDetailViewAlt from "@/components/property/ListingDetailViewAlt";
+import { getStatusColor } from "@/components/property/PropertyDetailContent";
 import ShareModal from "@/components/property/ShareModal";
-import { Property } from "@/types/property";
-import { ArrowLeft, Share2 } from "lucide-react";
+import { useProperty } from "@/hooks/usePropertyQueries";
+import { ArrowLeft, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
-
-const API_BASE = "/api";
+import { use, useState } from "react";
 
 // ===========================
 // Main page
@@ -21,62 +18,17 @@ export default function PropertyDetailPage({
 	params: Promise<{ id: string }>;
 }) {
 	const { id } = use(params);
-	const [property, setProperty] = useState<Property | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	const [saving, setSaving] = useState(false);
+	const {
+		data: property,
+		isLoading: loading,
+		error: queryError,
+	} = useProperty(id);
+	const error = queryError
+		? "Failed to load property"
+		: !loading && !property
+			? "Property not found"
+			: null;
 	const [shareOpen, setShareOpen] = useState(false);
-
-	useEffect(() => {
-		const load = async () => {
-			try {
-				setLoading(true);
-				const res = await fetch(`${API_BASE}/properties/${id}`);
-				if (!res.ok) throw new Error("Property not found");
-				const data = await res.json();
-				setProperty(data);
-			} catch {
-				setError("Failed to load property");
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, [id]);
-
-	async function patchProperty(updates: Partial<Property>) {
-		if (!property) return;
-		setSaving(true);
-		try {
-			const res = await fetch(`${API_BASE}/properties/${property.id}`, {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(updates),
-			});
-			if (res.ok) {
-				const updated = await res.json();
-				setProperty(updated);
-			}
-		} finally {
-			setSaving(false);
-		}
-	}
-
-	function handleDocUploaded(doc: Property["documents"][0]) {
-		if (!property) return;
-		setProperty({
-			...property,
-			documents: [...(property.documents ?? []), doc],
-		});
-	}
-
-	function handleDocDeleted(docId: string) {
-		if (!property) return;
-		setProperty({
-			...property,
-			documents: property.documents.filter((d) => d.id !== docId),
-		});
-	}
 
 	if (loading) {
 		return (
@@ -109,9 +61,9 @@ export default function PropertyDetailPage({
 	}
 
 	return (
-		<AppShell>
+		<AppShell scrollable={false}>
 			{/* Page header */}
-			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-5 sticky top-0 z-10">
+			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-4 z-10">
 				<div className="flex items-center gap-3">
 					<Link
 						href="/portfolio/properties"
@@ -121,7 +73,7 @@ export default function PropertyDetailPage({
 						Properties
 					</Link>
 					<span className="text-outline-variant">/</span>
-					<h1 className="font-headline text-base font-semibold text-primary truncate">
+					<h1 className="font-headline text-sm font-semibold text-primary truncate">
 						{property.name}
 					</h1>
 					<span
@@ -129,38 +81,42 @@ export default function PropertyDetailPage({
 					>
 						{property.status.replace(/_/g, " ").toUpperCase()}
 					</span>
-					{saving && (
-						<span className="ml-auto text-xs text-on-surface-variant animate-pulse font-body">
-							Saving…
-						</span>
-					)}
-					<button
-						type="button"
-						onClick={() => setShareOpen(true)}
-						className={`${saving ? "" : "ml-auto"} p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors`}
-						title="Share property"
-					>
-						<Share2 className="w-4 h-4 text-on-surface-variant" />
-					</button>
 				</div>
 			</div>
 
-			{/* Body */}
-			<div className="px-8 py-6">
-				<PropertyDetailContent
+			<div className="flex-1 min-h-0 overflow-hidden">
+				<ListingDetailViewAlt
 					property={property}
-					onPatch={patchProperty}
-					onDocUploaded={handleDocUploaded}
-					onDocDeleted={handleDocDeleted}
-					layout="two-col"
+					isOwner
+					actions={
+						<>
+							<Link
+								href={`/portfolio/properties/${id}/edit`}
+								className="p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors"
+								title="Edit property"
+							>
+								<Pencil className="w-5 h-5 text-on-surface-variant" />
+							</Link>
+							<button
+								type="button"
+								onClick={() => setShareOpen(true)}
+								className="p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors"
+								title="Share property"
+							>
+								<Share2 className="w-5 h-5 text-on-surface-variant" />
+							</button>
+						</>
+					}
 				/>
-			</div>
 
-			<ShareModal
-				property={property}
-				open={shareOpen}
-				onClose={() => setShareOpen(false)}
-			/>
+				{property && (
+					<ShareModal
+						property={property}
+						open={shareOpen}
+						onClose={() => setShareOpen(false)}
+					/>
+				)}
+			</div>
 		</AppShell>
 	);
 }

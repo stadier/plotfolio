@@ -16,7 +16,7 @@ import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties } from "@/hooks/usePropertyQueries";
 import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import { PropertyStatus } from "@/types/property";
-import { Eye, Loader2, MapPin, TrendingUp } from "lucide-react";
+import { Eye, Loader2, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -189,7 +189,7 @@ export default function DashboardPage() {
 							</div>
 
 							{/* Quick actions */}
-							<div className="flex flex-wrap items-center gap-4">
+							{/* <div className="flex flex-wrap items-center gap-4">
 								<Link
 									href="/portfolio/properties"
 									className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg shadow active:scale-95 transition-all flex items-center gap-2 btn-press"
@@ -204,7 +204,7 @@ export default function DashboardPage() {
 									<MapPin className="w-4 h-4" />
 									Map View
 								</Link>
-							</div>
+							</div> */}
 						</>
 					)}
 				</div>

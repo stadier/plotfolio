@@ -389,3 +389,182 @@ export class PropertyAPI {
 		}
 	}
 }
+
+/* ── Portfolio API ─────────────────────────────────────────────────────────── */
+
+import type {
+	Portfolio,
+	PortfolioMember,
+	PortfolioRole,
+} from "@/types/property";
+
+export interface PortfolioWithRole extends Portfolio {
+	role: PortfolioRole;
+}
+
+export interface PortfolioMemberWithUser extends PortfolioMember {
+	user: {
+		id: string;
+		name: string;
+		username: string;
+		displayName: string;
+		email: string;
+		avatar?: string;
+	} | null;
+}
+
+export class PortfolioAPI {
+	static async list(): Promise<PortfolioWithRole[]> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/portfolios`);
+			if (!res.ok) return [];
+			return await res.json();
+		} catch {
+			return [];
+		}
+	}
+
+	static async get(
+		id: string,
+	): Promise<(Portfolio & { memberCount: number }) | null> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/portfolios/${id}`);
+			if (!res.ok) return null;
+			return await res.json();
+		} catch {
+			return null;
+		}
+	}
+
+	static async create(data: {
+		name: string;
+		description?: string;
+		avatar?: string;
+	}): Promise<PortfolioWithRole | null> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/portfolios`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(data),
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				throw new Error(err.error || "Failed to create portfolio");
+			}
+			return await res.json();
+		} catch (error) {
+			console.error("Error creating portfolio:", error);
+			return null;
+		}
+	}
+
+	static async update(
+		id: string,
+		data: { name?: string; description?: string; avatar?: string },
+	): Promise<Portfolio | null> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/portfolios/${id}`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(data),
+			});
+			if (!res.ok) return null;
+			return await res.json();
+		} catch {
+			return null;
+		}
+	}
+
+	static async remove(id: string): Promise<{ error?: string }> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/portfolios/${id}`, {
+				method: "DELETE",
+			});
+			const data = await res.json();
+			if (!res.ok) return { error: data.error || "Failed to delete" };
+			return {};
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	// ── Members ──
+
+	static async getMembers(
+		portfolioId: string,
+	): Promise<PortfolioMemberWithUser[]> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/portfolios/${portfolioId}/members`,
+			);
+			if (!res.ok) return [];
+			return await res.json();
+		} catch {
+			return [];
+		}
+	}
+
+	static async inviteMember(
+		portfolioId: string,
+		data: { identifier: string; role: PortfolioRole },
+	): Promise<{ member?: PortfolioMemberWithUser; error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/portfolios/${portfolioId}/members`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				},
+			);
+			const result = await res.json();
+			if (!res.ok) return { error: result.error || "Failed to invite" };
+			return { member: result };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async updateMember(
+		portfolioId: string,
+		memberId: string,
+		data: { role?: PortfolioRole; status?: string },
+	): Promise<{ error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/portfolios/${portfolioId}/members/${memberId}`,
+				{
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				},
+			);
+			if (!res.ok) {
+				const result = await res.json().catch(() => ({}));
+				return { error: result.error || "Failed to update" };
+			}
+			return {};
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async removeMember(
+		portfolioId: string,
+		memberId: string,
+	): Promise<{ error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/portfolios/${portfolioId}/members/${memberId}`,
+				{ method: "DELETE" },
+			);
+			if (!res.ok) {
+				const result = await res.json().catch(() => ({}));
+				return { error: result.error || "Failed to remove" };
+			}
+			return {};
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+}

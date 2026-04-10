@@ -44,6 +44,7 @@ export interface Property {
 	zoning?: string;
 	taxId?: string;
 	owner: PropertyOwner;
+	portfolioId?: string; // Which portfolio this property belongs to
 	// Location classification
 	state?: string;
 	city?: string;
@@ -63,8 +64,8 @@ export interface Property {
 	availableFrom?: string; // ISO date string
 	// Transaction details
 	boughtFrom?: string; // Seller / previous owner name
-	witnesses?: string[]; // Names of witnesses on the transaction
-	signatures?: string[]; // Names of signatories on the transaction
+	witnesses?: { name: string; signature: string }[]; // Witnesses with drawn signatures
+	signatures?: { name: string; signature: string }[]; // Signatories with drawn signatures
 	// Timestamps from Mongoose
 	createdAt?: string;
 	updatedAt?: string;
@@ -178,15 +179,51 @@ export enum DocumentType {
 	OTHER = "other",
 }
 
+export enum PortfolioRole {
+	ADMIN = "admin",
+	MANAGER = "manager",
+	AGENT = "agent",
+	VIEWER = "viewer",
+}
+
+export enum PortfolioMemberStatus {
+	PENDING = "pending",
+	ACTIVE = "active",
+	SUSPENDED = "suspended",
+}
+
 export interface Portfolio {
 	id: string;
 	name: string;
+	slug: string;
 	description?: string;
+	avatar?: string;
+	type: "personal" | "business";
+	createdBy: string; // userId who created it
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+export interface PortfolioMember {
+	id: string;
+	portfolioId: string;
+	userId: string;
+	role: PortfolioRole;
+	status: PortfolioMemberStatus;
+	invitedBy?: string; // userId who invited
+	joinedAt?: string;
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+/** Computed view of a portfolio with its properties (not stored) */
+export interface PortfolioView {
+	portfolio: Portfolio;
+	role: PortfolioRole;
 	properties: Property[];
 	totalValue: number;
 	totalArea: number;
-	createdDate: Date;
-	lastUpdated: Date;
+	memberCount: number;
 }
 
 export interface MapViewport {

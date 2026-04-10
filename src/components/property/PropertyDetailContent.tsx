@@ -1,6 +1,7 @@
 "use client";
 
 import ChipInput from "@/components/ui/ChipInput";
+import WitnessTagInput from "@/components/ui/WitnessTagInput";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -15,8 +16,8 @@ import {
 	Check,
 	ChevronDown,
 	Copy,
-	Download,
 	Edit3,
+	Eye,
 	FileText,
 	MapPin,
 	Pencil,
@@ -35,6 +36,7 @@ import {
 	DocumentAccessLevelPicker,
 	RestrictedDocumentRow,
 } from "./DocumentAccessControl";
+import DocumentPreview from "./DocumentPreview";
 
 const PropertyMiniMap = dynamic(
 	() => import("@/components/maps/PropertyMiniMap"),
@@ -116,6 +118,10 @@ function getFileKind(name: string, url: string): "image" | "pdf" | "document" {
 function getDocumentTypeLabel(type: DocumentType): string {
 	const category = DOCUMENT_CATEGORIES.find((entry) => entry.type === type);
 	return category?.label ?? type.replace(/_/g, " ");
+}
+
+function getDocViewUrl(propertyId: string, docId: string): string {
+	return `/api/properties/${propertyId}/documents/${docId}/view`;
 }
 
 // ----- Editable inline text -----
@@ -310,7 +316,69 @@ export function EditableTagList({
 	);
 }
 
-// ----- Document card (book-style) -----
+// ----- URL-based thumbnails (matching DocumentSidebar design) -----
+
+function RemoteImageThumbnail({ url, name }: { url: string; name: string }) {
+	return (
+		<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-surface-container">
+			{/* eslint-disable-next-line @next/next/no-img-element */}
+			<img src={url} alt={name} className="w-full h-full object-cover" />
+			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+				IMG
+			</span>
+		</div>
+	);
+}
+
+function RemotePdfThumbnail() {
+	return (
+		<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-card border-b border-border">
+			<div className="p-3 pt-4 flex flex-col gap-1.5">
+				<div className="h-1.5 w-3/4 rounded-full bg-slate-200" />
+				<div className="h-1.5 w-full rounded-full bg-slate-100" />
+				<div className="h-1.5 w-5/6 rounded-full bg-slate-100" />
+				<div className="h-1.5 w-2/3 rounded-full bg-slate-100" />
+				<div className="h-1.5 w-full rounded-full bg-slate-100" />
+				<div className="h-1.5 w-1/2 rounded-full bg-slate-100" />
+			</div>
+			<div className="absolute top-0 right-0 w-5 h-5">
+				<div className="absolute top-0 right-0 w-0 h-0 border-t-20 border-t-slate-100 border-l-20 border-l-transparent" />
+				<div className="absolute top-0 right-0 w-0 h-0 border-b-20 border-b-slate-200/60 border-l-20 border-l-transparent" />
+			</div>
+			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-red-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+				<FileText className="w-2.5 h-2.5" />
+				PDF
+			</span>
+		</div>
+	);
+}
+
+function RemoteGenericThumbnail({
+	extensionLabel,
+}: {
+	extensionLabel: string;
+}) {
+	return (
+		<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-card border-b border-border">
+			<div className="p-3 pt-4 flex flex-col gap-1.5">
+				<div className="h-1.5 w-2/3 rounded-full bg-slate-200" />
+				<div className="h-1.5 w-full rounded-full bg-slate-100" />
+				<div className="h-1.5 w-4/5 rounded-full bg-slate-100" />
+				<div className="h-1.5 w-1/2 rounded-full bg-slate-100" />
+			</div>
+			<div className="absolute top-0 right-0 w-5 h-5">
+				<div className="absolute top-0 right-0 w-0 h-0 border-t-20 border-t-slate-100 border-l-20 border-l-transparent" />
+				<div className="absolute top-0 right-0 w-0 h-0 border-b-20 border-b-slate-300/60 border-l-20 border-l-transparent" />
+			</div>
+			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-slate-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+				<FileText className="w-2.5 h-2.5" />
+				{extensionLabel}
+			</span>
+		</div>
+	);
+}
+
+// ----- Document card (rich thumbnail style) -----
 function DocumentCard({
 	doc,
 	propertyId,
@@ -318,6 +386,7 @@ function DocumentCard({
 	onDeleted,
 	onTypeChanged,
 	onAccessLevelChanged,
+	onPreview,
 	viewerId,
 	viewerName,
 	viewerEmail,
@@ -331,6 +400,7 @@ function DocumentCard({
 	onDeleted: (docId: string) => void;
 	onTypeChanged: (docId: string, newType: DocumentType) => void;
 	onAccessLevelChanged?: (docId: string, level: DocumentAccessLevel) => void;
+	onPreview: () => void;
 	viewerId?: string;
 	viewerName?: string;
 	viewerEmail?: string;
@@ -354,6 +424,7 @@ function DocumentCard({
 	const accessLevel = doc.accessLevel ?? DocumentAccessLevel.PUBLIC;
 	const kind = getFileKind(doc.name, doc.url);
 	const extension = getFileExtension(doc.name, doc.url);
+	const viewUrl = getDocViewUrl(propertyId, doc.id);
 	const extensionLabel =
 		kind === "pdf"
 			? "PDF"
@@ -408,77 +479,69 @@ function DocumentCard({
 	}
 
 	return (
-		<div className="w-36 flex flex-col rounded-xl border border-border border-border overflow-hidden bg-card group relative shrink-0">
-			{/* Thumbnail / icon area */}
-			<div className="h-40 flex flex-col items-center justify-center bg-surface-container dark:bg-surface-container relative">
+		<div className="w-44 flex flex-col rounded-xl bg-card group relative shrink-0 hover:shadow-md transition-all">
+			{/* Rich thumbnail */}
+			<div className="rounded-t-xl overflow-hidden">
 				{kind === "image" ? (
-					<img
-						src={doc.url}
-						alt={doc.name}
-						className="h-full w-full object-cover"
-					/>
+					<RemoteImageThumbnail url={viewUrl} name={doc.name} />
+				) : kind === "pdf" ? (
+					<RemotePdfThumbnail />
 				) : (
-					<div className="flex flex-col items-center gap-2 text-outline dark:text-on-surface-variant">
-						<FileText className="w-7 h-7" />
-						<span className="text-[10px] font-semibold uppercase tracking-wide">
-							{extensionLabel}
-						</span>
-					</div>
+					<RemoteGenericThumbnail extensionLabel={extensionLabel} />
 				)}
-				{/* Hover actions */}
-				<div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
-					<a
-						href={doc.url}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface"
-						title="Open"
-					>
-						<Download className="w-3.5 h-3.5" />
-					</a>
-					{isOwner && (
-						<>
-							<DocumentAccessLevelPicker
-								docId={doc.id}
-								propertyId={propertyId}
-								currentLevel={accessLevel}
-								onChanged={(docId, level) =>
-									onAccessLevelChanged?.(docId, level)
-								}
-							/>
-							<button
-								onClick={() => handleDelete(doc.id)}
-								className="p-1 bg-white/90 dark:bg-surface-container-high/90 rounded-md shadow text-outline hover:text-red-500"
-								title="Delete"
-							>
-								<Trash2 className="w-3.5 h-3.5" />
-							</button>
-						</>
-					)}
-				</div>
 			</div>
 
-			{/* Name */}
-			<div className="px-2 pt-1.5 pb-1">
-				<div
-					className="text-[11px] font-medium text-on-surface dark:text-on-surface truncate"
+			{/* Hover actions */}
+			<div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+				<button
+					type="button"
+					onClick={onPreview}
+					className="w-5 h-5 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-blue-500 transition-colors"
+					title="View"
+				>
+					<Eye className="w-3 h-3" />
+				</button>
+				{isOwner && (
+					<>
+						<DocumentAccessLevelPicker
+							docId={doc.id}
+							propertyId={propertyId}
+							currentLevel={accessLevel}
+							onChanged={(docId, level) => onAccessLevelChanged?.(docId, level)}
+						/>
+						<button
+							onClick={() => handleDelete(doc.id)}
+							className="w-5 h-5 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+							title="Delete"
+						>
+							<Trash2 className="w-3 h-3" />
+						</button>
+					</>
+				)}
+			</div>
+
+			{/* Info row */}
+			<div className="px-2.5 py-2">
+				<p
+					className="text-[11px] font-medium text-on-surface truncate font-body leading-tight"
 					title={doc.name}
 				>
 					{doc.name}
-				</div>
-				<div className="text-[10px] text-outline dark:text-on-surface-variant">
+				</p>
+				<p className="text-[10px] text-on-surface-variant mt-0.5 font-body">
+					{extensionLabel} &middot;{" "}
 					{new Date(doc.uploadDate).toLocaleDateString("en-US", {
 						month: "short",
 						day: "numeric",
 					})}
-				</div>
+				</p>
 			</div>
 
 			{/* Type at bottom — clickable to change */}
-			<div className="px-2 pb-2 mt-auto relative" ref={typeRef}>
+			<div className="px-2.5 pb-2 mt-auto relative" ref={typeRef}>
 				<button
 					onClick={() => isOwner && setTypeOpen(!typeOpen)}
-					className={`text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-surface-container-high dark:bg-surface-container-high text-on-surface-variant dark:text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-surface-container-highest dark:hover:bg-surface-container cursor-pointer" : ""}`}
+					className={`text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-surface-container-highest cursor-pointer" : ""}`}
 					title={
 						isOwner ? "Click to change type" : getDocumentTypeLabel(doc.type)
 					}
@@ -486,7 +549,7 @@ function DocumentCard({
 					{getDocumentTypeLabel(doc.type)}
 				</button>
 				{typeOpen && (
-					<div className="absolute bottom-full left-0 mb-1 bg-card border border-border border-border rounded-lg shadow-lg z-30 py-1 w-48">
+					<div className="absolute bottom-full left-0 mb-1 bg-card border border-border rounded-lg shadow-lg z-30 py-1 w-48">
 						{DOCUMENT_CATEGORIES.map((cat) => (
 							<button
 								key={cat.type}
@@ -494,7 +557,7 @@ function DocumentCard({
 									onTypeChanged(doc.id, cat.type);
 									setTypeOpen(false);
 								}}
-								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container dark:hover:bg-surface-container ${doc.type === cat.type ? "font-semibold text-on-surface dark:text-on-surface" : "text-on-surface-variant dark:text-on-surface-variant"}`}
+								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container ${doc.type === cat.type ? "font-semibold text-on-surface" : "text-on-surface-variant"}`}
 							>
 								{cat.label}
 							</button>
@@ -521,6 +584,7 @@ function DocumentUploadButton({
 	const [uploading, setUploading] = useState(false);
 	const [uploadDone, setUploadDone] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
+	const [failedFile, setFailedFile] = useState<File | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -537,9 +601,7 @@ function DocumentUploadButton({
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [typeOpen]);
 
-	async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files?.[0];
-		if (!file) return;
+	async function uploadFile(file: File) {
 		setUploading(true);
 		setUploadError(null);
 		try {
@@ -558,27 +620,45 @@ function DocumentUploadButton({
 			const { document } = await res.json();
 			onUploaded(document);
 			setUploadDone(true);
+			setFailedFile(null);
 		} catch (err) {
 			setUploadError(err instanceof Error ? err.message : "Upload failed");
+			setFailedFile(file);
 		} finally {
 			setUploading(false);
 			if (inputRef.current) inputRef.current.value = "";
 		}
 	}
 
+	async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		setFailedFile(null);
+		await uploadFile(file);
+	}
+
+	function handleRetry() {
+		if (failedFile) uploadFile(failedFile);
+	}
+
+	function handleDismiss() {
+		setFailedFile(null);
+		setUploadError(null);
+	}
+
 	return (
-		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-border border-border bg-surface-container/50 dark:bg-surface-container/50 hover:bg-surface-container-high dark:hover:bg-surface-container transition-colors">
+		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 dark:bg-surface-container/50 hover:bg-surface-container-high dark:hover:bg-surface-container transition-colors">
 			{/* Type selector */}
 			<div className="relative mt-3 px-2 w-full" ref={dropdownRef}>
 				<button
 					onClick={() => setTypeOpen(!typeOpen)}
-					className="w-full flex items-center justify-center gap-1 text-[10px] text-outline dark:text-on-surface-variant hover:text-on-surface-variant dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border border-border"
+					className="w-full flex items-center justify-center gap-1 text-[10px] text-outline dark:text-on-surface-variant hover:text-on-surface-variant dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border"
 				>
 					<span className="truncate">{getDocumentTypeLabel(selectedType)}</span>
 					<ChevronDown className="w-3 h-3 shrink-0" />
 				</button>
 				{typeOpen && (
-					<div className="absolute top-full left-0 mt-1 bg-card border border-border border-border rounded-lg shadow-lg z-30 py-1 w-48">
+					<div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-30 py-1 w-48">
 						{DOCUMENT_CATEGORIES.map((cat) => (
 							<button
 								key={cat.type}
@@ -609,6 +689,33 @@ function DocumentUploadButton({
 						Add another
 					</button>
 				</div>
+			) : failedFile && uploadError ? (
+				<div className="flex-1 flex flex-col items-center justify-center py-4 w-full gap-1.5 px-2">
+					<Upload className="w-5 h-5 text-red-400" />
+					<p
+						className="text-[10px] text-on-surface font-medium text-center truncate w-full"
+						title={failedFile.name}
+					>
+						{failedFile.name}
+					</p>
+					<p className="text-[9px] text-red-500 text-center leading-tight">
+						{uploadError}
+					</p>
+					<button
+						onClick={handleRetry}
+						disabled={uploading}
+						className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline mt-0.5"
+					>
+						<Upload className="w-3 h-3" />
+						{uploading ? "Retrying…" : "Retry"}
+					</button>
+					<button
+						onClick={handleDismiss}
+						className="text-[9px] text-outline hover:text-on-surface-variant"
+					>
+						Dismiss
+					</button>
+				</div>
 			) : (
 				<label className="flex-1 flex flex-col items-center justify-center cursor-pointer py-6 w-full">
 					{uploading ? (
@@ -634,11 +741,6 @@ function DocumentUploadButton({
 						onChange={handleFileChange}
 					/>
 				</label>
-			)}
-			{uploadError && (
-				<div className="px-2 pb-2 text-[10px] text-red-500 text-center">
-					{uploadError}
-				</div>
 			)}
 		</div>
 	);
@@ -675,31 +777,48 @@ export function DocumentsGrid({
 	onAccessRequested?: (req: DocumentAccessRequest) => void;
 }) {
 	const hasDocuments = documents.length > 0;
+	const [previewDoc, setPreviewDoc] = useState<Property["documents"][0] | null>(
+		null,
+	);
 	if (!hasDocuments && !isOwner) return null;
 
 	return (
-		<div className="flex flex-wrap gap-3 items-start">
-			{isOwner && (
-				<DocumentUploadButton propertyId={propertyId} onUploaded={onUploaded} />
-			)}
-			{documents.map((doc) => (
-				<DocumentCard
-					key={doc.id}
-					doc={doc}
-					propertyId={propertyId}
-					isOwner={isOwner}
-					onDeleted={onDeleted}
-					onTypeChanged={onTypeChanged}
-					onAccessLevelChanged={onAccessLevelChanged}
-					viewerId={viewerId}
-					viewerName={viewerName}
-					viewerEmail={viewerEmail}
-					viewerAvatar={viewerAvatar}
-					accessRequests={accessRequests}
-					onAccessRequested={onAccessRequested}
+		<>
+			{previewDoc && (
+				<DocumentPreview
+					remoteUrl={getDocViewUrl(propertyId, previewDoc.id)}
+					remoteName={previewDoc.name}
+					remoteSize={previewDoc.size}
+					onClose={() => setPreviewDoc(null)}
 				/>
-			))}
-		</div>
+			)}
+			<div className="flex flex-wrap gap-3 items-start">
+				{isOwner && (
+					<DocumentUploadButton
+						propertyId={propertyId}
+						onUploaded={onUploaded}
+					/>
+				)}
+				{documents.map((doc) => (
+					<DocumentCard
+						key={doc.id}
+						doc={doc}
+						propertyId={propertyId}
+						isOwner={isOwner}
+						onDeleted={onDeleted}
+						onTypeChanged={onTypeChanged}
+						onAccessLevelChanged={onAccessLevelChanged}
+						onPreview={() => setPreviewDoc(doc)}
+						viewerId={viewerId}
+						viewerName={viewerName}
+						viewerEmail={viewerEmail}
+						viewerAvatar={viewerAvatar}
+						accessRequests={accessRequests}
+						onAccessRequested={onAccessRequested}
+					/>
+				))}
+			</div>
+		</>
 	);
 }
 
@@ -1081,20 +1200,23 @@ export default function PropertyDetailContent({
 				<h2 className="text-sm font-semibold text-on-surface uppercase tracking-wide">
 					Transaction Details
 				</h2>
-				<EditableTagList
-					label="Witnesses"
-					icon={Users}
-					items={property.witnesses ?? []}
-					placeholder="Add witness name, press Enter"
-					onSave={(items) => onPatch({ witnesses: items })}
+				<div className="flex items-center gap-2 text-sm text-outline mb-2">
+					<Users className="w-4 h-4" />
+					<span className="font-medium">Witnesses</span>
+				</div>
+				<WitnessTagInput
+					value={property.witnesses ?? []}
+					onChange={(items) => onPatch({ witnesses: items })}
 				/>
 				<div className="border-t border-divider" />
-				<EditableTagList
-					label="Signatories"
-					icon={Edit3}
-					items={property.signatures ?? []}
-					placeholder="Add signatory name, press Enter"
-					onSave={(items) => onPatch({ signatures: items })}
+				<div className="flex items-center gap-2 text-sm text-outline mb-2">
+					<Edit3 className="w-4 h-4" />
+					<span className="font-medium">Signatories</span>
+				</div>
+				<WitnessTagInput
+					value={property.signatures ?? []}
+					onChange={(items) => onPatch({ signatures: items })}
+					placeholder="Type signatory name, press Enter"
 				/>
 			</div>
 

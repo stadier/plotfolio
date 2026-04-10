@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/components/AuthContext";
 import { FavouritesProvider } from "@/components/FavouritesContext";
+import { PortfolioProvider } from "@/components/PortfolioContext";
 import QueryProvider from "@/components/QueryProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import type { Metadata } from "next";
@@ -38,7 +39,9 @@ export default function RootLayout({
 				<ThemeProvider>
 					<QueryProvider>
 						<AuthProvider>
-							<FavouritesProvider>{children}</FavouritesProvider>
+							<PortfolioProvider>
+								<FavouritesProvider>{children}</FavouritesProvider>
+							</PortfolioProvider>
 						</AuthProvider>
 					</QueryProvider>
 				</ThemeProvider>

@@ -1,4 +1,10 @@
 import connectDB from "@/lib/mongoose";
+import {
+	createPersonalPortfolio,
+	getUserPortfolios,
+	PortfolioMemberModel,
+} from "@/models/Portfolio";
+import { PropertyModel } from "@/models/Property";
 import { UserModel } from "@/models/User";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -26,6 +32,29 @@ export async function GET() {
 			return NextResponse.json({ user: null }, { status: 401 });
 		}
 
+		// Ensure user has at least one portfolio (migration for existing users)
+		const hasMembership = await PortfolioMemberModel.findOne({
+			userId,
+		}).lean();
+		if (!hasMembership) {
+			const portfolio = await createPersonalPortfolio(
+				userId,
+				(user as any).displayName,
+			);
+			// Migrate existing properties that belong to this user
+			await PropertyModel.updateMany(
+				{ "owner.id": userId, portfolioId: { $exists: false } },
+				{ $set: { portfolioId: portfolio.id } },
+			);
+			await PropertyModel.updateMany(
+				{ "owner.id": userId, portfolioId: null },
+				{ $set: { portfolioId: portfolio.id } },
+			);
+		}
+
+		// Fetch user's portfolios
+		const portfolios = await getUserPortfolios(userId);
+
 		return NextResponse.json({
 			user: {
 				id: (user as any).id,
@@ -42,6 +71,7 @@ export async function GET() {
 				followerCount: (user as any).followerCount,
 				allowBookings: (user as any).allowBookings,
 			},
+			portfolios,
 		});
 	} catch (error) {
 		console.error("Auth check error:", error);

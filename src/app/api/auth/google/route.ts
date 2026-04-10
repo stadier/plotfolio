@@ -1,4 +1,8 @@
 import connectDB from "@/lib/mongoose";
+import {
+	createPersonalPortfolio,
+	PortfolioMemberModel,
+} from "@/models/Portfolio";
 import { generateSessionToken, UserModel } from "@/models/User";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
@@ -90,9 +94,15 @@ export async function POST(request: NextRequest) {
 			});
 		}
 
+		// Ensure personal portfolio exists
+		const userId = (user as any).id;
+		const hasMembership = await PortfolioMemberModel.findOne({ userId }).lean();
+		if (!hasMembership) {
+			await createPersonalPortfolio(userId, (user as any).displayName);
+		}
+
 		// Set session cookie
 		const token = generateSessionToken();
-		const userId = (user as any).id;
 		await UserModel.updateOne(
 			{ id: userId },
 			{ $set: { sessionToken: token } },

@@ -37,7 +37,7 @@
 
 ### Collaboration & Social
 
-- [ ] **19. Multi-User Property Ownership** — Joint ownership, role-based access (owner/manager/viewer), activity log
+- [x] **19. Multi-User Property Ownership** — Portfolio entity model with roles (admin/manager/agent/viewer), invite by email/username, team management page, portfolio switcher in sidebar, auto-creation on signup, pending invite notifications
 - [ ] **20. Messaging System** — Direct buyer-seller messaging, threaded per-property conversations
 - [ ] **21. Reviews & Reputation** — Post-transaction reviews, seller reputation scoring, verified badges
 

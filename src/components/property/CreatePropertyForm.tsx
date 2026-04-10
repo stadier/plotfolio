@@ -3,10 +3,15 @@
 import { useAuth } from "@/components/AuthContext";
 import ChipInput from "@/components/ui/ChipInput";
 import MasonryGrid from "@/components/ui/MasonryGrid";
+import WitnessTagInput, {
+	type WitnessEntry,
+} from "@/components/ui/WitnessTagInput";
 import { extractFieldsFromDocument } from "@/lib/documentExtractor";
 import {
 	DocumentType,
+	Property,
 	PropertyCondition,
+	PropertyDocument,
 	PropertyStatus,
 	PropertyType,
 } from "@/types/property";
@@ -351,58 +356,102 @@ const selectCls = `${inputCls} appearance-none bg-[url("data:image/svg+xml,%3Csv
 interface CreatePropertyFormProps {
 	initialName?: string;
 	onNameChange?: (name: string) => void;
+	/** When provided, the form operates in edit mode (PUT instead of POST). */
+	initialProperty?: Property;
 }
 
 export default function CreatePropertyForm({
 	initialName,
 	onNameChange,
+	initialProperty,
 }: CreatePropertyFormProps) {
 	const router = useRouter();
 	const { user } = useAuth();
+	const isEdit = !!initialProperty;
 
 	/* basic info */
-	const [name, setName] = useState(initialName || "");
+	const [name, setName] = useState(initialProperty?.name || initialName || "");
 	useEffect(() => {
 		if (initialName) setName(initialName);
 	}, [initialName]);
-	const [address, setAddress] = useState("");
-	const [description, setDescription] = useState("");
+	const [address, setAddress] = useState(initialProperty?.address || "");
+	const [description, setDescription] = useState(
+		initialProperty?.description || "",
+	);
 
 	/* property details */
 	const [propertyType, setPropertyType] = useState<PropertyType>(
-		PropertyType.RESIDENTIAL,
+		initialProperty?.propertyType || PropertyType.RESIDENTIAL,
 	);
-	const [area, setArea] = useState("");
-	const [zoning, setZoning] = useState("");
-	const [taxId, setTaxId] = useState("");
-	const [status, setStatus] = useState<PropertyStatus>(PropertyStatus.OWNED);
-	const [conditions, setConditions] = useState<string[]>([]);
-	const [quantity, setQuantity] = useState("1");
+	const [area, setArea] = useState(
+		initialProperty?.area ? String(initialProperty.area) : "",
+	);
+	const [zoning, setZoning] = useState(initialProperty?.zoning || "");
+	const [taxId, setTaxId] = useState(initialProperty?.taxId || "");
+	const [status, setStatus] = useState<PropertyStatus>(
+		initialProperty?.status || PropertyStatus.OWNED,
+	);
+	const [conditions, setConditions] = useState<string[]>(
+		initialProperty?.conditions || [],
+	);
+	const [quantity, setQuantity] = useState(
+		initialProperty?.quantity ? String(initialProperty.quantity) : "1",
+	);
 
 	/* location */
-	const [lat, setLat] = useState("");
-	const [lng, setLng] = useState("");
-	const [propertyState, setPropertyState] = useState("");
-	const [city, setCity] = useState("");
-	const [country, setCountry] = useState("");
+	const [lat, setLat] = useState(
+		initialProperty?.coordinates?.lat
+			? String(initialProperty.coordinates.lat)
+			: "",
+	);
+	const [lng, setLng] = useState(
+		initialProperty?.coordinates?.lng
+			? String(initialProperty.coordinates.lng)
+			: "",
+	);
+	const [propertyState, setPropertyState] = useState(
+		initialProperty?.state || "",
+	);
+	const [city, setCity] = useState(initialProperty?.city || "");
+	const [country, setCountry] = useState(initialProperty?.country || "");
 
 	/* financial */
-	const [purchaseDate, setPurchaseDate] = useState("");
-	const [purchasePrice, setPurchasePrice] = useState("");
-	const [currentValue, setCurrentValue] = useState("");
+	const [purchaseDate, setPurchaseDate] = useState(
+		initialProperty?.purchaseDate
+			? new Date(initialProperty.purchaseDate).toISOString().split("T")[0]
+			: "",
+	);
+	const [purchasePrice, setPurchasePrice] = useState(
+		initialProperty?.purchasePrice ? String(initialProperty.purchasePrice) : "",
+	);
+	const [currentValue, setCurrentValue] = useState(
+		initialProperty?.currentValue ? String(initialProperty.currentValue) : "",
+	);
 
 	/* transaction */
-	const [boughtFrom, setBoughtFrom] = useState("");
-	const [witnesses, setWitnesses] = useState("");
-	const [signatures, setSignatures] = useState("");
+	const [boughtFrom, setBoughtFrom] = useState(
+		initialProperty?.boughtFrom || "",
+	);
+	const [witnesses, setWitnesses] = useState<WitnessEntry[]>(
+		initialProperty?.witnesses ?? [],
+	);
+	const [signatures, setSignatures] = useState<WitnessEntry[]>(
+		initialProperty?.signatures ?? [],
+	);
 
 	/* owner */
-	const [ownerName, setOwnerName] = useState("");
-	const [ownerEmail, setOwnerEmail] = useState("");
-	const [ownerPhone, setOwnerPhone] = useState("");
+	const [ownerName, setOwnerName] = useState(
+		initialProperty?.owner?.name || "",
+	);
+	const [ownerEmail, setOwnerEmail] = useState(
+		initialProperty?.owner?.email || "",
+	);
+	const [ownerPhone, setOwnerPhone] = useState(
+		initialProperty?.owner?.phone || "",
+	);
 	const [ownerType, setOwnerType] = useState<
 		"individual" | "company" | "trust"
-	>("individual");
+	>(initialProperty?.owner?.type || "individual");
 
 	/* map picker */
 	const [mapPickerOpen, setMapPickerOpen] = useState(false);
@@ -413,6 +462,10 @@ export default function CreatePropertyForm({
 
 	/* document upload state */
 	const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+	const [existingDocs, setExistingDocs] = useState<PropertyDocument[]>(
+		initialProperty?.documents ?? [],
+	);
+	const [removedDocIds, setRemovedDocIds] = useState<string[]>([]);
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [extracting, setExtracting] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -463,8 +516,20 @@ export default function CreatePropertyForm({
 				setCurrentValue(parts.join("."));
 			}
 			if (fields.boughtFrom) setBoughtFrom(fields.boughtFrom ?? "");
-			if (fields.witnesses) setWitnesses(fields.witnesses ?? "");
-			if (fields.signatures) setSignatures(fields.signatures ?? "");
+			if (fields.witnesses) {
+				const names = (fields.witnesses ?? "")
+					.split(",")
+					.map((n: string) => n.trim())
+					.filter(Boolean);
+				setWitnesses(names.map((n: string) => ({ name: n, signature: "" })));
+			}
+			if (fields.signatures) {
+				const names = (fields.signatures ?? "")
+					.split(",")
+					.map((n: string) => n.trim())
+					.filter(Boolean);
+				setSignatures(names.map((n: string) => ({ name: n, signature: "" })));
+			}
 			if (fields.ownerName) setOwnerName(fields.ownerName);
 			if (fields.ownerEmail) setOwnerEmail(fields.ownerEmail ?? "");
 			if (fields.ownerPhone) setOwnerPhone(fields.ownerPhone ?? "");
@@ -500,8 +565,8 @@ export default function CreatePropertyForm({
 			purchasePrice,
 			currentValue,
 			boughtFrom,
-			witnesses,
-			signatures,
+			witnesses.length > 0 ? "yes" : "",
+			signatures.length > 0 ? "yes" : "",
 			ownerName,
 			ownerEmail,
 			ownerPhone,
@@ -520,7 +585,7 @@ export default function CreatePropertyForm({
 		setSubmitting(true);
 
 		try {
-			const id = crypto.randomUUID();
+			const id = isEdit ? initialProperty.id : crypto.randomUUID();
 
 			const property = {
 				id,
@@ -549,12 +614,8 @@ export default function CreatePropertyForm({
 				city: city.trim() || undefined,
 				country: country.trim() || undefined,
 				boughtFrom: boughtFrom.trim() || undefined,
-				witnesses: witnesses.trim()
-					? witnesses.split(",").map((w) => w.trim())
-					: undefined,
-				signatures: signatures.trim()
-					? signatures.split(",").map((s) => s.trim())
-					: undefined,
+				witnesses: witnesses.length > 0 ? witnesses : undefined,
+				signatures: signatures.length > 0 ? signatures : undefined,
 				owner: (() => {
 					if (user) {
 						return {
@@ -585,20 +646,32 @@ export default function CreatePropertyForm({
 						type: ownerType,
 					};
 				})(),
-				documents: [],
+				...(isEdit ? {} : { documents: [] }),
 			};
 
-			/* PropertyAPI.createProperty expects Omit<Property,"id"> but the server
-			   needs the id field — send the full body via the same endpoint. */
-			const res = await fetch("/api/properties", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(property),
-			});
+			/* In edit mode, PUT to update; in create mode, POST to create. */
+			const res = await fetch(
+				isEdit ? `/api/properties/${id}` : "/api/properties",
+				{
+					method: isEdit ? "PUT" : "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(property),
+				},
+			);
 
-			if (!res.ok) throw new Error("Failed to create property");
+			if (!res.ok)
+				throw new Error(
+					isEdit ? "Failed to update property" : "Failed to create property",
+				);
 
-			// Upload documents to the property
+			// Delete removed existing documents
+			for (const docId of removedDocIds) {
+				await fetch(`/api/properties/${id}/documents?docId=${docId}`, {
+					method: "DELETE",
+				});
+			}
+
+			// Upload new documents to the property
 			for (const file of uploadedFiles) {
 				const formData = new FormData();
 				formData.append("file", file);
@@ -611,7 +684,9 @@ export default function CreatePropertyForm({
 				});
 			}
 
-			router.push("/portfolio/properties");
+			router.push(
+				isEdit ? `/portfolio/properties/${id}` : "/portfolio/properties",
+			);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Something went wrong");
 		} finally {
@@ -624,7 +699,7 @@ export default function CreatePropertyForm({
 	}, []);
 
 	return (
-		<div className="flex flex-col h-screen">
+		<div className={`flex flex-col h-screen ${isEdit ? "px-8 py-6" : ""}`}>
 			<form
 				onSubmit={handleSubmit}
 				className="flex flex-col justify-between flex-1 min-w-0"
@@ -967,20 +1042,17 @@ export default function CreatePropertyForm({
 										</Field>
 
 										<Field label="Witnesses">
-											<input
-												className={inputCls}
-												placeholder="Comma-separated, e.g. John Doe, Jane Smith"
+											<WitnessTagInput
 												value={witnesses}
-												onChange={(e) => setWitnesses(e.target.value)}
+												onChange={setWitnesses}
 											/>
 										</Field>
 
 										<Field label="Signatories">
-											<input
-												className={inputCls}
-												placeholder="Comma-separated, e.g. Buyer Name, Seller Name"
+											<WitnessTagInput
 												value={signatures}
-												onChange={(e) => setSignatures(e.target.value)}
+												onChange={setSignatures}
+												placeholder="Type signatory name, press Enter"
 											/>
 										</Field>
 									</div>
@@ -1044,15 +1116,24 @@ export default function CreatePropertyForm({
 						</div>
 
 						{/* Document sidebar — inline next to masonry grid */}
-						{uploadedFiles.length > 0 && sidebarOpen && (
-							<DocumentSidebar
-								files={uploadedFiles}
-								onRemoveFile={handleRemoveFile}
-								onClose={() => setSidebarOpen(false)}
-								onExtract={handleExtractFromFile}
-								extracting={extracting}
-							/>
-						)}
+						{(uploadedFiles.length > 0 || existingDocs.length > 0) &&
+							sidebarOpen && (
+								<DocumentSidebar
+									files={uploadedFiles}
+									existingDocs={existingDocs}
+									propertyId={initialProperty?.id}
+									onRemoveFile={handleRemoveFile}
+									onRemoveExistingDoc={(docId) => {
+										setExistingDocs((prev) =>
+											prev.filter((d) => d.id !== docId),
+										);
+										setRemovedDocIds((prev) => [...prev, docId]);
+									}}
+									onClose={() => setSidebarOpen(false)}
+									onExtract={handleExtractFromFile}
+									extracting={extracting}
+								/>
+							)}
 					</div>
 
 					{/* ── Error ───────────────────────────────── */}

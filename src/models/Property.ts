@@ -171,6 +171,7 @@ const PropertySchema = new Schema<Property & Document>(
 		zoning: { type: String },
 		taxId: { type: String },
 		owner: { type: PropertyOwnerSchema },
+		portfolioId: { type: String, index: true },
 		state: { type: String },
 		city: { type: String },
 		country: { type: String },
@@ -191,8 +192,18 @@ const PropertySchema = new Schema<Property & Document>(
 		projectName: { type: String },
 		availableFrom: { type: String },
 		boughtFrom: { type: String },
-		witnesses: [{ type: String }],
-		signatures: [{ type: String }],
+		witnesses: [
+			{
+				name: { type: String },
+				signature: { type: String },
+			},
+		],
+		signatures: [
+			{
+				name: { type: String },
+				signature: { type: String },
+			},
+		],
 	},
 	{
 		timestamps: true,

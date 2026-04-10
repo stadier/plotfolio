@@ -21,10 +21,13 @@ import {
 	Building2,
 	Calendar,
 	Car,
+	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
+	ChevronUp,
 	Fence,
 	Home,
+	ImagePlus,
 	Landmark,
 	Mail,
 	MapPin,
@@ -42,7 +45,7 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 const PropertyMiniMap = dynamic(
 	() => import("@/components/maps/PropertyMiniMap"),
@@ -54,15 +57,63 @@ const PropertyMiniMap = dynamic(
 function MediaGallery({
 	media,
 	name,
+	isOwner,
+	onMediaUploaded,
 }: {
 	media: PropertyMedia[];
 	name: string;
+	isOwner?: boolean;
+	onMediaUploaded?: (files: File[]) => void;
 }) {
 	const [lightbox, setLightbox] = useState<number | null>(null);
+	const [dragging, setDragging] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const handleFiles = (files: FileList | null) => {
+		if (!files || !onMediaUploaded) return;
+		onMediaUploaded(Array.from(files));
+	};
+
+	const handleDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		setDragging(false);
+		handleFiles(e.dataTransfer.files);
+	};
 
 	if (media.length === 0) {
+		if (isOwner) {
+			return (
+				<label
+					onDragOver={(e) => {
+						e.preventDefault();
+						setDragging(true);
+					}}
+					onDragLeave={() => setDragging(false)}
+					onDrop={handleDrop}
+					className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center h-64 cursor-pointer transition-colors ${
+						dragging
+							? "border-primary bg-primary/10"
+							: "border-border bg-surface-container hover:border-primary/40"
+					}`}
+				>
+					<input
+						type="file"
+						accept="image/*,video/*,audio/*"
+						multiple
+						className="hidden"
+						onChange={(e) => handleFiles(e.target.files)}
+					/>
+					<ImagePlus className="w-10 h-10 text-outline mb-3" />
+					<p className="text-sm font-medium text-on-surface-variant">
+						Drag &amp; drop media here
+					</p>
+					<p className="text-xs text-outline mt-1">or click to browse files</p>
+				</label>
+			);
+		}
 		return (
-			<div className="rounded-xl bg-surface-container flex items-center justify-center h-64">
+			<div className="rounded-xl bg-surface-container flex flex-col items-center justify-center h-64">
+				<ImagePlus className="w-10 h-10 text-outline mb-3" />
 				<p className="text-on-surface-variant text-sm">No media available</p>
 			</div>
 		);
@@ -922,11 +973,18 @@ export default function ListingDetailViewAlt({
 		.filter(Boolean)
 		.join(", ");
 
+	const [mediaOpen, setMediaOpen] = useState(false);
+	const [docsOpen, setDocsOpen] = useState(false);
+
 	return (
 		<div className={`flex flex-col lg:flex-row h-full ${className}`}>
-			{/* ─── Left column: Media only (50%, independently scrollable) ── */}
-			<div className="w-full lg:w-3/5 overflow-y-auto p-4 space-y-6">
-				<MediaGallery media={mediaItems} name={property.name} />
+			{/* ─── Left column: Media + Docs (desktop only) ──────── */}
+			<div className="hidden lg:block w-full lg:w-3/5 overflow-y-auto p-4 space-y-6">
+				<MediaGallery
+					media={mediaItems}
+					name={property.name}
+					isOwner={isOwner}
+				/>
 
 				{/* Documents */}
 				<DocumentsSection
@@ -938,8 +996,93 @@ export default function ListingDetailViewAlt({
 				/>
 			</div>
 
-			{/* ─── Right column: All property info (50%, independently scrollable) ── */}
-			<div className="w-full lg:w-2/5 overflow-y-auto p-4 space-y-6 border-l border-border">
+			{/* ─── Single column (mobile) / Right column (desktop) ── */}
+			<div className="w-full lg:w-2/5 overflow-y-auto p-4 space-y-6 lg:border-l border-border">
+				{/* Expandable Media section (mobile only) */}
+				{mediaItems.length > 0 && (
+					<div className="lg:hidden border border-border rounded-xl overflow-hidden">
+						<button
+							type="button"
+							onClick={() => setMediaOpen(!mediaOpen)}
+							className="w-full flex items-center justify-between px-4 py-3 bg-card text-on-surface font-semibold text-sm"
+						>
+							<span>Media ({mediaItems.length})</span>
+							{mediaOpen ? (
+								<ChevronUp className="w-4 h-4" />
+							) : (
+								<ChevronDown className="w-4 h-4" />
+							)}
+						</button>
+						{mediaOpen && (
+							<div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+								{mediaItems.map((item, idx) => (
+									<div key={idx} className="rounded-lg overflow-hidden">
+										{item.type === MediaType.VIDEO ? (
+											<div className="relative">
+												<video
+													src={item.url}
+													className="w-full h-auto rounded-lg"
+													muted
+													preload="metadata"
+												/>
+												<div className="absolute inset-0 flex items-center justify-center">
+													<div className="bg-black/50 rounded-full p-2">
+														<Play className="w-5 h-5 text-white fill-white" />
+													</div>
+												</div>
+											</div>
+										) : item.type === MediaType.AUDIO ? (
+											<div className="h-24 bg-linear-to-br from-violet-600 to-indigo-800 rounded-lg flex flex-col items-center justify-center text-white">
+												<Mic className="w-6 h-6" />
+												<span className="text-xs mt-1">
+													{item.caption ?? "Audio"}
+												</span>
+											</div>
+										) : (
+											/* eslint-disable-next-line @next/next/no-img-element */
+											<img
+												src={item.url}
+												alt={`${property.name} ${idx + 1}`}
+												className="w-full h-auto rounded-lg"
+												loading="lazy"
+											/>
+										)}
+									</div>
+								))}
+							</div>
+						)}
+					</div>
+				)}
+
+				{/* Expandable Documents section (mobile only) */}
+				{(property.documents?.length ?? 0) > 0 && (
+					<div className="lg:hidden border border-border rounded-xl overflow-hidden">
+						<button
+							type="button"
+							onClick={() => setDocsOpen(!docsOpen)}
+							className="w-full flex items-center justify-between px-4 py-3 bg-card text-on-surface font-semibold text-sm"
+						>
+							<span>Documents ({property.documents?.length})</span>
+							{docsOpen ? (
+								<ChevronUp className="w-4 h-4" />
+							) : (
+								<ChevronDown className="w-4 h-4" />
+							)}
+						</button>
+						{docsOpen && (
+							<div className="p-3">
+								<DocumentsSection
+									property={property}
+									accessRequests={accessRequests}
+									onAccessRequested={onAccessRequested}
+									viewer={viewer}
+									isOwner={isOwner}
+								/>
+							</div>
+						)}
+					</div>
+				)}
+
 				{/* Location bar */}
 				<div className="flex items-center gap-2 text-sm text-on-surface-variant">
 					<MapPin className="w-4 h-4 shrink-0" />
@@ -974,9 +1117,9 @@ export default function ListingDetailViewAlt({
 
 				{/* Owner / Price / Schedule — masonry grid */}
 				<MasonryGrid minColWidth={250} gap={16}>
-					<OwnerCard property={property} />
+					{!isOwner && <OwnerCard property={property} />}
 					<PriceBreakdownCard property={property} />
-					<ScheduleViewingCard property={property} />
+					{!isOwner && <ScheduleViewingCard property={property} />}
 				</MasonryGrid>
 
 				{/* Listing meta */}
