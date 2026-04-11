@@ -230,13 +230,13 @@ export default function PropertyCard({
 						{(videoCount > 0 || audioCount > 0) && (
 							<div className="absolute top-3 left-3 flex gap-1 z-10">
 								{videoCount > 0 && (
-									<span className="flex items-center gap-0.5 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+									<span className="flex items-center gap-0.5 bg-black/50 text-white typo-badge font-medium px-1.5 py-0.5 rounded-full">
 										<Video className="w-3 h-3" />
 										{videoCount}
 									</span>
 								)}
 								{audioCount > 0 && (
-									<span className="flex items-center gap-0.5 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+									<span className="flex items-center gap-0.5 bg-black/50 text-white typo-badge font-medium px-1.5 py-0.5 rounded-full">
 										<Mic className="w-3 h-3" />
 										{audioCount}
 									</span>
@@ -253,7 +253,7 @@ export default function PropertyCard({
 				{/* Status indicator — small pill at top-right */}
 				<div
 					className={cn(
-						"absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide",
+						"absolute top-3 right-3 px-2 py-0.5 rounded-full typo-badge font-semibold uppercase tracking-wide",
 						statusColors[property.status],
 					)}
 				>

@@ -283,17 +283,17 @@ function PropertyHero({ property }: { property: Property }) {
 					sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
 				/>
 				<div className="absolute inset-0 bg-linear-to-t from-black/35 via-black/5 to-transparent" />
-				<div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+				<div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 typo-badge font-semibold uppercase tracking-[0.16em] text-slate-700">
 					{previewConfig?.label ?? "Property preview"}
 				</div>
 				<div className="absolute left-3 bottom-3 right-3 flex items-end justify-between gap-3">
 					<div>
-						<p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/75">
+						<p className="typo-badge font-semibold uppercase tracking-[0.16em] text-white/75">
 							{built ? "Improved site" : "Land parcel"}
 						</p>
 						<p className="text-sm font-semibold text-white">{locality}</p>
 					</div>
-					<div className="rounded-full bg-white/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700">
+					<div className="rounded-full bg-white/92 px-2.5 py-1 typo-badge font-semibold uppercase tracking-[0.14em] text-slate-700">
 						{areaLabel}
 					</div>
 				</div>
@@ -352,17 +352,17 @@ function PropertyHero({ property }: { property: Property }) {
 				</svg>
 			</div>
 			<div className="absolute inset-0 bg-linear-to-t from-white/40 via-transparent to-transparent" />
-			<div className="absolute left-3 top-3 rounded-full bg-white/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+			<div className="absolute left-3 top-3 rounded-full bg-white/92 px-2.5 py-1 typo-badge font-semibold uppercase tracking-[0.16em] text-slate-700">
 				{built ? "Site with structure" : "Survey fallback"}
 			</div>
 			<div className="absolute left-3 bottom-3 right-3 flex items-end justify-between gap-3">
 				<div>
-					<p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+					<p className="typo-badge font-semibold uppercase tracking-[0.16em] text-slate-500">
 						{built ? "Improved site" : "Open parcel"}
 					</p>
 					<p className="text-sm font-semibold text-slate-800">{locality}</p>
 				</div>
-				<div className="rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700 shadow-sm">
+				<div className="rounded-full bg-white/95 px-2.5 py-1 typo-badge font-semibold uppercase tracking-[0.14em] text-slate-700 shadow-sm">
 					{areaLabel}
 				</div>
 			</div>
@@ -665,17 +665,17 @@ export default function PropertiesPage() {
 
 	return (
 		<AppShell>
-			<div className="px-8 py-8" data-animate={animate || undefined}>
+			<div className="sz-page" data-animate={animate || undefined}>
 				{/* Page header + summary stats */}
-				<div className="flex flex-wrap items-start justify-between gap-6 mb-8 animate-fade-in">
+				<div className="flex flex-wrap items-start justify-between sz-gap-section mb-8 animate-fade-in">
 					<div>
 						<div className="flex items-center gap-3 mb-1">
 							<Home className="w-5 h-5 text-secondary" />
-							<h1 className="font-headline text-3xl font-extrabold tracking-tighter text-primary">
+							<h1 className="font-headline typo-page-title font-extrabold tracking-tighter text-primary">
 								My Properties
 							</h1>
 						</div>
-						<p className="text-sm text-on-surface-variant ml-8">
+						<p className="typo-body text-on-surface-variant ml-8">
 							Manage your properties — documents, valuations, and transaction
 							records
 						</p>

@@ -203,7 +203,7 @@ export default function PropertyMap({
 			<MapContainer
 				center={viewport.center}
 				zoom={viewport.zoom}
-				className="h-full w-full rounded-lg"
+				className="h-full w-full"
 				zoomControl={false}
 				scrollWheelZoom={true}
 				minZoom={10}

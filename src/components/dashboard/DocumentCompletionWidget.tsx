@@ -19,21 +19,21 @@ export default function DocumentCompletionWidget({
 	);
 
 	return (
-		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
-			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/20 flex items-center justify-center">
-					<Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+		<div className="bg-card sz-card border border-border break-inside-avoid widget-card animate-fade-in-up">
+			<div className="flex items-center sz-gap mb-[var(--size-widget-header-mb)]">
+				<div className="sz-icon-box rounded-full bg-amber-50 dark:bg-amber-500/20 flex items-center justify-center">
+					<Shield className="sz-icon text-amber-600 dark:text-amber-400" />
 				</div>
-				<span className="text-xs font-semibold text-on-surface-variant">
+				<span className="typo-caption font-semibold text-on-surface-variant">
 					Doc Compliance
 				</span>
 			</div>
 			{/* Overall score */}
 			<div className="flex items-end gap-2 mb-4">
-				<span className="font-headline text-3xl font-extrabold text-primary">
+				<span className="font-headline typo-stat-lg font-extrabold text-primary">
 					{overallPct}%
 				</span>
-				<span className="text-[10px] text-on-surface-variant mb-1.5">
+				<span className="typo-badge text-on-surface-variant mb-1.5">
 					complete
 				</span>
 			</div>
@@ -53,10 +53,10 @@ export default function DocumentCompletionWidget({
 					return (
 						<div key={p.id}>
 							<div className="flex items-center justify-between mb-1">
-								<span className="text-[11px] font-medium text-primary truncate max-w-[140px]">
+								<span className="typo-caption font-medium text-primary truncate max-w-[140px]">
 									{p.name}
 								</span>
-								<span className="text-[10px] text-on-surface-variant">
+								<span className="typo-badge text-on-surface-variant">
 									{p.documents?.length ?? 0}/{REQUIRED_DOCS}
 								</span>
 							</div>

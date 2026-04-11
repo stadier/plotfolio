@@ -38,12 +38,12 @@ export default function UpcomingDatesWidget({
 	});
 
 	return (
-		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
-			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-violet-50 dark:bg-violet-500/20 flex items-center justify-center">
-					<Calendar className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+		<div className="bg-card sz-card border border-border break-inside-avoid widget-card animate-fade-in-up">
+			<div className="flex items-center sz-gap mb-[var(--size-widget-header-mb)]">
+				<div className="sz-icon-box rounded-full bg-violet-50 dark:bg-violet-500/20 flex items-center justify-center">
+					<Calendar className="sz-icon text-violet-600 dark:text-violet-400" />
 				</div>
-				<span className="text-xs font-semibold text-on-surface-variant">
+				<span className="typo-caption font-semibold text-on-surface-variant">
 					Upcoming Dates
 				</span>
 			</div>
@@ -53,22 +53,22 @@ export default function UpcomingDatesWidget({
 						<div
 							className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center ${ev.urgency}`}
 						>
-							<span className="text-[10px] font-bold leading-none">
+							<span className="typo-badge font-bold leading-none">
 								{ev.dateStr.split(" ")[0]}
 							</span>
-							<span className="text-[8px] font-medium uppercase leading-tight">
+							<span className="typo-badge font-medium uppercase leading-tight">
 								{ev.dateStr.split(" ")[1]}
 							</span>
 						</div>
 						<div className="min-w-0 flex-1">
-							<p className="text-[11px] font-semibold text-primary truncate">
+							<p className="typo-caption font-semibold text-primary truncate">
 								{ev.event}
 							</p>
-							<p className="text-[10px] text-on-surface-variant truncate">
+							<p className="typo-badge text-on-surface-variant truncate">
 								{ev.name}
 							</p>
 						</div>
-						<span className="text-[9px] font-bold text-outline">
+						<span className="typo-badge font-bold text-outline">
 							{ev.daysOut}d
 						</span>
 					</div>

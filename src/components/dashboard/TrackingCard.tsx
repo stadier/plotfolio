@@ -35,16 +35,16 @@ export default function TrackingCard({
 			{/* Info */}
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-1.5 mb-0.5">
-					<p className="font-headline font-bold text-sm text-primary truncate">
+					<p className="font-headline font-bold typo-body text-primary truncate">
 						{property.name}
 					</p>
 				</div>
-				<p className="text-xs font-semibold text-on-surface-variant">
+				<p className="typo-body-sm font-semibold text-on-surface-variant">
 					{formatCurrencyFull(worth, property.country)}
 				</p>
 				<div className="flex items-center gap-2 mt-1">
 					<span
-						className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+						className={`px-1.5 py-0.5 rounded typo-badge font-bold uppercase tracking-wider ${
 							isOwn
 								? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300"
 								: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
@@ -52,7 +52,7 @@ export default function TrackingCard({
 					>
 						{isOwn ? "Your listing" : "Marketplace"}
 					</span>
-					<span className="text-[10px] text-on-surface-variant">
+					<span className="typo-badge text-on-surface-variant">
 						{(property.area || 0).toLocaleString()} sqm
 					</span>
 				</div>
@@ -65,7 +65,7 @@ export default function TrackingCard({
 				}}
 				className="text-outline group-hover:text-primary self-center transition-colors"
 			>
-				<ArrowUpRight className="w-4 h-4" />
+				<ArrowUpRight className="sz-icon" />
 			</button>
 		</div>
 	);

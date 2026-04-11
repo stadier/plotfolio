@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/AuthContext";
 import UserAvatar from "@/components/ui/UserAvatar";
-import { Bell, Briefcase, LogOut, ShoppingBag } from "lucide-react";
+import { Bell, Briefcase, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -45,7 +45,7 @@ function SwitcherPill({
 	return (
 		<div
 			ref={pillRef}
-			className="absolute top-1 rounded-full shadow-sm transition-all duration-300 ease-in-out"
+			className="absolute top-0.5 rounded-full shadow-sm transition-all duration-300 ease-in-out"
 			style={{ ...style, backgroundColor: bg }}
 		/>
 	);
@@ -57,86 +57,63 @@ export default function Header() {
 	const { user, logout } = useAuth();
 
 	return (
-		<header className="shrink-0 bg-card border-b border-border">
-			<div className="relative flex items-center justify-between px-8 py-4 w-full">
+		<header className="sticky top-0 z-30 shrink-0 bg-background">
+			<div className="relative flex items-center justify-between px-6 py-3 w-full">
 				{/* Portfolio / Marketplace switcher */}
-				<div className="hidden md:flex items-center relative bg-slate-100 dark:bg-surface-container rounded-full p-1">
+				<div className="hidden md:flex items-center relative bg-surface-container rounded-full p-0.5">
 					<SwitcherPill isMarketplace={isMarketplace} hasUser={!!user} />
 					{user && (
 						<Link
 							href="/portfolio"
 							data-switcher="portfolio"
-							className={`relative z-10 flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors duration-300 ${
+							className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${
 								!isMarketplace
 									? "text-white"
-									: "text-slate-500 dark:text-on-surface-variant hover:text-blue-600"
+									: "text-on-surface-variant hover:text-blue-600"
 							}`}
 						>
-							<Briefcase className="w-4 h-4" />
+							<Briefcase className="w-3.5 h-3.5" />
 							Portfolio
 						</Link>
 					)}
 					<Link
 						href="/marketplace"
 						data-switcher="marketplace"
-						className={`relative z-10 flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors duration-300 ${
+						className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${
 							isMarketplace || !user
 								? "text-white"
-								: "text-slate-500 dark:text-on-surface-variant hover:text-blue-600"
+								: "text-on-surface-variant hover:text-blue-600"
 						}`}
 					>
-						<ShoppingBag className="w-4 h-4" />
+						<ShoppingBag className="w-3.5 h-3.5" />
 						Marketplace
 					</Link>
 				</div>
 
 				{/* Actions */}
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-2">
 					{user && (
-						<button className="p-2 hover:bg-slate-50 dark:hover:bg-surface-container transition-all rounded-full icon-btn-hover">
-							<Bell className="w-5 h-5 text-on-surface" />
+						<button className="p-1.5 hover:bg-surface-container transition-all rounded-full">
+							<Bell className="w-4 h-4 text-on-surface-variant" />
 						</button>
 					)}
-					{/* User avatar + name */}
 					{user ? (
-						<>
-							<UserAvatar
-								name={user.name}
-								displayName={user.displayName}
-								username={user.username}
-								avatar={user.avatar}
-								ownerId={user.id}
-								size="md"
-								showLabel
-								className="hidden sm:flex"
-							/>
-							<UserAvatar
-								name={user.name}
-								avatar={user.avatar}
-								ownerId={user.id}
-								size="md"
-								className="sm:hidden"
-							/>
-							<button
-								onClick={logout}
-								title="Log out"
-								className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 transition-all rounded-full"
-							>
-								<LogOut className="w-4 h-4" />
-							</button>
-						</>
+						<UserAvatar
+							name={user.name}
+							avatar={user.avatar}
+							ownerId={user.id}
+							size="sm"
+						/>
 					) : (
 						<Link
 							href="/login"
-							className="text-m font-bold uppercase tracking-widest text-primary hover:underline"
+							className="text-[13px] font-semibold text-primary hover:underline"
 						>
 							Log In
 						</Link>
 					)}
 				</div>
 			</div>
-			{/* Divider */}
-			<div className="bg-[#f5f5f5] dark:bg-outline-variant h-px w-full" />
 		</header>
 	);
 }

@@ -51,22 +51,22 @@ export default function ValueTrendWidget({
 			: "0";
 
 	return (
-		<div className="bg-card rounded-2xl border border-border p-5 flex flex-col justify-between h-full widget-card animate-fade-in-up">
+		<div className="bg-card sz-card border border-border flex flex-col justify-between h-full widget-card animate-fade-in-up">
 			<div>
 				<div className="flex items-center justify-between mb-1">
-					<div className="flex items-center gap-2">
-						<div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-green-500/20 flex items-center justify-center">
-							<TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+					<div className="flex items-center sz-gap">
+						<div className="sz-icon-box rounded-full bg-emerald-50 dark:bg-green-500/20 flex items-center justify-center">
+							<TrendingUp className="sz-icon text-green-600 dark:text-green-400" />
 						</div>
-						<span className="text-xs font-semibold text-on-surface-variant">
+						<span className="typo-caption font-semibold text-on-surface-variant">
 							Portfolio Trend
 						</span>
 					</div>
-					<span className="text-xs font-bold text-green-600 dark:text-green-400">
+					<span className="typo-caption font-bold text-green-600 dark:text-green-400">
 						+{growthPct}%
 					</span>
 				</div>
-				<p className="text-[10px] text-on-surface-variant mb-3">
+				<p className="typo-badge text-on-surface-variant mb-3">
 					12-month value trend
 				</p>
 			</div>
@@ -106,7 +106,7 @@ export default function ValueTrendWidget({
 			{/* Month labels */}
 			<div className="flex justify-between mt-1">
 				{[0, 3, 6, 9, 11].map((i) => (
-					<span key={i} className="text-[9px] text-outline font-medium">
+					<span key={i} className="typo-badge text-outline font-medium">
 						{months[i]}
 					</span>
 				))}

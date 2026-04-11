@@ -1,6 +1,7 @@
 "use client";
 
 import { usePortfolio } from "@/components/PortfolioContext";
+import { useTheme, type Theme } from "@/components/ThemeProvider";
 import { PortfolioAPI } from "@/lib/api";
 import {
 	BarChart3,
@@ -12,16 +13,20 @@ import {
 	Heart,
 	HelpCircle,
 	Home,
+	LayoutDashboard,
 	MapPin,
 	MessageSquare,
+	Monitor,
+	Moon,
+	MoreHorizontal,
 	PanelLeftClose,
 	PanelLeftOpen,
 	Plus,
 	Search,
 	Settings,
 	ShoppingBag,
+	Sun,
 	Tag,
-	Trash2,
 	Users,
 	type LucideIcon,
 } from "lucide-react";
@@ -37,7 +42,8 @@ interface NavItem {
 }
 
 const portfolioNav: NavItem[] = [
-	{ name: "Dashboard", href: "/portfolio", icon: Home },
+	{ name: "Dashboard", href: "/portfolio", icon: LayoutDashboard },
+	{ name: "Classic", href: "/portfolio/classic", icon: Home },
 	{ name: "Properties", href: "/portfolio/properties", icon: Grid },
 	{ name: "Map View", href: "/portfolio/map", icon: MapPin },
 	{ name: "Analytics", href: "/portfolio/analytics", icon: BarChart3 },
@@ -62,6 +68,71 @@ interface SidebarProps {
 	hideAddProperty?: boolean;
 }
 
+const themeOptions: { value: Theme; label: string; icon: LucideIcon }[] = [
+	{ value: "light", label: "Light", icon: Sun },
+	{ value: "dark", label: "Dark", icon: Moon },
+	{ value: "system", label: "System", icon: Monitor },
+];
+
+function ThemePicker() {
+	const { theme, setTheme } = useTheme();
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!open) return;
+		function handleClick(e: MouseEvent) {
+			if (ref.current && !ref.current.contains(e.target as Node))
+				setOpen(false);
+		}
+		document.addEventListener("mousedown", handleClick);
+		return () => document.removeEventListener("mousedown", handleClick);
+	}, [open]);
+
+	const ActiveIcon = themeOptions.find((o) => o.value === theme)?.icon ?? Moon;
+
+	return (
+		<div ref={ref} className="relative">
+			<button
+				onClick={() => setOpen((p) => !p)}
+				title="Theme"
+				className={`p-2 rounded-lg transition-all ${
+					open
+						? "text-on-surface bg-surface-container"
+						: "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+				}`}
+			>
+				<ActiveIcon className="w-[18px] h-[18px]" />
+			</button>
+			{open && (
+				<div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-xl overflow-hidden min-w-[140px]">
+					{themeOptions.map((opt) => {
+						const Icon = opt.icon;
+						const isActive = theme === opt.value;
+						return (
+							<button
+								key={opt.value}
+								onClick={() => {
+									setTheme(opt.value);
+									setOpen(false);
+								}}
+								className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors ${
+									isActive
+										? "bg-surface-container text-on-surface font-semibold"
+										: "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+								}`}
+							>
+								<Icon className="w-4 h-4" />
+								{opt.label}
+							</button>
+						);
+					})}
+				</div>
+			)}
+		</div>
+	);
+}
+
 export default function Sidebar({
 	className = "",
 	hideAddProperty,
@@ -78,6 +149,7 @@ export default function Sidebar({
 	} = usePortfolio();
 	const [switcherOpen, setSwitcherOpen] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [switcherSearch, setSwitcherSearch] = useState("");
 	const switcherRef = useRef<HTMLDivElement>(null);
 
 	const handleDeletePortfolio = async (id: string) => {
@@ -139,25 +211,23 @@ export default function Sidebar({
 	return (
 		<aside
 			data-sidebar
-			className={`relative hidden md:flex flex-col h-full shrink-0 border-r border-border bg-sidebar pb-8 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
-				collapsed ? "w-[72px] px-2" : "w-64 px-4"
+			className={`relative hidden md:flex flex-col h-full shrink-0 bg-sidebar px-2 pb-4 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
+				collapsed ? "w-[72px]" : "w-56"
 			} ${className}`}
 		>
 			{/* Logo */}
-			<div
-				className={`flex items-center py-5 mb-4 border-b border-border ${collapsed ? "justify-center" : "px-2 gap-2.5"}`}
-			>
-				<Link href="/" className="flex items-center gap-2.5">
+			<div className="flex items-center px-4 gap-2 pt-4 pb-3">
+				<Link href="/" className="flex items-center gap-2 overflow-hidden">
 					<Image
 						src="/plotfolio-logo.svg"
 						alt="Plotfolio"
-						width={32}
-						height={32}
-						className="w-8 h-8 shrink-0"
+						width={28}
+						height={28}
+						className="w-7 h-7 shrink-0"
 					/>
 					<span
 						data-sidebar-label
-						className={`text-2xl font-bold tracking-tighter text-primary font-headline whitespace-nowrap transition-all duration-300 ${
+						className={`text-xl font-bold tracking-tighter text-primary font-headline whitespace-nowrap transition-all duration-300 ${
 							collapsed ? "w-0 opacity-0 overflow-hidden" : "w-auto opacity-100"
 						}`}
 					>
@@ -165,21 +235,184 @@ export default function Sidebar({
 					</span>
 				</Link>
 			</div>
+
+			{/* Portfolio switcher — under logo */}
+			{!isMarketplace && portfolios.length > 0 && (
+				<div ref={switcherRef} className="relative mb-3">
+					<button
+						onClick={() => {
+							setSwitcherOpen((prev) => !prev);
+							setSwitcherSearch("");
+						}}
+						title={
+							collapsed
+								? (activePortfolio?.name ?? "Switch portfolio")
+								: undefined
+						}
+						className={`ml-1 flex items-center gap-2 px-3 py-2 rounded-md w-[calc(100%-7px)] overflow-hidden hover:bg-surface-container transition-colors ${
+							!collapsed ? "border border-border" : ""
+						}`}
+					>
+						{activePortfolio?.avatar ? (
+							<img
+								src={activePortfolio.avatar}
+								alt=""
+								className="w-6 h-6 rounded-md object-cover shrink-0"
+							/>
+						) : (
+							<span className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+								{(activePortfolio?.name ?? "P").charAt(0).toUpperCase()}
+							</span>
+						)}
+						<span
+							data-sidebar-label
+							className={`text-left truncate text-[13px] font-semibold text-on-surface whitespace-nowrap transition-all duration-300 ${
+								collapsed
+									? "w-0 opacity-0 overflow-hidden"
+									: "flex-1 opacity-100"
+							}`}
+						>
+							{activePortfolio?.name ?? "Portfolio"}
+						</span>
+						{!collapsed && (
+							<ChevronDown
+								className={`w-3.5 h-3.5 text-on-surface-variant shrink-0 transition-transform ${
+									switcherOpen ? "rotate-180" : ""
+								}`}
+							/>
+						)}
+					</button>
+
+					{switcherOpen && (
+						<div
+							className={`absolute z-50 top-full mt-1 bg-card border border-border rounded-xl shadow-2xl overflow-hidden ${
+								collapsed ? "left-full ml-2 top-0 mt-0 w-56" : "left-0 w-56"
+							}`}
+						>
+							{/* Search */}
+							<div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+								<Search className="w-3.5 h-3.5 text-outline shrink-0" />
+								<input
+									type="text"
+									placeholder="Search portfolios"
+									value={switcherSearch}
+									onChange={(e) => setSwitcherSearch(e.target.value)}
+									className="flex-1 bg-transparent text-[13px] text-on-surface placeholder:text-outline outline-none"
+									autoFocus
+								/>
+							</div>
+
+							{/* Portfolio list */}
+							<div className="px-1.5 py-1.5 space-y-0.5">
+								{portfolios
+									.filter((p) =>
+										p.name.toLowerCase().includes(switcherSearch.toLowerCase()),
+									)
+									.map((p) => {
+										const isActive = p.id === activePortfolio?.id;
+										return (
+											<div key={p.id}>
+												{deletingId === p.id ? (
+													<div className="px-2.5 py-2 space-y-2 rounded-lg bg-surface-container">
+														<p className="text-xs text-on-surface">
+															Delete <strong>{p.name}</strong>? This cannot be
+															undone.
+														</p>
+														<div className="flex gap-2">
+															<button
+																onClick={() => handleDeletePortfolio(p.id)}
+																className="px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+															>
+																Delete
+															</button>
+															<button
+																onClick={() => setDeletingId(null)}
+																className="px-2 py-0.5 text-xs font-semibold bg-surface-container-high text-on-surface rounded-md hover:bg-surface-container transition-colors"
+															>
+																Cancel
+															</button>
+														</div>
+													</div>
+												) : (
+													<button
+														onClick={() => {
+															setActivePortfolioId(p.id);
+															setSwitcherOpen(false);
+														}}
+														className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left transition-colors ${
+															isActive
+																? "bg-surface-container-high"
+																: "hover:bg-surface-container"
+														}`}
+													>
+														{p.avatar ? (
+															<img
+																src={p.avatar}
+																alt=""
+																className="w-6 h-6 rounded-md object-cover shrink-0"
+															/>
+														) : (
+															<span className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+																{p.name.charAt(0).toUpperCase()}
+															</span>
+														)}
+														<span className="flex-1 text-[13px] font-medium text-on-surface truncate">
+															{p.name}
+														</span>
+													</button>
+												)}
+											</div>
+										);
+									})}
+							</div>
+
+							{/* All portfolios */}
+							<div className="flex items-center justify-between px-3.5 py-1.5">
+								<span className="text-[13px] font-medium text-on-surface">
+									All portfolios
+								</span>
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+									}}
+									className="p-0.5 rounded text-on-surface-variant hover:text-on-surface transition-colors"
+								>
+									<MoreHorizontal className="w-4 h-4" />
+								</button>
+							</div>
+
+							{/* New portfolio */}
+							<div className="px-2.5 pb-2.5 pt-1">
+								<Link
+									href="/portfolio/new"
+									onClick={() => setSwitcherOpen(false)}
+									className="flex items-center justify-center gap-1.5 w-full rounded-md signature-gradient text-white hover:opacity-90 transition-opacity px-3 py-2"
+								>
+									<Plus className="w-3.5 h-3.5" />
+									<span className="text-[13px] font-semibold">
+										New portfolio
+									</span>
+								</Link>
+							</div>
+						</div>
+					)}
+				</div>
+			)}
 			{/* Collapse toggle — pinned to the right edge, vertically centered */}
 			<button
 				onClick={toggle}
 				title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-				className="absolute top-1/2 -translate-y-1/2 -right-3.5 z-10 flex items-center justify-center w-7 h-7 rounded-full border border-border bg-card text-slate-400 dark:text-on-surface-variant hover:text-primary hover:border-primary/40 shadow-sm transition-all"
+				className="absolute top-1/2 -translate-y-1/2 -right-3 z-10 flex items-center justify-center w-6 h-6 rounded-full border border-border bg-card text-slate-400 dark:text-on-surface-variant hover:text-primary hover:border-primary/40 shadow-sm transition-all"
 			>
 				{collapsed ? (
-					<PanelLeftOpen className="w-3.5 h-3.5" />
+					<PanelLeftOpen className="w-3 h-3" />
 				) : (
-					<PanelLeftClose className="w-3.5 h-3.5" />
+					<PanelLeftClose className="w-3 h-3" />
 				)}
 			</button>
 
 			{/* Main navigation */}
-			<nav className="flex-1 flex flex-col gap-1">
+			<nav className="flex-1 flex flex-col gap-0.5 px-[7px]">
 				{navItems.map((item) => {
 					const Icon = item.icon;
 					const isActive = isMarketplace
@@ -197,27 +430,25 @@ export default function Sidebar({
 							href={item.href}
 							data-sidebar-link
 							title={collapsed ? item.name : undefined}
-							className={`py-3 flex items-center rounded-lg transition-all ${
-								collapsed ? "justify-center" : "gap-3 px-4"
-							} ${
+							className={`flex items-center gap-3 px-3 py-2 rounded-md overflow-hidden transition-all ${
 								isActive
-									? "bg-nav-active text-primary font-bold shadow-sm dark:shadow-none"
-									: "text-slate-600 dark:text-on-surface-variant hover:translate-x-1 hover:bg-slate-100 dark:hover:bg-surface-container"
+									? "bg-nav-active text-primary font-semibold shadow-sm dark:shadow-none"
+									: "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
 							}`}
 						>
 							<span className="relative shrink-0">
 								<Icon
-									className={`w-5 h-5 ${isActive ? "text-primary" : "text-slate-500 dark:text-on-surface-variant"}`}
+									className={`w-[18px] h-[18px] ${isActive ? "text-primary" : ""}`}
 								/>
 								{badgeCount > 0 && collapsed && (
-									<span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+									<span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
 										{badgeCount}
 									</span>
 								)}
 							</span>
 							<span
 								data-sidebar-label
-								className={`font-label text-xs uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${
+								className={`text-[13px] whitespace-nowrap transition-all duration-300 ${
 									collapsed
 										? "w-0 opacity-0 overflow-hidden"
 										: "w-auto opacity-100"
@@ -226,7 +457,7 @@ export default function Sidebar({
 								{item.name}
 							</span>
 							{badgeCount > 0 && !collapsed && (
-								<span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+								<span className="ml-auto bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
 									{badgeCount}
 								</span>
 							)}
@@ -236,15 +467,13 @@ export default function Sidebar({
 			</nav>
 
 			{/* Bottom section */}
-			<div className="mt-auto pt-6 flex flex-col gap-4">
+			<div className="mt-auto pt-4 flex flex-col gap-3">
 				{/* Primary CTA */}
 				{isMarketplace ? (
 					<Link
 						href="/marketplace"
 						title={collapsed ? "Find Property" : undefined}
-						className={`bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest py-3 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 btn-press ${
-							collapsed ? "px-0" : ""
-						}`}
+						className={`bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest py-2.5 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center btn-press overflow-hidden ${collapsed ? "" : "gap-2"}`}
 					>
 						<Search className="w-4 h-4 shrink-0" />
 						<span
@@ -263,219 +492,45 @@ export default function Sidebar({
 						<Link
 							href="/portfolio/properties/new"
 							title={collapsed ? "Add Property" : undefined}
-							className={`signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest py-3 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 btn-press ${
-								collapsed ? "px-0" : ""
-							}`}
+							className={`bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest py-2.5 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center btn-press overflow-hidden ${collapsed ? "" : "gap-2"}`}
 						>
-							{collapsed ? <Plus className="w-5 h-5" /> : "Add Property"}
-						</Link>
-					)
-				)}
-
-				{/* Secondary links */}
-				{/* Portfolio switcher — only show on portfolio pages when user has portfolios */}
-				{!isMarketplace && portfolios.length > 0 && (
-					<div
-						ref={switcherRef}
-						className="relative border-t border-border pt-4 pb-2"
-					>
-						<button
-							onClick={() => setSwitcherOpen((prev) => !prev)}
-							title={
-								collapsed
-									? (activePortfolio?.name ?? "Switch portfolio")
-									: undefined
-							}
-							className={`w-full flex items-center rounded-lg bg-surface-container-high hover:bg-surface-container transition-colors ${
-								collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"
-							}`}
-						>
-							{activePortfolio?.avatar ? (
-								<img
-									src={activePortfolio.avatar}
-									alt=""
-									className="w-7 h-7 rounded-md object-cover shrink-0"
-								/>
-							) : (
-								<span className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-									{(activePortfolio?.name ?? "P").charAt(0).toUpperCase()}
-								</span>
-							)}
+							<Plus className="w-4 h-4 shrink-0" />
 							<span
 								data-sidebar-label
-								className={`flex-1 text-left truncate text-sm font-semibold text-on-surface transition-all duration-300 ${
+								className={`whitespace-nowrap transition-all duration-300 ${
 									collapsed
 										? "w-0 opacity-0 overflow-hidden"
 										: "w-auto opacity-100"
 								}`}
 							>
-								{activePortfolio?.name ?? "Portfolio"}
+								Add Property
 							</span>
-							{!collapsed && (
-								<ChevronDown
-									className={`w-4 h-4 text-on-surface-variant shrink-0 transition-transform ${
-										switcherOpen ? "rotate-180" : ""
-									}`}
-								/>
-							)}
-						</button>
-
-						{switcherOpen && (
-							<div
-								className={`absolute z-50 bottom-full mb-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden ${
-									collapsed
-										? "left-full ml-2 bottom-0 mb-0 w-72"
-										: "left-0 w-72"
-								}`}
-							>
-								{/* Items container */}
-								<div className="bg-surface-container rounded-xl m-2 divide-y divide-border">
-									{portfolios.map((p) => {
-										const isActive = p.id === activePortfolio?.id;
-										const canDelete =
-											p.type === "business" && p.role === "admin";
-										return (
-											<div
-												key={p.id}
-												className="first:rounded-t-xl last:rounded-b-xl"
-											>
-												{deletingId === p.id ? (
-													<div className="px-4 py-3.5 space-y-2">
-														<p className="text-sm text-on-surface">
-															Delete <strong>{p.name}</strong>? This cannot be
-															undone.
-														</p>
-														<div className="flex gap-2">
-															<button
-																onClick={() => handleDeletePortfolio(p.id)}
-																className="px-3 py-1.5 text-xs font-semibold bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-															>
-																Delete
-															</button>
-															<button
-																onClick={() => setDeletingId(null)}
-																className="px-3 py-1.5 text-xs font-semibold bg-surface-container-high text-on-surface rounded-md hover:bg-surface-container transition-colors"
-															>
-																Cancel
-															</button>
-														</div>
-													</div>
-												) : (
-													<div className="flex items-center hover:bg-surface-container-high transition-colors first:rounded-t-xl last:rounded-b-xl">
-														<button
-															onClick={() => {
-																setActivePortfolioId(p.id);
-																setSwitcherOpen(false);
-															}}
-															className="flex-1 flex items-center gap-3 px-4 py-3.5 text-left min-w-0"
-														>
-															{p.avatar ? (
-																<img
-																	src={p.avatar}
-																	alt=""
-																	className="w-10 h-10 rounded-full object-cover shrink-0"
-																/>
-															) : (
-																<span className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
-																	{p.name.charAt(0).toUpperCase()}
-																</span>
-															)}
-															<div className="flex-1 min-w-0">
-																<p className="text-sm font-semibold text-on-surface truncate">
-																	{p.name}
-																</p>
-																<p className="text-xs text-on-surface-variant">
-																	{p.memberCount ?? 1}{" "}
-																	{(p.memberCount ?? 1) === 1
-																		? "Member"
-																		: "Members"}
-																</p>
-															</div>
-															{isActive ? (
-																<span className="shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-																	Active
-																</span>
-															) : (
-																<span className="shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary text-white">
-																	Switch
-																</span>
-															)}
-														</button>
-														{canDelete && (
-															<button
-																onClick={() => setDeletingId(p.id)}
-																title="Delete portfolio"
-																className="px-3 py-2 text-on-surface-variant hover:text-red-500 transition-colors shrink-0"
-															>
-																<Trash2 className="w-4 h-4" />
-															</button>
-														)}
-													</div>
-												)}
-											</div>
-										);
-									})}
-								</div>
-
-								{/* Create new portfolio */}
-								<div className="px-4 py-3">
-									<Link
-										href="/portfolio/new"
-										onClick={() => setSwitcherOpen(false)}
-										className="flex items-center gap-3 text-left"
-									>
-										<span className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center shrink-0">
-											<Plus className="w-4 h-4 text-on-surface-variant" />
-										</span>
-										<span className="text-sm font-semibold text-on-surface">
-											Create New Portfolio
-										</span>
-									</Link>
-								</div>
-							</div>
-						)}
-					</div>
+						</Link>
+					)
 				)}
 
-				<div className="flex flex-col gap-1 border-t border-border pt-4">
-					{(
-						[
-							{ name: "Settings", href: "/settings", icon: Settings },
-							{ name: "Help Center", href: "/help", icon: HelpCircle },
-						] as NavItem[]
-					).map((item) => {
-						const Icon = item.icon;
-						const isActive = pathname.startsWith(item.href);
-						return (
-							<Link
-								key={item.href}
-								href={item.href}
-								data-sidebar-link
-								title={collapsed ? item.name : undefined}
-								className={`py-3 flex items-center rounded-lg transition-all ${
-									collapsed ? "justify-center" : "gap-3 px-4"
-								} ${
-									isActive
-										? "bg-nav-active text-primary font-bold shadow-sm dark:shadow-none"
-										: "text-slate-600 dark:text-on-surface-variant hover:translate-x-1 hover:bg-slate-100 dark:hover:bg-surface-container"
-								}`}
-							>
-								<Icon
-									className={`w-5 h-5 shrink-0 ${isActive ? "text-primary" : "text-slate-500 dark:text-on-surface-variant"}`}
-								/>
-								<span
-									data-sidebar-label
-									className={`font-label text-xs uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${
-										collapsed
-											? "w-0 opacity-0 overflow-hidden"
-											: "w-auto opacity-100"
-									}`}
-								>
-									{item.name}
-								</span>
-							</Link>
-						);
-					})}
+				<div className="flex flex-wrap items-center justify-center gap-1 border-t border-border pt-3 transition-all duration-300">
+					<Link
+						href="/help"
+						title="Help Center"
+						className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
+					>
+						<HelpCircle className="w-[18px] h-[18px]" />
+					</Link>
+					<Link
+						href="/settings"
+						title="Settings"
+						className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
+					>
+						<Settings className="w-[18px] h-[18px]" />
+					</Link>
+					<ThemePicker />
+					<button
+						title="More"
+						className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
+					>
+						<MoreHorizontal className="w-[18px] h-[18px]" />
+					</button>
 				</div>
 			</div>
 		</aside>

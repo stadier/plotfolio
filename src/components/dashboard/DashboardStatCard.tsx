@@ -14,18 +14,20 @@ export default function DashboardStatCard({
 	icon: Icon,
 }: DashboardStatCardProps) {
 	return (
-		<div className="max-w-xs bg-[#e8f5e3] dark:bg-surface-container-low rounded-2xl p-5 flex flex-col gap-3 card-hover animate-fade-in-up">
-			<div className="flex items-center gap-2">
-				<div className="w-8 h-8 rounded-full bg-white/70 dark:bg-surface-container flex items-center justify-center">
-					<Icon className="w-4 h-4 text-secondary" />
+		<div className="max-w-xs bg-[#e8f5e3] dark:bg-surface-container-low sz-card flex flex-col gap-3 card-hover animate-fade-in-up">
+			<div className="flex items-center sz-gap">
+				<div className="sz-icon-box rounded-full bg-white/70 dark:bg-surface-container flex items-center justify-center">
+					<Icon className="sz-icon text-secondary" />
 				</div>
-				<span className="text-xs font-semibold text-secondary">{label}</span>
+				<span className="typo-caption font-semibold text-secondary">
+					{label}
+				</span>
 			</div>
 			<div className="flex items-end justify-between gap-3">
-				<span className="font-headline text-2xl font-extrabold text-primary">
+				<span className="font-headline typo-stat font-extrabold text-primary">
 					{value}
 				</span>
-				<span className="text-xs font-bold text-secondary/70 mb-1">
+				<span className="typo-caption font-bold text-secondary/70 mb-1">
 					{percentage}%
 				</span>
 			</div>

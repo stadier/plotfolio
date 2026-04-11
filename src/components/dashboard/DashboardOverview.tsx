@@ -89,19 +89,19 @@ export default function DashboardOverview({
 					return (
 						<div
 							key={index}
-							className="w-full sm:w-[280px] max-w-sm bg-card rounded-lg shadow-md p-6 card-hover animate-fade-in-up"
+							className="w-full sm:w-[280px] max-w-sm bg-card sz-card shadow-md card-hover animate-fade-in-up"
 						>
 							<div className="flex items-center justify-between">
 								<div>
-									<p className="text-sm font-medium text-gray-600">
+									<p className="typo-body font-medium text-on-surface-variant">
 										{stat.title}
 									</p>
-									<p className="text-2xl font-bold text-gray-900 mt-1">
+									<p className="typo-stat font-bold text-on-surface mt-1">
 										{stat.value}
 									</p>
 								</div>
 								<div className={`p-3 rounded-full ${stat.bgColor}`}>
-									<Icon className={`w-6 h-6 ${stat.color}`} />
+									<Icon className={`sz-icon-lg ${stat.color}`} />
 								</div>
 							</div>
 						</div>
@@ -110,10 +110,10 @@ export default function DashboardOverview({
 			</div>
 
 			{/* Distribution Charts */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+			<div className="grid grid-cols-1 lg:grid-cols-2 sz-gap-section">
 				{/* Property Type Distribution */}
-				<div className="bg-card rounded-lg shadow-md p-6">
-					<h3 className="text-lg font-semibold text-gray-900 mb-4">
+				<div className="bg-card sz-card shadow-md">
+					<h3 className="typo-section-title font-semibold text-on-surface mb-4">
 						Property Types
 					</h3>
 					<div className="space-y-3">
@@ -123,13 +123,15 @@ export default function DashboardOverview({
 								<div key={type} className="flex items-center justify-between">
 									<div className="flex items-center space-x-2">
 										<div className="w-3 h-3 rounded-full bg-blue-500"></div>
-										<span className="text-sm font-medium text-gray-700 capitalize">
+										<span className="typo-body font-medium text-on-surface-variant capitalize">
 											{type.replace("_", " ")}
 										</span>
 									</div>
 									<div className="flex items-center space-x-2">
-										<span className="text-sm text-gray-600">{count}</span>
-										<span className="text-xs text-gray-500">
+										<span className="typo-body text-on-surface-variant">
+											{count}
+										</span>
+										<span className="typo-caption text-outline">
 											({percentage.toFixed(1)}%)
 										</span>
 									</div>
@@ -140,8 +142,8 @@ export default function DashboardOverview({
 				</div>
 
 				{/* Property Status Distribution */}
-				<div className="bg-card rounded-lg shadow-md p-6">
-					<h3 className="text-lg font-semibold text-gray-900 mb-4">
+				<div className="bg-card sz-card shadow-md">
+					<h3 className="typo-section-title font-semibold text-on-surface mb-4">
 						Property Status
 					</h3>
 					<div className="space-y-3">
@@ -151,13 +153,15 @@ export default function DashboardOverview({
 								<div key={status} className="flex items-center justify-between">
 									<div className="flex items-center space-x-2">
 										<div className="w-3 h-3 rounded-full bg-green-500"></div>
-										<span className="text-sm font-medium text-gray-700 capitalize">
+										<span className="typo-body font-medium text-on-surface-variant capitalize">
 											{status.replace("_", " ")}
 										</span>
 									</div>
 									<div className="flex items-center space-x-2">
-										<span className="text-sm text-gray-600">{count}</span>
-										<span className="text-xs text-gray-500">
+										<span className="typo-body text-on-surface-variant">
+											{count}
+										</span>
+										<span className="typo-caption text-outline">
 											({percentage.toFixed(1)}%)
 										</span>
 									</div>
@@ -169,30 +173,34 @@ export default function DashboardOverview({
 			</div>
 
 			{/* Quick Stats */}
-			<div className="bg-card rounded-lg shadow-md p-6">
-				<h3 className="text-lg font-semibold text-gray-900 mb-4">
+			<div className="bg-card sz-card shadow-md">
+				<h3 className="typo-section-title font-semibold text-on-surface mb-4">
 					Portfolio Summary
 				</h3>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-					<div className="p-4 bg-gray-50 rounded-lg">
-						<div className="text-2xl font-bold text-gray-900">
+				<div className="grid grid-cols-1 md:grid-cols-3 sz-gap-lg text-center">
+					<div className="p-4 bg-surface-container sz-radius-lg">
+						<div className="typo-stat font-bold text-on-surface">
 							{ownedProperties}
 						</div>
-						<div className="text-sm text-gray-600">Properties Owned</div>
+						<div className="typo-body text-on-surface-variant">
+							Properties Owned
+						</div>
 					</div>
-					<div className="p-4 bg-gray-50 rounded-lg">
-						<div className="text-2xl font-bold text-gray-900">
+					<div className="p-4 bg-surface-container sz-radius-lg">
+						<div className="typo-stat font-bold text-on-surface">
 							{Object.keys(typeDistribution).length}
 						</div>
-						<div className="text-sm text-gray-600">Property Types</div>
+						<div className="typo-body text-on-surface-variant">
+							Property Types
+						</div>
 					</div>
-					<div className="p-4 bg-gray-50 rounded-lg">
-						<div className="text-2xl font-bold text-gray-900">
+					<div className="p-4 bg-surface-container sz-radius-lg">
+						<div className="typo-stat font-bold text-on-surface">
 							{totalArea > 43560
 								? `${(totalArea / 43560).toFixed(1)} acres`
 								: formatArea(totalArea)}
 						</div>
-						<div className="text-sm text-gray-600">Total Land</div>
+						<div className="typo-body text-on-surface-variant">Total Land</div>
 					</div>
 				</div>
 			</div>

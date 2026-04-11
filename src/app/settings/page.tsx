@@ -75,20 +75,20 @@ export default function SettingsPage() {
 
 	return (
 		<AppShell>
-			<div className="px-8 py-8 max-w-2xl">
-				<h1 className="font-headline text-2xl font-bold text-on-surface mb-1">
+			<div className="sz-page max-w-2xl">
+				<h1 className="font-headline typo-page-title font-bold text-on-surface mb-1">
 					Settings
 				</h1>
-				<p className="text-sm text-on-surface-variant mb-8">
+				<p className="typo-body text-on-surface-variant mb-8">
 					Manage your preferences.
 				</p>
 
 				{/* Appearance section */}
-				<section className="bg-card rounded-2xl border border-outline-variant p-6 mb-6">
-					<h2 className="font-headline text-base font-bold text-on-surface mb-1">
+				<section className="bg-card sz-card border border-outline-variant mb-6">
+					<h2 className="font-headline typo-section-title font-bold text-on-surface mb-1">
 						Appearance
 					</h2>
-					<p className="text-xs text-on-surface-variant mb-5">
+					<p className="typo-body-sm text-on-surface-variant mb-5">
 						Choose how Plotfolio looks to you.
 					</p>
 
@@ -99,7 +99,7 @@ export default function SettingsPage() {
 								<button
 									key={value}
 									onClick={() => setTheme(value)}
-									className={`flex flex-col items-center gap-2 px-6 py-4 rounded-xl border-2 transition-all cursor-pointer ${
+									className={`flex flex-col items-center sz-gap sz-btn-lg sz-radius-lg border-2 transition-all cursor-pointer ${
 										active
 											? "border-primary bg-primary/10 dark:bg-primary/20"
 											: "border-outline-variant hover:border-outline bg-surface-container-lowest dark:bg-surface-container"
@@ -109,7 +109,7 @@ export default function SettingsPage() {
 										className={`w-5 h-5 ${active ? "text-primary" : "text-on-surface-variant"}`}
 									/>
 									<span
-										className={`text-xs font-bold uppercase tracking-widest ${active ? "text-primary" : "text-on-surface-variant"}`}
+										className={`typo-btn font-bold uppercase tracking-widest ${active ? "text-primary" : "text-on-surface-variant"}`}
 									>
 										{label}
 									</span>
@@ -120,16 +120,16 @@ export default function SettingsPage() {
 				</section>
 
 				{/* Advanced — Service Providers */}
-				<section className="bg-card rounded-2xl border border-outline-variant">
+				<section className="bg-card sz-radius-card border border-outline-variant">
 					<button
 						onClick={() => setAdvancedOpen((o) => !o)}
-						className="flex items-center justify-between w-full p-6 cursor-pointer"
+						className="flex items-center justify-between w-full p-(--size-card-px) cursor-pointer"
 					>
 						<div className="text-left">
-							<h2 className="font-headline text-base font-bold text-on-surface mb-0.5">
+							<h2 className="font-headline typo-section-title font-bold text-on-surface mb-0.5">
 								Advanced
 							</h2>
-							<p className="text-xs text-on-surface-variant">
+							<p className="typo-body-sm text-on-surface-variant">
 								Configure the service providers Plotfolio uses under the hood.
 							</p>
 						</div>
@@ -141,7 +141,7 @@ export default function SettingsPage() {
 					</button>
 
 					{advancedOpen && (
-						<div className="px-6 pb-6 space-y-6 border-t border-outline-variant pt-5">
+						<div className="px-(--size-card-px) pb-(--size-card-py) space-y-6 border-t border-outline-variant pt-5">
 							{loadingProviders ? (
 								<div className="flex items-center gap-2 text-sm text-on-surface-variant py-4">
 									<Loader2 className="w-4 h-4 animate-spin" />
@@ -155,7 +155,7 @@ export default function SettingsPage() {
 									return (
 										<div key={category.key}>
 											<div className="flex items-center gap-2 mb-1">
-												<h3 className="text-sm font-semibold text-on-surface">
+												<h3 className="typo-body font-semibold text-on-surface">
 													{category.label}
 												</h3>
 												{savingKey === category.key && (
@@ -203,7 +203,7 @@ export default function SettingsPage() {
 																		{opt.label}
 																	</span>
 																	{opt.free && (
-																		<span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-secondary/15 text-secondary">
+																		<span className="typo-badge font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-secondary/15 text-secondary">
 																			Free
 																		</span>
 																	)}

@@ -64,13 +64,13 @@ export default function AnalyticsPage() {
 
 	return (
 		<AppShell>
-			<div className="px-8 py-8 max-w-6xl">
+			<div className="sz-page max-w-6xl">
 				{/* Header */}
 				<div className="mb-8">
-					<h1 className="font-headline text-2xl font-extrabold text-on-surface mb-1">
+					<h1 className="font-headline typo-page-title font-extrabold text-on-surface mb-1">
 						Analytics
 					</h1>
-					<p className="text-sm text-on-surface-variant">
+					<p className="typo-body text-on-surface-variant">
 						Portfolio performance, distribution, and insights
 					</p>
 				</div>
@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
 						</div>
 
 						{/* ── Charts Grid ── */}
-						<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<div className="grid grid-cols-1 lg:grid-cols-2 sz-gap-section">
 							{/* Portfolio value trend — large, spans full width */}
 							<AnalyticsChartCard
 								title="Portfolio Value Trend"
@@ -259,11 +259,11 @@ function KpiCard({
 				<div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
 					<Icon className="w-4 h-4 text-primary" />
 				</div>
-				<span className="text-xs font-semibold text-on-surface-variant">
+				<span className="typo-caption font-semibold text-on-surface-variant">
 					{label}
 				</span>
 			</div>
-			<span className="font-headline text-xl font-extrabold text-on-surface">
+			<span className="font-headline typo-stat font-extrabold text-on-surface">
 				{value}
 			</span>
 			<div className="flex items-center gap-1">
@@ -273,7 +273,7 @@ function KpiCard({
 				{trend === "down" && (
 					<TrendingUp className="w-3 h-3 text-red-500 rotate-90" />
 				)}
-				<span className="text-[11px] text-on-surface-variant">{sub}</span>
+				<span className="typo-caption text-on-surface-variant">{sub}</span>
 			</div>
 		</div>
 	);
@@ -282,10 +282,10 @@ function KpiCard({
 function InsightRow({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="flex flex-col gap-0.5">
-			<span className="text-[10px] text-outline uppercase tracking-wide">
+			<span className="typo-badge text-outline uppercase tracking-wide">
 				{label}
 			</span>
-			<span className="text-sm font-bold text-on-surface">{value}</span>
+			<span className="typo-body font-bold text-on-surface">{value}</span>
 		</div>
 	);
 }

@@ -46,12 +46,12 @@ export default function StatusDistributionWidget({
 	const total = properties.length;
 
 	return (
-		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
-			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-indigo-500/20 flex items-center justify-center">
-					<BarChart3 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+		<div className="bg-card sz-card border border-border break-inside-avoid widget-card animate-fade-in-up">
+			<div className="flex items-center sz-gap mb-[var(--size-widget-header-mb)]">
+				<div className="sz-icon-box rounded-full bg-slate-100 dark:bg-indigo-500/20 flex items-center justify-center">
+					<BarChart3 className="sz-icon text-indigo-600 dark:text-indigo-400" />
 				</div>
-				<span className="text-xs font-semibold text-on-surface-variant">
+				<span className="typo-caption font-semibold text-on-surface-variant">
 					Status Breakdown
 				</span>
 			</div>
@@ -78,12 +78,12 @@ export default function StatusDistributionWidget({
 								<div
 									className={`w-2.5 h-2.5 rounded-full ${color?.bg ?? "bg-slate-300"}`}
 								/>
-								<span className="text-xs text-on-surface-variant">
+								<span className="typo-caption text-on-surface-variant">
 									{color?.label ?? status}
 								</span>
 							</div>
 							<span
-								className={`text-xs font-bold ${color?.text ?? "text-slate-500"}`}
+								className={`typo-caption font-bold ${color?.text ?? "text-slate-500"}`}
 							>
 								{count}
 							</span>

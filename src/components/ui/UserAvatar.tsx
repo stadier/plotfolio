@@ -17,9 +17,9 @@ type AvatarSize = keyof typeof SIZES;
 /* ─── label layout ────────────────────────────────────────────── */
 
 const LABEL_SIZES = {
-	xs: { name: "text-xs", username: "text-[10px]" },
-	sm: { name: "text-xs", username: "text-[10px]" },
-	md: { name: "text-xs font-medium", username: "text-[10px]" },
+	xs: { name: "text-xs", username: "typo-badge" },
+	sm: { name: "text-xs", username: "typo-badge" },
+	md: { name: "text-xs font-medium", username: "typo-badge" },
 	lg: { name: "text-sm font-medium", username: "text-xs" },
 } as const;
 

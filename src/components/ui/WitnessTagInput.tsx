@@ -124,7 +124,7 @@ export default function WitnessTagInput({
 					</div>
 				</div>
 				{input.trim() && (
-					<p className="text-[10px] text-outline mt-1 ml-1">
+					<p className="typo-badge text-outline mt-1 ml-1">
 						Press Enter to capture signature
 					</p>
 				)}

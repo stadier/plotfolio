@@ -250,7 +250,7 @@ function ListingCard({
 
 				{/* Featured badge */}
 				{isFeatured && (
-					<div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest shadow-sm">
+					<div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-blue-600 text-white typo-badge font-bold uppercase tracking-widest shadow-sm">
 						Featured
 					</div>
 				)}
@@ -328,7 +328,7 @@ function FilterSection({
 								e.stopPropagation();
 								onClear();
 							}}
-							className="text-[10px] text-outline hover:text-blue-600 font-semibold uppercase tracking-wider cursor-pointer"
+							className="typo-badge text-outline hover:text-blue-600 font-semibold uppercase tracking-wider cursor-pointer"
 						>
 							Clear
 						</span>
@@ -426,7 +426,7 @@ function FilterSidebar({
 							}`}
 						>
 							<span>All Locations</span>
-							<span className="text-[10px] text-outline">{totalListings}</span>
+							<span className="typo-badge text-outline">{totalListings}</span>
 						</button>
 						{locationCounts.map((loc) => (
 							<button
@@ -440,7 +440,7 @@ function FilterSidebar({
 							>
 								<span className="truncate mr-2">{loc.label}</span>
 								<span
-									className={`text-[10px] shrink-0 ${
+									className={`typo-badge shrink-0 ${
 										selectedLocation === loc.value
 											? "text-blue-500"
 											: "text-outline"
@@ -501,7 +501,7 @@ function FilterSidebar({
 						>
 							<span>{preset.label}</span>
 							<span
-								className={`text-[10px] ${
+								className={`typo-badge ${
 									activePricePreset === idx ? "text-blue-500" : "text-outline"
 								}`}
 							>
@@ -565,7 +565,7 @@ function FilterSidebar({
 										{getConditionLabel(item.value)}
 									</span>
 									<span
-										className={`text-[10px] ${active ? "text-blue-500" : "text-outline"}`}
+										className={`typo-badge ${active ? "text-blue-500" : "text-outline"}`}
 									>
 										{item.count}
 									</span>
@@ -803,7 +803,7 @@ export default function MarketplacePage() {
 				</div>
 
 				{/* Main layout: sidebar + grid */}
-				<div className="flex gap-6 items-start">
+				<div className="flex sz-gap-section items-start">
 					{/* Left filter sidebar */}
 					<aside className="hidden lg:block w-60 shrink-0 sticky top-24">
 						<FilterSidebar

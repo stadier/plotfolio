@@ -21,14 +21,14 @@ export default function SummaryStatCard({
 }: SummaryStatCardProps) {
 	if (variant === "classic") {
 		return (
-			<div className="w-full sm:w-60 max-w-xs bg-surface-container-lowest rounded-xl border border-border p-5 card-hover">
-				<div className="flex items-center gap-2 mb-2">
-					<Icon className="w-4 h-4 text-secondary" />
-					<span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+			<div className="w-full sm:w-60 max-w-xs bg-surface-container-lowest sz-radius-lg border border-border p-(--size-card-px) card-hover">
+				<div className="flex items-center sz-gap mb-2">
+					<Icon className="sz-icon text-secondary" />
+					<span className="typo-badge font-bold text-slate-400 uppercase tracking-widest">
 						{label}
 					</span>
 				</div>
-				<div className="font-headline text-2xl font-extrabold text-primary">
+				<div className="font-headline typo-stat font-extrabold text-primary">
 					{value}
 				</div>
 			</div>
@@ -39,19 +39,21 @@ export default function SummaryStatCard({
 	const text = iconColor?.text ?? "text-primary";
 
 	return (
-		<div className="max-w-xs bg-card border border-border rounded-xl px-5 py-4 flex items-center gap-3">
+		<div className="max-w-xs bg-card border border-border sz-radius-lg px-(--size-card-px) py-(--size-btn-lg-py) flex items-center gap-3">
 			<div
-				className={`h-10 w-10 shrink-0 rounded-full ${bg} flex items-center justify-center`}
+				className={`sz-icon-box-lg shrink-0 rounded-full ${bg} flex items-center justify-center`}
 			>
 				<Icon className={`w-5 h-5 ${text}`} />
 			</div>
 			<div>
-				<div className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">
+				<div className="typo-caption text-on-surface-variant uppercase tracking-wider font-semibold">
 					{label}
 				</div>
-				<div className="text-lg font-bold text-on-surface">{value}</div>
+				<div className="typo-section-title font-bold text-on-surface">
+					{value}
+				</div>
 				{subtitle && (
-					<div className="text-[10px] text-on-surface-variant mt-0.5">
+					<div className="typo-badge text-on-surface-variant mt-0.5">
 						{subtitle}
 					</div>
 				)}

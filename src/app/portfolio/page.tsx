@@ -1,36 +1,69 @@
 "use client";
 
 import { useRequireAuth } from "@/components/AuthContext";
-import DocumentCompletionWidget from "@/components/dashboard/DocumentCompletionWidget";
-import { CARD_GRADIENTS } from "@/components/dashboard/helpers";
+import CalendarWidget from "@/components/dashboard/CalendarWidget";
 import MiniMapWidget from "@/components/dashboard/MiniMapWidget";
-import PortfolioStatsWidget from "@/components/dashboard/PortfolioStatsWidget";
-import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
+import PortfolioHealthWidget from "@/components/dashboard/PortfolioHealthWidget";
+import PropertySlideshowWidget from "@/components/dashboard/PropertySlideshowWidget";
+import RecentDocumentsWidget from "@/components/dashboard/RecentDocumentsWidget";
 import StatusDistributionWidget from "@/components/dashboard/StatusDistributionWidget";
-import TrackingCard from "@/components/dashboard/TrackingCard";
-import UpcomingDatesWidget from "@/components/dashboard/UpcomingDatesWidget";
-import ValueTrendWidget from "@/components/dashboard/ValueTrendWidget";
 import AppShell from "@/components/layout/AppShell";
+import { usePortfolio } from "@/components/PortfolioContext";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties } from "@/hooks/usePropertyQueries";
-import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
-import { PropertyStatus } from "@/types/property";
-import { Eye, Loader2, MapPin } from "lucide-react";
+import { formatCurrencyCompact } from "@/lib/utils";
+import {
+	Building2,
+	FileText,
+	Loader2,
+	MapPin,
+	TrendingUp,
+	Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-// ── Dashboard page ────────────────────────────────────────────────────────────
+// ── Stat card used only in this dashboard ─────────────────────────────────────
 
-export default function DashboardPage() {
+interface StatCardProps {
+	label: string;
+	value: string;
+	icon: React.ReactNode;
+	accent: string; // tailwind bg class for the icon circle
+}
+
+function StatCard({ label, value, icon, accent }: StatCardProps) {
+	return (
+		<div className="bg-card sz-card border border-border flex items-center gap-3 max-w-xs widget-card animate-fade-in-up !py-3">
+			<div
+				className={`sz-icon-box-lg rounded-full ${accent} flex items-center justify-center shrink-0`}
+			>
+				{icon}
+			</div>
+			<div className="min-w-0">
+				<p className="typo-caption font-semibold text-outline uppercase tracking-widest">
+					{label}
+				</p>
+				<p className="font-headline typo-stat font-extrabold text-primary truncate">
+					{value}
+				</p>
+			</div>
+		</div>
+	);
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
+export default function DashboardV2Page() {
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const { user, loading: authLoading } = useRequireAuth();
-	const animate = useAnimateOnce("dashboard");
+	const { activePortfolio } = usePortfolio();
+	const animate = useAnimateOnce("dashboard-v2");
 	const { data: properties = [], isLoading: loading } = useMyProperties(
 		user?.id,
 	);
 
-	// Show loading while checking auth
 	if (authLoading || !user) {
 		return (
 			<AppShell>
@@ -50,7 +83,15 @@ export default function DashboardPage() {
 		(s, p) => s + (p.documents?.length ?? 0),
 		0,
 	);
+
 	const now = new Date();
+	const greeting =
+		now.getHours() < 12
+			? "Good morning"
+			: now.getHours() < 18
+				? "Good afternoon"
+				: "Good evening";
+
 	const dateStr = now.toLocaleDateString("en-GB", {
 		weekday: "long",
 		day: "numeric",
@@ -58,28 +99,21 @@ export default function DashboardPage() {
 		year: "numeric",
 	});
 
-	const heroProperty = properties[0];
-	// Simulate tracked listings: own properties + some marked as marketplace
-	const trackedProperties = properties.slice(0, 6);
-
 	return (
 		<AppShell>
-			<div className="flex gap-6 px-8 py-8" data-animate={animate || undefined}>
-				{/* ── Left: main dashboard content ── */}
-				<div className="flex-1 min-w-0">
-					{/* Loading skeleton */}
+			<div data-animate={animate || undefined}>
+				{/* Full-width header area */}
+				<div className="px-(--size-page-px) pt-(--size-page-py)">
 					{loading && (
-						<div className="space-y-6">
-							<div className="flex gap-10">
-								<div className="h-16 w-48 bg-card rounded-2xl animate-pulse" />
-								<div className="h-16 w-32 bg-card rounded-2xl animate-pulse" />
-							</div>
-							<div className="h-80 bg-card rounded-2xl animate-pulse" />
+						<div className="space-y-6 max-w-6xl">
+							<div className="h-12 w-72 bg-card rounded-2xl animate-pulse" />
 							<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-								<div className="h-36 bg-card rounded-2xl animate-pulse" />
-								<div className="h-36 bg-card rounded-2xl animate-pulse" />
-								<div className="h-36 bg-card rounded-2xl animate-pulse" />
-								<div className="h-36 bg-card rounded-2xl animate-pulse" />
+								{Array.from({ length: 4 }).map((_, i) => (
+									<div
+										key={i}
+										className="h-20 bg-card rounded-2xl animate-pulse"
+									/>
+								))}
 							</div>
 						</div>
 					)}
@@ -92,10 +126,10 @@ export default function DashboardPage() {
 								alt="No properties illustration"
 								className="w-[clamp(16rem,50vw,38rem)] h-auto object-contain mb-8"
 							/>
-							<h3 className="font-headline text-xl font-bold text-primary mb-2">
+							<h3 className="font-headline typo-section-title font-bold text-primary mb-2">
 								No portfolio data yet
 							</h3>
-							<p className="text-on-surface-variant text-sm mb-6">
+							<p className="text-on-surface-variant typo-body mb-6">
 								Add your first property to start managing your portfolio.
 							</p>
 						</div>
@@ -103,154 +137,100 @@ export default function DashboardPage() {
 
 					{!loading && properties.length > 0 && (
 						<>
-							{/* Large headline stats */}
-							<div className="flex flex-wrap items-end gap-10 mb-6 animate-fade-in">
-								<div>
-									<p className="text-xs text-on-surface-variant font-semibold uppercase tracking-widest mb-1">
-										Portfolio Worth
+							{/* ── Welcome header + Summary stats (full width) ── */}
+							<div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 animate-fade-in">
+								<div className="shrink-0">
+									<p className="typo-caption text-outline font-semibold uppercase tracking-widest mb-1">
+										{dateStr}
 									</p>
-									<p className="font-headline text-5xl font-extrabold tracking-tight text-primary">
-										{formatCurrencyCompact(totalWorth)}
-									</p>
+									<h1 className="font-headline typo-page-title font-extrabold text-primary">
+										{greeting}, {user.displayName || user.name}
+									</h1>
+									{activePortfolio && (
+										<p className="typo-body text-on-surface-variant mt-0.5">
+											Workspace:{" "}
+											<span className="font-bold text-secondary">
+												{activePortfolio.name}
+											</span>
+										</p>
+									)}
 								</div>
-								<div>
-									<p className="text-xs text-on-surface-variant font-semibold uppercase tracking-widest mb-1">
-										Properties Owned
-									</p>
-									<p className="font-headline text-5xl font-extrabold tracking-tight text-primary">
-										{properties.length}
-									</p>
+
+								<div className="flex flex-wrap gap-3">
+									<StatCard
+										label="Portfolio Value"
+										value={formatCurrencyCompact(totalWorth)}
+										icon={
+											<Wallet className="sz-icon text-blue-600 dark:text-blue-400" />
+										}
+										accent="bg-blue-50 dark:bg-blue-500/20"
+									/>
+									<StatCard
+										label="Properties"
+										value={String(properties.length)}
+										icon={
+											<Building2 className="sz-icon text-emerald-600 dark:text-emerald-400" />
+										}
+										accent="bg-emerald-50 dark:bg-emerald-500/20"
+									/>
+									<StatCard
+										label="Total Area"
+										value={`${totalArea.toLocaleString()} sqm`}
+										icon={
+											<MapPin className="sz-icon text-violet-600 dark:text-violet-400" />
+										}
+										accent="bg-violet-50 dark:bg-violet-500/20"
+									/>
+									<StatCard
+										label="Documents"
+										value={String(docCount)}
+										icon={
+											<FileText className="sz-icon text-amber-600 dark:text-amber-400" />
+										}
+										accent="bg-amber-50 dark:bg-amber-500/20"
+									/>
 								</div>
 							</div>
-
-							{/* Hero property + Value Trend side by side */}
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-								{/* Hero property card */}
-								{heroProperty && (
-									<div
-										onClick={() => setSelectedId(heroProperty.id)}
-										className={`relative rounded-2xl overflow-hidden cursor-pointer h-72 md:col-span-2 ${CARD_GRADIENTS[0]} card-hover animate-scale-in`}
-									>
-										<div className="absolute inset-0 flex items-center justify-center opacity-[0.06]">
-											<MapPin className="w-64 h-64 text-white" />
-										</div>
-										<div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black/60 to-transparent">
-											<div className="flex items-end justify-between">
-												<div>
-													<p className="text-white/70 text-xs font-bold uppercase tracking-widest mb-1">
-														Featured Property
-													</p>
-													<h3 className="font-headline text-2xl font-bold text-white">
-														{heroProperty.name}
-													</h3>
-													<p className="text-white/60 text-sm mt-0.5 flex items-center gap-1">
-														<MapPin className="w-3 h-3" />
-														{heroProperty.address}
-													</p>
-												</div>
-												<div className="text-right">
-													<p className="font-headline text-2xl font-extrabold text-white">
-														{formatCurrencyFull(
-															heroProperty.currentValue ||
-																heroProperty.purchasePrice ||
-																0,
-															heroProperty.country,
-														)}
-													</p>
-													<p className="text-white/50 text-xs">
-														{(heroProperty.area || 0).toLocaleString()} sqm
-													</p>
-												</div>
-											</div>
-										</div>
-									</div>
-								)}
-								{/* Value Trend beside hero */}
-								<ValueTrendWidget properties={properties} />
-							</div>
-
-							{/* Masonry widget grid */}
-							<div className="columns-2 lg:columns-3 gap-4 space-y-4 mb-6">
-								<PortfolioStatsWidget
-									totalArea={totalArea}
-									docCount={docCount}
-								/>
-								<RecentActivityWidget
-									properties={properties}
-									onSelect={setSelectedId}
-								/>
-								<StatusDistributionWidget properties={properties} />
-								<DocumentCompletionWidget properties={properties} />
-								<MiniMapWidget
-									properties={properties}
-									onSelect={setSelectedId}
-								/>
-								<UpcomingDatesWidget properties={properties} />
-							</div>
-
-							{/* Quick actions */}
-							{/* <div className="flex flex-wrap items-center gap-4">
-								<Link
-									href="/portfolio/properties"
-									className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg shadow active:scale-95 transition-all flex items-center gap-2 btn-press"
-								>
-									<TrendingUp className="w-4 h-4" />
-									All Properties
-								</Link>
-								<Link
-									href="/portfolio/map"
-									className="bg-card border border-border text-primary font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg hover:shadow-md transition-all flex items-center gap-2 btn-press"
-								>
-									<MapPin className="w-4 h-4" />
-									Map View
-								</Link>
-							</div> */}
 						</>
 					)}
 				</div>
 
-				{/* ── Right: Tracking Board (standalone sticky card) ── */}
+				{/* Constrained content area */}
 				{!loading && properties.length > 0 && (
-					<aside className="hidden lg:block w-80 shrink-0">
-						<div className="sticky top-24 bg-card rounded-2xl border border-border p-5 max-h-[calc(100vh-120px)] overflow-y-auto animate-fade-in-up">
-							{/* Header */}
-							<div className="flex items-center justify-between mb-5">
-								<div className="flex items-center gap-2">
-									<Eye className="w-4 h-4 text-secondary" />
-									<h2 className="font-headline text-base font-bold text-primary">
-										Tracking Board
-									</h2>
-								</div>
-								<span className="text-[10px] font-bold text-on-surface-variant bg-surface-container-high dark:bg-surface-container px-2 py-1 rounded-full">
-									{trackedProperties.length} tracked
-								</span>
-							</div>
+					<div className="sz-page pt-0 max-w-6xl">
+						{/* ── Property billboard ── */}
+						<PropertySlideshowWidget
+							properties={properties}
+							onSelect={setSelectedId}
+						/>
 
-							{/* Tracked listings */}
-							<div className="flex flex-col gap-1">
-								{trackedProperties.map((property, idx) => (
-									<TrackingCard
-										key={property.id}
-										property={property}
-										gradientClass={CARD_GRADIENTS[idx % CARD_GRADIENTS.length]}
-										isOwn={property.status === PropertyStatus.OWNED}
-										onSelect={setSelectedId}
-									/>
-								))}
-							</div>
-
-							{/* Footer */}
-							<div className="mt-4 pt-4 border-t border-border">
-								<Link
-									href="/marketplace"
-									className="text-xs font-bold text-secondary uppercase tracking-widest hover:text-primary transition-colors"
-								>
-									Browse Marketplace →
-								</Link>
-							</div>
+						{/* ── Widget masonry ── */}
+						<div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4 mt-4">
+							<CalendarWidget properties={properties} />
+							<MiniMapWidget properties={properties} onSelect={setSelectedId} />
+							<PortfolioHealthWidget properties={properties} />
+							<RecentDocumentsWidget properties={properties} />
+							<StatusDistributionWidget properties={properties} />
 						</div>
-					</aside>
+					</div>
 				)}
+				{/* ── Quick links ── */}
+				<div className="flex flex-wrap gap-3 justify-end mb-5 mr-5">
+					<Link
+						href="/portfolio/properties"
+						className="signature-gradient text-white font-headline typo-btn font-bold uppercase tracking-widest sz-btn flex items-center gap-2 btn-press"
+					>
+						<TrendingUp className="sz-icon" />
+						All Properties
+					</Link>
+					<Link
+						href="/portfolio/map"
+						className="bg-card border border-border text-primary font-headline typo-btn font-bold uppercase tracking-widest sz-btn flex items-center gap-2 hover:shadow-md transition-all btn-press"
+					>
+						<MapPin className="sz-icon" />
+						Map View
+					</Link>
+				</div>
 			</div>
 
 			{/* Slide-in property drawer */}

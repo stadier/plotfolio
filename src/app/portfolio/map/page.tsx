@@ -33,7 +33,7 @@ import ListingDetailView from "@/components/property/ListingDetailView";
 const PlotfolioMap = dynamic(() => import("@/components/maps/PlotfolioMap"), {
 	ssr: false,
 	loading: () => (
-		<div className="h-full bg-surface-container-highest animate-pulse rounded-lg flex items-center justify-center">
+		<div className="h-full bg-surface-container-highest animate-pulse flex items-center justify-center">
 			<div className="text-on-surface-variant">Loading map...</div>
 		</div>
 	),
@@ -359,7 +359,7 @@ export default function Home() {
 
 	return (
 		<AppShell scrollable={false}>
-			<div className="flex h-full w-full">
+			<div className="flex flex-1 min-h-0 w-full">
 				{/* Property List Sidebar */}
 				<div className="shrink-0 w-80 h-full">
 					<MapPropertySidebar

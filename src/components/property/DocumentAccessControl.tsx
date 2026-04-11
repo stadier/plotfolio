@@ -65,7 +65,7 @@ export function DocumentAccessLevelBadge({
 
 	return (
 		<span
-			className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${colors[accessLevel]}`}
+			className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full typo-badge font-medium border ${colors[accessLevel]}`}
 		>
 			<Icon className="w-3 h-3" />
 			{level.label}
@@ -141,7 +141,7 @@ export function DocumentAccessLevelPicker({
 										{level.label}
 										{isActive && <Check className="w-3 h-3 text-blue-600" />}
 									</div>
-									<div className="text-[10px] text-gray-500 dark:text-on-surface-variant">
+									<div className="typo-badge text-gray-500 dark:text-on-surface-variant">
 										{level.desc}
 									</div>
 								</div>
@@ -434,7 +434,7 @@ export function AccessRequestManager({
 										{req.requesterEmail}
 									</div>
 								</div>
-								<div className="text-[10px] text-gray-400 dark:text-on-surface-variant shrink-0">
+								<div className="typo-badge text-gray-400 dark:text-on-surface-variant shrink-0">
 									{new Date(req.createdAt).toLocaleDateString()}
 								</div>
 							</div>

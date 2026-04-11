@@ -1,6 +1,17 @@
 import connectDB from "@/lib/mongoose";
-import { PropertyModel, PropertyService } from "@/models/Property";
+import { BookingModel } from "@/models/Booking";
+import { FavouriteModel } from "@/models/Favourite";
+import { FollowModel } from "@/models/Follow";
 import {
+	createPersonalPortfolio,
+	PortfolioMemberModel,
+	PortfolioModel,
+} from "@/models/Portfolio";
+import { PropertyModel, PropertyService } from "@/models/Property";
+import { hashPassword, UserModel } from "@/models/User";
+import {
+	BookingStatus,
+	BookingType,
 	MediaType,
 	Property,
 	PropertyCondition,
@@ -132,13 +143,13 @@ const owners = {
 	},
 	me: {
 		id: "owner-1",
-		name: "Property Owner",
-		username: "plotfolio_user",
-		displayName: "Property Owner",
+		name: "Stadier HQ",
+		username: "stadier_hq",
+		displayName: "Stadier",
 		avatar:
-			"https://api.dicebear.com/9.x/initials/svg?seed=PO&backgroundColor=1e3a5f",
+			"https://api.dicebear.com/9.x/initials/svg?seed=SH&backgroundColor=1e3a5f",
 		banner: "/mock-profiles/banner-me.svg",
-		email: "owner@example.com",
+		email: "stadier.hq@gmail.com",
 		type: "individual" as const,
 		joinDate: "2023-01-15",
 		salesCount: 0,
@@ -785,19 +796,293 @@ export async function POST() {
 	try {
 		await connectDB();
 
-		// Clear existing data
-		await PropertyModel.deleteMany({});
+		// Clear all collections
+		await Promise.all([
+			PropertyModel.deleteMany({}),
+			UserModel.deleteMany({}),
+			PortfolioModel.deleteMany({}),
+			PortfolioMemberModel.deleteMany({}),
+			FavouriteModel.deleteMany({}),
+			BookingModel.deleteMany({}),
+			FollowModel.deleteMany({}),
+		]);
 
-		// Insert sample data
-		const created = await Promise.all(
+		// ── 1. Create User records ──────────────────────────────────
+		const defaultPassword = hashPassword("password123");
+		const ownerList = Object.values(owners);
+		const userDocs = ownerList.map((o) => ({
+			id: o.id,
+			name: o.name,
+			username: o.username,
+			displayName: o.displayName ?? o.name.split(" ")[0],
+			email: o.email,
+			passwordHash:
+				o.email === "stadier.hq@gmail.com" ? "google:seeded" : defaultPassword,
+			avatar: o.avatar,
+			banner: o.banner,
+			phone: `+234-${800 + Number(o.id.replace(/\D/g, "") || "0")}0-000-${String(Number(o.id.replace(/\D/g, "") || "0")).padStart(4, "0")}`,
+			type: o.type,
+			joinDate: o.joinDate,
+			salesCount: o.salesCount,
+			followerCount: 0,
+			allowBookings: true,
+		}));
+		await UserModel.insertMany(userDocs);
+
+		// ── 2. Create personal Portfolios ───────────────────────────
+		await Promise.all(
+			ownerList.map((o) =>
+				createPersonalPortfolio(o.id, o.displayName ?? o.name),
+			),
+		);
+
+		// ── 3. Create Properties ────────────────────────────────────
+		const createdProps = await Promise.all(
 			sampleProperties.map((property) =>
 				PropertyService.createProperty(property),
 			),
 		);
 
+		// ── 4. Create Follows (social graph) ────────────────────────
+		const followPairs = [
+			["1", "2"],
+			["1", "3"],
+			["1", "9"],
+			["2", "1"],
+			["2", "5"],
+			["2", "7"],
+			["3", "1"],
+			["3", "4"],
+			["3", "6"],
+			["4", "1"],
+			["4", "5"],
+			["4", "8"],
+			["5", "2"],
+			["5", "3"],
+			["5", "9"],
+			["6", "1"],
+			["6", "7"],
+			["6", "9"],
+			["7", "2"],
+			["7", "6"],
+			["7", "8"],
+			["8", "3"],
+			["8", "5"],
+			["8", "9"],
+			["9", "1"],
+			["9", "2"],
+			["9", "3"],
+			["9", "5"],
+			["owner-1", "1"],
+			["owner-1", "3"],
+			["owner-1", "5"],
+			["owner-1", "9"],
+		];
+		await FollowModel.insertMany(
+			followPairs.map(([followerId, followingId], i) => ({
+				id: `follow-${i + 1}`,
+				followerId,
+				followingId,
+			})),
+		);
+		// Update followerCounts
+		const followerCounts: Record<string, number> = {};
+		for (const [, followingId] of followPairs) {
+			followerCounts[followingId] = (followerCounts[followingId] || 0) + 1;
+		}
+		await Promise.all(
+			Object.entries(followerCounts).map(([id, count]) =>
+				UserModel.updateOne({ id }, { $set: { followerCount: count } }),
+			),
+		);
+
+		// ── 5. Create Favourites ────────────────────────────────────
+		const favouritePairs = [
+			["owner-1", "3"],
+			["owner-1", "8"],
+			["owner-1", "12"],
+			["owner-1", "22"],
+			["1", "12"],
+			["1", "22"],
+			["1", "9"],
+			["2", "3"],
+			["2", "10"],
+			["2", "18"],
+			["3", "9"],
+			["3", "14"],
+			["3", "23"],
+			["4", "3"],
+			["4", "22"],
+			["4", "8"],
+			["5", "10"],
+			["5", "16"],
+			["5", "24"],
+			["6", "12"],
+			["6", "18"],
+			["7", "8"],
+			["7", "23"],
+			["8", "14"],
+			["8", "9"],
+			["9", "3"],
+			["9", "6"],
+		];
+		await FavouriteModel.insertMany(
+			favouritePairs.map(([userId, propertyId], i) => ({
+				id: `fav-${i + 1}`,
+				userId,
+				propertyId,
+			})),
+		);
+
+		// ── 6. Create Bookings ──────────────────────────────────────
+		const bookingData = [
+			{
+				ownerId: "1",
+				requesterId: "owner-1",
+				name: owners.me.name,
+				email: owners.me.email,
+				type: BookingType.CONSULTATION,
+				date: "2026-04-15",
+				time: "10:00",
+				msg: "I'd like to discuss the commercial block in CBD.",
+				status: BookingStatus.CONFIRMED,
+				propertyId: "8",
+			},
+			{
+				ownerId: "2",
+				requesterId: "owner-1",
+				name: owners.me.name,
+				email: owners.me.email,
+				type: BookingType.INSPECTION,
+				date: "2026-04-18",
+				time: "14:00",
+				msg: "Can I visit the Gwarinpa plot?",
+				status: BookingStatus.PENDING,
+				propertyId: "2",
+			},
+			{
+				ownerId: "5",
+				requesterId: "1",
+				name: owners.adebayo.name,
+				email: owners.adebayo.email,
+				type: BookingType.INSPECTION,
+				date: "2026-04-20",
+				time: "09:00",
+				msg: "Interested in the Asokoro terrace site.",
+				status: BookingStatus.PENDING,
+				propertyId: "12",
+			},
+			{
+				ownerId: "3",
+				requesterId: "2",
+				name: owners.fatima.name,
+				email: owners.fatima.email,
+				type: BookingType.CONSULTATION,
+				date: "2026-04-12",
+				time: "11:00",
+				msg: "Questions about Kubwa plot documentation.",
+				status: BookingStatus.COMPLETED,
+				propertyId: "4",
+			},
+			{
+				ownerId: "9",
+				requesterId: "3",
+				name: owners.chinedu.name,
+				email: owners.chinedu.email,
+				type: BookingType.INSPECTION,
+				date: "2026-04-25",
+				time: "15:30",
+				msg: "Want to inspect the Apo commercial strip.",
+				status: BookingStatus.PENDING,
+				propertyId: "23",
+			},
+			{
+				ownerId: "7",
+				requesterId: "5",
+				name: owners.ngozi.name,
+				email: owners.ngozi.email,
+				type: BookingType.CONSULTATION,
+				date: "2026-04-22",
+				time: "13:00",
+				msg: "Discuss pricing for Katampe hilltop plot.",
+				status: BookingStatus.CONFIRMED,
+				propertyId: "18",
+			},
+			{
+				ownerId: "1",
+				requesterId: "6",
+				name: owners.tunde.name,
+				email: owners.tunde.email,
+				type: BookingType.INSPECTION,
+				date: "2026-05-01",
+				time: "10:30",
+				msg: "I'd like to tour the Jahi plot.",
+				status: BookingStatus.PENDING,
+				propertyId: "3",
+			},
+			{
+				ownerId: "9",
+				requesterId: "8",
+				name: owners.saheed.name,
+				email: owners.saheed.email,
+				type: BookingType.CONSULTATION,
+				date: "2026-04-28",
+				time: "16:00",
+				msg: "Interested in Karshi estate payment plans.",
+				status: BookingStatus.PENDING,
+				propertyId: "22",
+			},
+			{
+				ownerId: "5",
+				requesterId: "4",
+				name: owners.emmanuel.name,
+				email: owners.emmanuel.email,
+				type: BookingType.INSPECTION,
+				date: "2026-04-19",
+				time: "11:30",
+				msg: "Site visit for the Guzape duplex land.",
+				status: BookingStatus.CONFIRMED,
+				propertyId: "13",
+			},
+			{
+				ownerId: "6",
+				requesterId: "owner-1",
+				name: owners.me.name,
+				email: owners.me.email,
+				type: BookingType.CONSULTATION,
+				date: "2026-05-05",
+				time: "09:30",
+				msg: "Need details on the Nyanya shop rental income.",
+				status: BookingStatus.PENDING,
+				propertyId: "17",
+			},
+		];
+		await BookingModel.insertMany(
+			bookingData.map((b, i) => ({
+				id: `booking-${i + 1}`,
+				ownerId: b.ownerId,
+				requesterId: b.requesterId,
+				requesterName: b.name,
+				requesterEmail: b.email,
+				type: b.type,
+				date: b.date,
+				time: b.time,
+				message: b.msg,
+				status: b.status,
+				propertyId: b.propertyId,
+			})),
+		);
+
 		return NextResponse.json({
-			message: `Successfully seeded ${created.length} properties`,
-			properties: created,
+			message: `Seeded successfully`,
+			counts: {
+				users: userDocs.length,
+				properties: createdProps.length,
+				portfolios: ownerList.length,
+				follows: followPairs.length,
+				favourites: favouritePairs.length,
+				bookings: bookingData.length,
+			},
 		});
 	} catch (error) {
 		console.error("Error seeding database:", error);

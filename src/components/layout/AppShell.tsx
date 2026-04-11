@@ -24,15 +24,15 @@ export default function AppShell({
 	hideAddProperty,
 }: AppShellProps) {
 	return (
-		<div className="flex h-screen overflow-hidden">
+		<div className="flex h-screen overflow-hidden bg-sidebar">
 			<Sidebar hideAddProperty={hideAddProperty} />
 			<div className="flex-1 flex flex-col min-w-0">
-				<Header />
 				<main
 					className={`flex-1 flex flex-col bg-background ${
 						scrollable ? "overflow-y-auto" : "overflow-hidden"
 					}`}
 				>
+					<Header />
 					{children}
 				</main>
 			</div>

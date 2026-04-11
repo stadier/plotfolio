@@ -130,27 +130,27 @@ export default function MiniMapWidget({
 		slideDir === "left" ? "animate-slide-left" : "animate-slide-right";
 
 	return (
-		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
-			{/* Header */}
-			<div className="flex items-center justify-between mb-3">
-				<div className="flex items-center gap-2">
-					<div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-500/20 flex items-center justify-center">
-						<Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+		<div className="bg-card border border-border sz-radius-card overflow-hidden break-inside-avoid widget-card animate-fade-in-up">
+			{/* Header — padded */}
+			<div className="flex items-center justify-between px-(--size-card-px) pt-(--size-card-py) mb-3">
+				<div className="flex items-center sz-gap">
+					<div className="sz-icon-box rounded-full bg-blue-50 dark:bg-blue-500/20 flex items-center justify-center">
+						<Globe className="sz-icon text-blue-600 dark:text-blue-400" />
 					</div>
-					<span className="text-xs font-semibold text-on-surface-variant">
+					<span className="typo-caption font-semibold text-on-surface-variant">
 						Property Map
 					</span>
 				</div>
 				<Link
 					href="/portfolio/map"
-					className="text-[10px] font-bold text-secondary uppercase tracking-widest hover:text-primary transition-colors"
+					className="typo-badge font-bold text-secondary uppercase tracking-widest hover:text-primary transition-colors"
 				>
 					Expand →
 				</Link>
 			</div>
 
-			{/* Location label + controls */}
-			<div className="flex items-center justify-between mb-2">
+			{/* Location label + controls — padded */}
+			<div className="flex items-center justify-between mb-2 px-(--size-card-px)">
 				<button
 					type="button"
 					onClick={goPrev}
@@ -163,10 +163,10 @@ export default function MiniMapWidget({
 					key={slideKey}
 					className={`text-center min-w-0 flex-1 px-1 ${slideClass}`}
 				>
-					<p className="text-[11px] font-bold text-on-surface truncate">
+					<p className="typo-caption font-bold text-on-surface truncate">
 						{current.label}
 					</p>
-					<p className="text-[10px] text-on-surface-variant">
+					<p className="typo-badge text-on-surface-variant">
 						{currentProps.length}{" "}
 						{currentProps.length === 1 ? "property" : "properties"}
 					</p>
@@ -181,12 +181,12 @@ export default function MiniMapWidget({
 				</button>
 			</div>
 
-			{/* SVG mini map */}
-			<div className="bg-slate-50 dark:bg-surface-container rounded-xl overflow-hidden">
+			{/* SVG mini map — bleeds to left, right, bottom */}
+			<div className="bg-slate-50 dark:bg-surface-container overflow-hidden">
 				<svg
 					key={slideKey}
 					viewBox={`0 0 ${mapW} ${mapH}`}
-					className={`w-full h-36 ${slideClass}`}
+					className={`w-full h-44 ${slideClass}`}
 				>
 					{/* Grid lines */}
 					{Array.from({ length: 6 }, (_, i) => (
@@ -263,9 +263,9 @@ export default function MiniMapWidget({
 				</svg>
 			</div>
 
-			{/* Slide dots */}
+			{/* Slide dots — overlaid on map area */}
 			{locationGroups.length > 1 && (
-				<div className="flex items-center justify-center gap-1 mt-2">
+				<div className="flex items-center justify-center gap-1 py-2 bg-slate-50 dark:bg-surface-container">
 					{locationGroups.map((_, i) => (
 						<button
 							key={i}

@@ -12,12 +12,12 @@ export default function RecentActivityWidget({
 	onSelect,
 }: RecentActivityWidgetProps) {
 	return (
-		<div className="bg-card rounded-2xl border border-border p-5 break-inside-avoid widget-card animate-fade-in-up">
-			<div className="flex items-center gap-2 mb-4">
-				<div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-purple-500/20 flex items-center justify-center">
-					<MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+		<div className="bg-card sz-card border border-border break-inside-avoid widget-card animate-fade-in-up">
+			<div className="flex items-center sz-gap mb-[var(--size-widget-header-mb)]">
+				<div className="sz-icon-box rounded-full bg-slate-100 dark:bg-purple-500/20 flex items-center justify-center">
+					<MessageSquare className="sz-icon text-purple-600 dark:text-purple-400" />
 				</div>
-				<span className="text-xs font-semibold text-on-surface-variant">
+				<span className="typo-caption font-semibold text-on-surface-variant">
 					Recent Activity
 				</span>
 			</div>
@@ -34,12 +34,12 @@ export default function RecentActivityWidget({
 								<MapPin className="w-3 h-3 text-slate-400 dark:text-slate-300" />
 							</div>
 							<div className="min-w-0 flex-1">
-								<p className="text-xs font-semibold text-primary truncate">
+								<p className="typo-caption font-semibold text-primary truncate">
 									{p.name}
 								</p>
 							</div>
 							<span
-								className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${badge.cls}`}
+								className={`px-2 py-0.5 rounded-full typo-badge font-bold uppercase tracking-wider ${badge.cls}`}
 							>
 								{badge.label}
 							</span>
