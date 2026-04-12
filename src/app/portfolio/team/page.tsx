@@ -115,7 +115,7 @@ export default function TeamPage() {
 	return (
 		<AppShell>
 			{/* Header */}
-			<div className="bg-background border-b border-border px-8 py-4 sticky top-0 z-10">
+			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
 					<BackButton fallbackHref="/portfolio" label="Dashboard" />
 					<span className="text-outline">/</span>
@@ -126,7 +126,7 @@ export default function TeamPage() {
 			</div>
 
 			{/* Body */}
-			<div className="px-8 pt-8 pb-16 max-w-3xl">
+			<div className="px-4 sm:px-8 pt-6 sm:pt-8 pb-16 max-w-3xl">
 				{/* Portfolio name + member count */}
 				<div className="flex items-start justify-between mb-8">
 					<div>

@@ -48,14 +48,14 @@ export default function EditPropertyPage({
 	return (
 		<AppShell>
 			{/* Page header */}
-			<div className="bg-background border-b border-border px-8 py-4 sticky top-0 z-10">
-				<div className="flex items-center gap-3">
+			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-10">
+				<div className="flex items-center gap-2 sm:gap-3 min-w-0">
 					<BackButton
 						fallbackHref={`/portfolio/properties/${id}`}
 						label="Back"
 					/>
-					<span className="text-outline">/</span>
-					<h1 className="font-headline text-lg font-bold text-on-surface">
+					<span className="text-outline hidden sm:inline">/</span>
+					<h1 className="font-headline text-base sm:text-lg font-bold text-on-surface truncate">
 						Edit: {property.name}
 					</h1>
 				</div>

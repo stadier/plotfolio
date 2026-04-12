@@ -365,7 +365,7 @@ export default function ProfilePage() {
 
 	return (
 		<AppShell>
-			<div className="px-6 py-6">
+			<div className="px-4 sm:px-6 py-4 sm:py-6">
 				{/* Back link */}
 				<BackButton
 					fallbackHref="/portfolio"
@@ -416,7 +416,7 @@ export default function ProfilePage() {
 
 				{/* Profile content — two-column layout */}
 				{!loading && !error && data && (
-					<div className="flex gap-6 items-start">
+					<div className="flex flex-col md:flex-row gap-6 items-start">
 						{/* Left: Profile sidebar */}
 						<ProfileSidebar owner={data.owner} stats={data.stats} />
 

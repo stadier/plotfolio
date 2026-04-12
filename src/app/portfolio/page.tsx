@@ -37,15 +37,15 @@ function StatCard({ label, value, icon, accent }: StatCardProps) {
 	return (
 		<div className="bg-card sz-card border border-border flex items-center gap-3 max-w-xs widget-card animate-fade-in-up !py-3">
 			<div
-				className={`sz-icon-box-lg rounded-full ${accent} flex items-center justify-center shrink-0`}
+				className={`sz-icon-box-lg rounded-full ${accent} flex items-center justify-center shrink-0 max-sm:hidden`}
 			>
 				{icon}
 			</div>
 			<div className="min-w-0">
-				<p className="typo-caption font-semibold text-outline uppercase tracking-widest">
+				<p className="typo-caption font-semibold text-outline uppercase tracking-widest leading-tight">
 					{label}
 				</p>
-				<p className="font-headline typo-stat font-extrabold text-primary truncate">
+				<p className="font-headline text-base sm:typo-stat font-extrabold text-primary truncate">
 					{value}
 				</p>
 			</div>
@@ -156,7 +156,7 @@ export default function DashboardV2Page() {
 									)}
 								</div>
 
-								<div className="flex flex-wrap gap-3">
+								<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 									<StatCard
 										label="Portfolio Value"
 										value={formatCurrencyCompact(totalWorth)}

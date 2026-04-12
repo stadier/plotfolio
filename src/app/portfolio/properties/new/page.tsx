@@ -23,7 +23,7 @@ export default function NewPropertyPage() {
 	return (
 		<AppShell>
 			{/* Page header */}
-			<div className="bg-background border-b border-border px-8 py-4 sticky top-0 z-10">
+			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
 					<BackButton fallbackHref="/portfolio/properties" label="Properties" />
 					<span className="text-outline">/</span>
@@ -34,7 +34,7 @@ export default function NewPropertyPage() {
 			</div>
 
 			{/* Body */}
-			<div className="px-8 pt-6 pb-0">
+			<div className="px-4 sm:px-8 pt-6 pb-0">
 				<CreatePropertyForm
 					initialName={propertyName}
 					onNameChange={setPropertyName}

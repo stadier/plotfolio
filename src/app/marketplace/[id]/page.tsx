@@ -90,7 +90,7 @@ export default function MarketplaceListingPage({
 	return (
 		<AppShell scrollable={false}>
 			{/* Breadcrumb header */}
-			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-4 z-10">
+			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-4 sm:px-8 py-3 sm:py-4 z-10">
 				<div className="flex items-center gap-3">
 					<BackButton fallbackHref="/marketplace" label="Marketplace" />
 					<span className="text-outline-variant">/</span>

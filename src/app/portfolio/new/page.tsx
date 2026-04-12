@@ -58,7 +58,7 @@ export default function NewPortfolioPage() {
 	return (
 		<AppShell>
 			{/* Header */}
-			<div className="bg-background border-b border-border px-8 py-4 sticky top-0 z-10">
+			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
 					<BackButton fallbackHref="/portfolio" label="Dashboard" />
 					<span className="text-outline">/</span>
@@ -69,7 +69,7 @@ export default function NewPortfolioPage() {
 			</div>
 
 			{/* Body */}
-			<div className="px-8 pt-8 pb-16">
+			<div className="px-4 sm:px-8 pt-6 sm:pt-8 pb-16">
 				<form onSubmit={handleSubmit} className="max-w-lg space-y-6">
 					{/* Icon */}
 					<div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">

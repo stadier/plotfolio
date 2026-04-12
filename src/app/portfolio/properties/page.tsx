@@ -661,12 +661,12 @@ export default function PropertiesPage() {
 						</p>
 					</div>
 					{!loading && properties.length > 0 && (
-						<div className="flex flex-wrap items-start gap-4">
+						<div className="flex flex-nowrap md:flex-wrap items-start gap-4 overflow-x-auto scrollbar-hide pb-2 md:pb-0">
 							{summaryStats.map((stat, i) => (
 								<div
 									key={stat.label}
 									style={{ animationDelay: `${i * 0.06}s` }}
-									className="animate-fade-in-up"
+									className="animate-fade-in-up shrink-0"
 								>
 									<SummaryStatCard
 										label={stat.label}
@@ -681,9 +681,9 @@ export default function PropertiesPage() {
 
 				{/* Search & filter bar */}
 				{!loading && properties.length > 0 && (
-					<div className="flex flex-wrap items-center gap-3 mb-6">
+					<div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
 						{/* Search */}
-						<div className="relative flex-1 min-w-[220px] max-w-md">
+						<div className="relative flex-1 min-w-[180px] sm:min-w-[220px] max-w-md">
 							<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
 							<input
 								type="text"

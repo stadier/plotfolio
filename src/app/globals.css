@@ -539,3 +539,45 @@ html[data-sidebar-collapsed="true"] [data-sidebar-label] {
 .sidebar-link-collapsed {
 	transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ── Mobile responsiveness ──────────────────────────────────────────────────── */
+
+/* Safe area for bottom nav on notched devices */
+.safe-bottom {
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Slide-up animation for mobile drawer */
+@keyframes slide-up {
+	from {
+		opacity: 0;
+		transform: translateY(100%);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.animate-slide-up {
+	animation: slide-up 0.25s ease-out both;
+}
+
+/* Reduce page spacing on mobile */
+@media (max-width: 767px) {
+	:root {
+		--size-page-px: 1rem;
+		--size-page-py: 1.25rem;
+		--size-card-px: 0.875rem;
+		--size-card-py: 0.875rem;
+		--radius-card: 0.75rem;
+	}
+}
+
+/* Hide scrollbar utility used by category pills etc. */
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}

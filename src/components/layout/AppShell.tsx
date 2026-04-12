@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "./Header";
+import MobileNav from "./MobileNav";
 import Sidebar from "./Sidebar";
 
 interface AppShellProps {
@@ -29,13 +30,14 @@ export default function AppShell({
 			<div className="flex-1 flex flex-col min-w-0">
 				<Header />
 				<main
-					className={`flex-1 flex flex-col bg-background min-h-0 isolate ${
+					className={`flex-1 flex flex-col bg-background min-h-0 isolate pb-16 md:pb-0 ${
 						scrollable ? "overflow-y-auto" : "overflow-hidden"
 					}`}
 				>
 					{children}
 				</main>
 			</div>
+			<MobileNav />
 		</div>
 	);
 }

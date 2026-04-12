@@ -64,15 +64,15 @@ export default function PropertyDetailPage({
 	return (
 		<AppShell scrollable={false}>
 			{/* Page header */}
-			<div className="bg-background border-b border-border px-8 py-4 z-10">
-				<div className="flex items-center gap-3">
+			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 z-10">
+				<div className="flex items-center gap-2 sm:gap-3 min-w-0">
 					<BackButton fallbackHref="/portfolio/properties" label="Properties" />
-					<span className="text-outline-variant">/</span>
+					<span className="text-outline-variant hidden sm:inline">/</span>
 					<h1 className="font-headline text-sm font-semibold text-primary truncate">
 						{property.name}
 					</h1>
 					<span
-						className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+						className={`ml-auto sm:ml-2 shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
 					>
 						{property.status.replace(/_/g, " ").toUpperCase()}
 					</span>

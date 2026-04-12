@@ -3,6 +3,7 @@
 import { useAuth } from "@/components/AuthContext";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { Bell, Briefcase, ShoppingBag } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -58,8 +59,24 @@ export default function Header() {
 
 	return (
 		<header className="relative z-40 shrink-0 bg-background">
-			<div className="relative flex items-center justify-between px-6 py-3 w-full pl-7">
-				{/* Portfolio / Marketplace switcher */}
+			<div className="relative flex items-center justify-between px-4 md:px-6 py-3 w-full md:pl-7">
+				{/* Mobile: logo + page title */}
+				<div className="flex md:hidden items-center gap-2">
+					<Link href="/" className="flex items-center gap-2">
+						<Image
+							src="/plotfolio-logo.svg"
+							alt="Plotfolio"
+							width={24}
+							height={24}
+							className="w-6 h-6"
+						/>
+						<span className="text-lg font-bold tracking-tighter text-primary font-headline">
+							Plotfolio
+						</span>
+					</Link>
+				</div>
+
+				{/* Desktop: Portfolio / Marketplace switcher */}
 				<div className="hidden md:flex items-center relative bg-surface-container rounded-full p-0.5">
 					<SwitcherPill isMarketplace={isMarketplace} hasUser={!!user} />
 					{user && (
@@ -67,9 +84,7 @@ export default function Header() {
 							href="/portfolio"
 							data-switcher="portfolio"
 							className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${
-								!isMarketplace
-									? "text-white"
-									: "text-on-surface-variant"
+								!isMarketplace ? "text-white" : "text-on-surface-variant"
 							}`}
 						>
 							<Briefcase className="w-3.5 h-3.5" />
@@ -80,9 +95,7 @@ export default function Header() {
 						href="/marketplace"
 						data-switcher="marketplace"
 						className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${
-							isMarketplace || !user
-								? "text-white"
-								: "text-on-surface-variant"
+							isMarketplace || !user ? "text-white" : "text-on-surface-variant"
 						}`}
 					>
 						<ShoppingBag className="w-3.5 h-3.5" />

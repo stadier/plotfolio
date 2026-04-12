@@ -707,7 +707,9 @@ export default function CreatePropertyForm({
 	}, []);
 
 	return (
-		<div className={`flex flex-col h-screen ${isEdit ? "px-8 py-6" : ""}`}>
+		<div
+			className={`flex flex-col h-screen ${isEdit ? "px-4 sm:px-8 py-6" : ""}`}
+		>
 			<form
 				onSubmit={handleSubmit}
 				className="flex flex-col justify-between flex-1 min-w-0"
@@ -1153,7 +1155,7 @@ export default function CreatePropertyForm({
 				</div>
 
 				{/* ── Sticky Actions Bar ─────────────────── */}
-				<div className="sticky bottom-0 left-0 right-0 py-4 -mx-8 px-8 flex items-center gap-3 justify-center sm:justify-end border-t border-border bg-background">
+				<div className="sticky bottom-0 left-0 right-0 py-4 -mx-4 sm:-mx-8 px-4 sm:px-8 flex items-center gap-3 justify-center sm:justify-end border-t border-border bg-background">
 					<Link
 						href="/portfolio/properties"
 						className="px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors font-label"

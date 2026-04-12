@@ -777,7 +777,7 @@ export default function MarketplacePage() {
 
 	return (
 		<AppShell>
-			<div className="px-6 py-6">
+			<div className="px-4 py-4 sm:px-6 sm:py-6">
 				{/* Category pills with counts */}
 				<div className="flex items-center gap-2 overflow-x-auto pb-4 mb-5 scrollbar-hide">
 					{categoryPills.map((cat) => (
@@ -804,6 +804,41 @@ export default function MarketplacePage() {
 
 				{/* Main layout: sidebar + grid */}
 				<div className="flex sz-gap-section items-start">
+					{/* Mobile search + sort bar */}
+					<div className="lg:hidden w-full mb-4 flex flex-wrap gap-2">
+						<div className="relative flex-1 min-w-[160px]">
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+							<input
+								type="text"
+								placeholder="Search listings…"
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+							/>
+							{search && (
+								<button
+									onClick={() => setSearch("")}
+									className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-outline hover:text-on-surface-variant"
+								>
+									<X className="w-3.5 h-3.5" />
+								</button>
+							)}
+						</div>
+						<div className="relative">
+							<select
+								value={sortKey}
+								onChange={(e) => setSortKey(e.target.value as SortKey)}
+								className="appearance-none pl-3 pr-8 py-2 text-sm border border-border rounded-lg bg-card cursor-pointer"
+							>
+								<option value="newest">Newest</option>
+								<option value="price-desc">Price: High</option>
+								<option value="price-asc">Price: Low</option>
+								<option value="area-desc">Largest</option>
+							</select>
+							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+						</div>
+					</div>
+
 					{/* Left filter sidebar */}
 					<aside className="hidden lg:block w-60 shrink-0 sticky top-24">
 						<FilterSidebar
@@ -905,10 +940,10 @@ export default function MarketplacePage() {
 									{hasActiveFilters ? " (filtered)" : ""}
 								</div>
 								<div
-									className="grid gap-4 items-start"
+									className="grid gap-3 sm:gap-4 items-start"
 									style={{
 										gridTemplateColumns:
-											"repeat(auto-fill, minmax(240px, 1fr))",
+											"repeat(auto-fill, minmax(min(240px, 100%), 1fr))",
 									}}
 								>
 									{filtered.map((property) => (

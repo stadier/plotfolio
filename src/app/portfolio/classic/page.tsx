@@ -107,7 +107,7 @@ export default function DashboardPage() {
 					{!loading && properties.length > 0 && (
 						<>
 							{/* Large headline stats */}
-							<div className="flex flex-wrap items-end gap-10 mb-6 animate-fade-in">
+							<div className="flex flex-wrap items-end gap-4 sm:gap-10 mb-6 animate-fade-in">
 								<div>
 									<p className="typo-caption text-on-surface-variant font-semibold uppercase tracking-widest mb-1">
 										Portfolio Worth

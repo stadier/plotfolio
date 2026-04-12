@@ -889,7 +889,7 @@ export default function SettingsPage() {
 					Manage your account, appearance, and preferences.
 				</p>
 
-				<div className="flex gap-8 items-start">
+				<div className="flex flex-col md:flex-row gap-4 md:gap-8 items-start">
 					{/* Sidebar navigation */}
 					<nav className="hidden md:flex flex-col gap-1 min-w-[180px] sticky top-4">
 						{TABS.map(({ key, label, icon: Icon }) => {

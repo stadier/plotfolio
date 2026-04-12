@@ -53,7 +53,8 @@ export default function FavouritesPage() {
 					<div
 						className="grid gap-4"
 						style={{
-							gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+							gridTemplateColumns:
+								"repeat(auto-fill, minmax(min(240px, 100%), 1fr))",
 						}}
 					>
 						{Array.from({ length: 4 }).map((_, i) => (
@@ -93,7 +94,8 @@ export default function FavouritesPage() {
 					<div
 						className="grid gap-4 items-start"
 						style={{
-							gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+							gridTemplateColumns:
+								"repeat(auto-fill, minmax(min(240px, 100%), 1fr))",
 						}}
 					>
 						{properties.map((property) => {

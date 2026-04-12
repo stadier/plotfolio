@@ -16,6 +16,7 @@ import {
 	ChevronUp,
 	Edit3,
 	Layers,
+	List,
 	MapPin,
 	Minus,
 	Plus,
@@ -71,6 +72,7 @@ export default function Home() {
 
 	// Map Options Panel State
 	const [showMapOptions, setShowMapOptions] = useState(false);
+	const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 	const [mapViewMode, setMapViewMode] = useState<
 		"automatic" | "satellite" | "street"
 	>("automatic");
@@ -351,9 +353,9 @@ export default function Home() {
 
 	return (
 		<AppShell scrollable={false}>
-			<div className="flex flex-1 min-h-0 w-full">
-				{/* Property List Sidebar */}
-				<div className="shrink-0 w-80 h-full">
+			<div className="flex flex-1 min-h-0 w-full relative">
+				{/* Property List Sidebar — always visible on md+, slide-over on mobile */}
+				<div className="hidden md:block shrink-0 w-80 h-full">
 					<MapPropertySidebar
 						properties={filteredProperties}
 						selectedPropertyId={selectedProperty?.id ?? null}
@@ -362,8 +364,37 @@ export default function Home() {
 						onSearch={handleSearch}
 					/>
 				</div>
+				{/* Mobile sidebar overlay */}
+				{showMobileSidebar && (
+					<div className="md:hidden absolute inset-0 z-1100 flex">
+						<div className="w-80 max-w-[85vw] h-full bg-card shadow-xl">
+							<MapPropertySidebar
+								properties={filteredProperties}
+								selectedPropertyId={selectedProperty?.id ?? null}
+								onPropertySelect={(p) => {
+									handlePropertySelect(p);
+									setShowMobileSidebar(false);
+								}}
+								searchQuery={searchQuery}
+								onSearch={handleSearch}
+							/>
+						</div>
+						<div
+							className="flex-1 bg-black/40"
+							onClick={() => setShowMobileSidebar(false)}
+						/>
+					</div>
+				)}
 				{/* Full Screen Map */}
 				<div className="flex-1 relative h-full">
+					{/* Mobile property list toggle */}
+					<button
+						onClick={() => setShowMobileSidebar(true)}
+						className="md:hidden absolute top-3 left-3 z-1000 bg-card shadow-lg rounded-xl px-3 py-2 flex items-center gap-2 text-sm font-medium text-on-surface border border-border"
+					>
+						<List className="w-4 h-4" />
+						Properties
+					</button>
 					{/* Map Component */}
 					{isMounted && (
 						<PlotfolioMap
@@ -447,7 +478,7 @@ export default function Home() {
 
 					{/* Map Options Panel */}
 					{showMapOptions && (
-						<div className="absolute top-6 left-4 bg-glass backdrop-blur-sm rounded-lg shadow-lg border border-border/50 p-4 w-64 z-1000">
+						<div className="absolute top-6 left-4 right-4 sm:right-auto bg-glass backdrop-blur-sm rounded-lg shadow-lg border border-border/50 p-4 sm:w-64 z-1000">
 							<div className="flex items-center justify-between mb-3">
 								<h3 className="text-sm font-semibold text-on-surface">
 									Map Options
@@ -623,7 +654,7 @@ export default function Home() {
 					)}
 
 					{/* Map Controls at Bottom */}
-					<div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-3 z-1000">
+					<div className="absolute bottom-18 md:bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 sm:space-x-3 z-1000">
 						{/* Map Options Toggle */}
 						<button
 							onClick={() => setShowMapOptions(!showMapOptions)}
@@ -705,7 +736,7 @@ export default function Home() {
 
 					{/* Property Details Overlay */}
 					{selectedProperty && isPropertyCardVisible && (
-						<div className="absolute top-2 left-2 w-80 max-h-[calc(100%-1rem)] bg-glass backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-999 transition-all duration-300 flex flex-col">
+						<div className="absolute top-2 left-2 right-2 sm:right-auto sm:w-80 max-h-[calc(100%-1rem)] bg-glass backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-999 transition-all duration-300 flex flex-col">
 							{/* Header with Controls */}
 							<div className="flex items-center justify-between p-4 pb-0 shrink-0">
 								<h2 className="text-lg font-semibold text-on-surface truncate flex-1 mr-3">
