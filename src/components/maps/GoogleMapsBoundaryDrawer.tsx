@@ -20,12 +20,13 @@ export default function GoogleMapsBoundaryDrawer({
 }: GoogleMapsBoundaryDrawerProps) {
 	const map = useMap();
 	const [points, setPoints] = useState<{ lat: number; lng: number }[]>(
-		existingBoundary?.coordinates.map((c) => ({ lat: c.lat, lng: c.lng })) || []
+		existingBoundary?.coordinates.map((c) => ({ lat: c.lat, lng: c.lng })) ||
+			[],
 	);
 	const [isDrawing, setIsDrawing] = useState(false);
 	const [isRefining, setIsRefining] = useState(false);
 	const [refinedSurveyData, setRefinedSurveyData] = useState<SurveyData | null>(
-		null
+		null,
 	);
 	const [showRefinedPreview, setShowRefinedPreview] = useState(false);
 	const markersRef = useRef<google.maps.Marker[]>([]);
@@ -45,7 +46,7 @@ export default function GoogleMapsBoundaryDrawer({
 					const newPoint = { lat: e.latLng.lat(), lng: e.latLng.lng() };
 					setPoints((prev) => [...prev, newPoint]);
 				}
-			}
+			},
 		);
 
 		listenerRef.current = clickListener;
@@ -168,8 +169,6 @@ export default function GoogleMapsBoundaryDrawer({
 			return;
 		}
 
-		console.log("💾 Saving boundary with points:", points);
-
 		const surveyData: SurveyData = {
 			plotNumber: `MANUAL-${Date.now()}`,
 			area: calculatePolygonArea(points),
@@ -182,9 +181,6 @@ export default function GoogleMapsBoundaryDrawer({
 			measurements: [],
 			bearings: [],
 		};
-
-		console.log("📊 Survey data created:", surveyData);
-		console.log(`📍 Area: ${surveyData.area.toFixed(2)} m²`);
 
 		onBoundaryComplete(surveyData);
 	};
@@ -206,7 +202,7 @@ export default function GoogleMapsBoundaryDrawer({
 						south: mapBounds.getSouthWest().lat(),
 						east: mapBounds.getNorthEast().lng(),
 						west: mapBounds.getSouthWest().lng(),
-				  }
+					}
 				: undefined;
 
 			// Get center point
@@ -244,7 +240,6 @@ export default function GoogleMapsBoundaryDrawer({
 				setPoints(refinedPoints);
 
 				// Show success message
-				console.log("✅ Refinement complete:", data.message);
 			} else {
 				throw new Error(data.error || "Failed to refine boundary");
 			}
@@ -253,7 +248,7 @@ export default function GoogleMapsBoundaryDrawer({
 			alert(
 				error instanceof Error
 					? error.message
-					: "Failed to refine boundary. Please try again."
+					: "Failed to refine boundary. Please try again.",
 			);
 		} finally {
 			setIsRefining(false);
@@ -262,8 +257,6 @@ export default function GoogleMapsBoundaryDrawer({
 
 	const handleSaveRefinedBoundary = () => {
 		if (refinedSurveyData) {
-			console.log("💾 Saving AI-refined boundary:", refinedSurveyData);
-			console.log(`📍 Area: ${refinedSurveyData.area.toFixed(2)} m²`);
 			onBoundaryComplete(refinedSurveyData);
 		}
 	};
@@ -275,7 +268,7 @@ export default function GoogleMapsBoundaryDrawer({
 	};
 
 	const calculatePolygonArea = (
-		pts: { lat: number; lng: number }[]
+		pts: { lat: number; lng: number }[],
 	): number => {
 		if (pts.length < 3) return 0;
 
@@ -333,12 +326,12 @@ export default function GoogleMapsBoundaryDrawer({
 					{showRefinedPreview
 						? "Review the AI-refined boundary below. Save if it looks good, or discard to try again."
 						: !isDrawing && points.length === 0
-						? "Click 'Start Drawing' then click on the map to add boundary points."
-						: !isDrawing && points.length >= 3
-						? "Boundary drawn! Use AI Refine to snap to actual property edges, or adjust manually."
-						: `${points.length} point${
-								points.length !== 1 ? "s" : ""
-						  } added. Click on the map to add more points.`}
+							? "Click 'Start Drawing' then click on the map to add boundary points."
+							: !isDrawing && points.length >= 3
+								? "Boundary drawn! Use AI Refine to snap to actual property edges, or adjust manually."
+								: `${points.length} point${
+										points.length !== 1 ? "s" : ""
+									} added. Click on the map to add more points.`}
 				</p>
 
 				{points.length >= 3 && (

@@ -6,6 +6,7 @@ import AppShell from "@/components/layout/AppShell";
 import BackButton from "@/components/ui/BackButton";
 import { PortfolioAPI } from "@/lib/api";
 import { Briefcase, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

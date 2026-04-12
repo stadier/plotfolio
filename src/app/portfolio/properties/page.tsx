@@ -2,6 +2,10 @@
 
 import { useRequireAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import {
+	formatDate,
+	getStatusColor,
+} from "@/components/property/propertyDisplayHelpers";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
@@ -77,31 +81,6 @@ function hydratePropertyPreview(property: Property): Property {
 		...property,
 		images: [preview.src],
 	};
-}
-
-function formatDate(date: Date | string): string {
-	return new Date(date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
-}
-
-function getStatusColor(status: PropertyStatus): string {
-	switch (status) {
-		case PropertyStatus.OWNED:
-			return "bg-green-100 text-green-700";
-		case PropertyStatus.FOR_SALE:
-			return "bg-blue-100 text-blue-700";
-		case PropertyStatus.DEVELOPMENT:
-			return "bg-yellow-100 text-yellow-700";
-		case PropertyStatus.UNDER_CONTRACT:
-			return "bg-orange-100 text-orange-700";
-		case PropertyStatus.RENTED:
-			return "bg-purple-100 text-purple-700";
-		default:
-			return "bg-surface-container-high text-on-surface-variant";
-	}
 }
 
 function getStatusDot(status: PropertyStatus): string {

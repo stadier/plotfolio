@@ -124,9 +124,6 @@ async function detectFileKind(file: File): Promise<FileKind> {
 
 export async function readTextFromFile(file: File): Promise<string> {
 	const kind = await detectFileKind(file);
-	console.log(
-		`[documentExtractor] file="${file.name}" type="${file.type}" detected=${kind}`,
-	);
 
 	switch (kind) {
 		case "text":
@@ -397,11 +394,6 @@ export async function extractFieldsFromDocument(
 	file: File,
 ): Promise<ExtractedFields> {
 	const text = await readTextFromFile(file);
-	console.log(
-		`[documentExtractor] extracted ${text.length} chars from "${file.name}"`,
-	);
-	if (text.length > 0)
-		console.log(`[documentExtractor] preview: ${text.slice(0, 300)}`);
 
 	// Try AI extraction first
 	const aiFields = await extractFieldsWithAI(text);
@@ -409,21 +401,11 @@ export async function extractFieldsFromDocument(
 		const matched = Object.keys(aiFields).filter(
 			(k) => aiFields[k as keyof ExtractedFields] !== undefined,
 		);
-		console.log(
-			`[documentExtractor] AI matched fields: ${matched.join(", ") || "(none)"}`,
-		);
 		if (matched.length > 0) return aiFields;
 	}
 
 	// Fall back to regex
-	console.log("[documentExtractor] falling back to regex extraction");
 	const fields = matchTextToFields(text);
-	const matched = Object.keys(fields).filter(
-		(k) => fields[k as keyof ExtractedFields] !== undefined,
-	);
-	console.log(
-		`[documentExtractor] regex matched fields: ${matched.join(", ") || "(none)"}`,
-	);
 	return fields;
 }
 

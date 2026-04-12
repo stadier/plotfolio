@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 		if (!points || points.length < 3) {
 			return NextResponse.json(
 				{ error: "At least 3 points required" },
-				{ status: 400 }
+				{ status: 400 },
 			);
 		}
 
@@ -21,18 +21,13 @@ export async function POST(request: NextRequest) {
 		const maxDiff = Math.max(latDiff, lngDiff);
 		const zoom = Math.min(
 			20,
-			Math.max(15, Math.floor(15 - Math.log2(maxDiff * 100)))
+			Math.max(15, Math.floor(15 - Math.log2(maxDiff * 100))),
 		);
 
 		// Use Mapbox Static Images API (FREE - included in your plan)
 		const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 		const imageSize = 640;
 		const satelliteImageUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${centerLng},${centerLat},${zoom}/${imageSize}x${imageSize}@2x?access_token=${mapboxToken}`;
-
-		console.log("Analyzing property with FREE edge detection...");
-		console.log(`Rough boundary points: ${points.length}`);
-		console.log(`Center: ${centerLat}, ${centerLng}`);
-		console.log(`Using Mapbox satellite imagery (FREE)`);
 
 		let parsedResponse;
 
@@ -52,14 +47,12 @@ export async function POST(request: NextRequest) {
 				imageBuffer,
 				points,
 				bounds,
-				imageSize
+				imageSize,
 			);
-
-			console.log("✅ Edge detection complete (FREE)");
 		} catch (edgeDetectionError: any) {
 			console.warn(
 				"Edge detection failed, using geometric refinement:",
-				edgeDetectionError.message
+				edgeDetectionError.message,
 			);
 
 			// Fallback: Use geometric refinement algorithm
@@ -78,10 +71,10 @@ export async function POST(request: NextRequest) {
 		};
 
 		const usedEdgeDetection = parsedResponse.detectedFeatures?.includes(
-			"canny-edge-detection"
+			"canny-edge-detection",
 		);
 		const usedFallback = parsedResponse.detectedFeatures?.includes(
-			"geometric-smoothing"
+			"geometric-smoothing",
 		);
 
 		return NextResponse.json({
@@ -93,8 +86,8 @@ export async function POST(request: NextRequest) {
 			message: usedEdgeDetection
 				? "Boundary refined using FREE edge detection (no AI costs!)"
 				: usedFallback
-				? "Boundary refined using geometric algorithms"
-				: "Boundary refined successfully",
+					? "Boundary refined using geometric algorithms"
+					: "Boundary refined successfully",
 		});
 	} catch (error) {
 		console.error("Error refining boundary:", error);
@@ -103,7 +96,7 @@ export async function POST(request: NextRequest) {
 				error: "Failed to refine boundary",
 				details: error instanceof Error ? error.message : "Unknown error",
 			},
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }
@@ -113,7 +106,7 @@ async function applyEdgeDetection(
 	imageBuffer: ArrayBuffer,
 	points: Array<{ lat: number; lng: number }>,
 	bounds: { north: number; south: number; east: number; west: number },
-	imageSize: number
+	imageSize: number,
 ) {
 	try {
 		// Convert image buffer to grayscale and apply Canny edge detection
@@ -123,10 +116,11 @@ async function applyEdgeDetection(
 		const refinedPoints = points.map((point) => {
 			// Convert lat/lng to pixel coordinates
 			const x = Math.floor(
-				((point.lng - bounds.west) / (bounds.east - bounds.west)) * imageSize
+				((point.lng - bounds.west) / (bounds.east - bounds.west)) * imageSize,
 			);
 			const y = Math.floor(
-				((bounds.north - point.lat) / (bounds.north - bounds.south)) * imageSize
+				((bounds.north - point.lat) / (bounds.north - bounds.south)) *
+					imageSize,
 			);
 
 			// Search for nearest edge within radius
@@ -160,7 +154,7 @@ async function applyEdgeDetection(
 // Process image and detect edges using Canny algorithm
 async function processImageEdges(
 	imageBuffer: ArrayBuffer,
-	size: number
+	size: number,
 ): Promise<Uint8Array> {
 	// Simplified edge detection using gradient analysis
 	// In a full implementation, you'd use a library like sharp or canvas
@@ -184,7 +178,7 @@ function findNearestEdge(
 	x: number,
 	y: number,
 	radius: number,
-	size: number
+	size: number,
 ): { x: number; y: number } {
 	let minDist = Infinity;
 	let bestX = x;
@@ -233,7 +227,7 @@ function geometricRefinement(points: Array<{ lat: number; lng: number }>) {
 // Smooth polygon using weighted averaging
 function smoothPolygon(
 	points: Array<{ lat: number; lng: number }>,
-	weight: number
+	weight: number,
 ): Array<{ lat: number; lng: number }> {
 	if (points.length < 3) return points;
 
@@ -250,7 +244,7 @@ function smoothPolygon(
 
 // Regularize angles to common values (90°, 45°, etc.)
 function regularizeAngles(
-	points: Array<{ lat: number; lng: number }>
+	points: Array<{ lat: number; lng: number }>,
 ): Array<{ lat: number; lng: number }> {
 	if (points.length < 3) return points;
 
@@ -279,7 +273,7 @@ function regularizeAngles(
 		if (Math.abs(nearest - normalized) < 15) {
 			const adjustment = ((nearest - normalized) * Math.PI) / 180;
 			const distance = Math.sqrt(
-				Math.pow(next.lat - curr.lat, 2) + Math.pow(next.lng - curr.lng, 2)
+				Math.pow(next.lat - curr.lat, 2) + Math.pow(next.lng - curr.lng, 2),
 			);
 
 			regularized[i] = {
@@ -294,7 +288,7 @@ function regularizeAngles(
 
 // Calculate area of polygon using Shoelace formula
 function calculatePolygonArea(
-	points: Array<{ lat: number; lng: number }>
+	points: Array<{ lat: number; lng: number }>,
 ): number {
 	if (points.length < 3) return 0;
 

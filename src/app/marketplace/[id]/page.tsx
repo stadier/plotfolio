@@ -2,7 +2,7 @@
 
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
-import ListingDetailViewAlt from "@/components/property/ListingDetailViewAlt";
+import PropertyFullView from "@/components/property/PropertyFullView";
 import ShareModal from "@/components/property/ShareModal";
 import BackButton from "@/components/ui/BackButton";
 import { useProperty } from "@/hooks/usePropertyQueries";
@@ -101,7 +101,7 @@ export default function MarketplaceListingPage({
 			</div>
 
 			<div className="flex-1 min-h-0 overflow-hidden">
-				<ListingDetailViewAlt
+				<PropertyFullView
 					property={property}
 					accessRequests={accessRequests}
 					onAccessRequested={handleAccessRequested}

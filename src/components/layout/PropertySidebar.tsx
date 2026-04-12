@@ -1,5 +1,6 @@
 "use client";
 
+import { getStatusColor } from "@/components/property/propertyDisplayHelpers";
 import { formatCurrency } from "@/lib/utils";
 import { Property, PropertyStatus } from "@/types/property";
 import { Filter, Search } from "lucide-react";
@@ -11,21 +12,6 @@ interface PropertySidebarProps {
 	onPropertySelect: (property: Property) => void;
 	searchQuery: string;
 	onSearch: (query: string) => void;
-}
-
-function getStatusColor(status: PropertyStatus): string {
-	switch (status) {
-		case PropertyStatus.OWNED:
-			return "bg-green-100 text-green-800";
-		case PropertyStatus.FOR_SALE:
-			return "bg-blue-100 text-blue-800";
-		case PropertyStatus.DEVELOPMENT:
-			return "bg-yellow-100 text-yellow-800";
-		case PropertyStatus.UNDER_CONTRACT:
-			return "bg-orange-100 text-orange-800";
-		default:
-			return "bg-surface-container-high text-on-surface";
-	}
 }
 
 export default function PropertySidebar({

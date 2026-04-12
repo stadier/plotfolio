@@ -4,8 +4,8 @@ import { Property } from "@/types/property";
 import { Maximize2, Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import ListingDetailView from "./ListingDetailView";
-import { formatCurrency, getStatusColor } from "./PropertyDetailContent";
+import PropertyCompactView from "./PropertyCompactView";
+import { formatCurrency, getStatusColor } from "./propertyDisplayHelpers";
 
 interface PropertyDrawerProps {
 	propertyId: string | null;
@@ -170,7 +170,7 @@ export default function PropertyDrawer({
 					)}
 
 					{property && !loading && (
-						<ListingDetailView
+						<PropertyCompactView
 							property={property}
 							layout="compact"
 							showGallery={false}

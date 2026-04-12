@@ -1,8 +1,8 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
-import ListingDetailViewAlt from "@/components/property/ListingDetailViewAlt";
-import { getStatusColor } from "@/components/property/PropertyDetailContent";
+import { getStatusColor } from "@/components/property/propertyDisplayHelpers";
+import PropertyFullView from "@/components/property/PropertyFullView";
 import ShareModal from "@/components/property/ShareModal";
 import BackButton from "@/components/ui/BackButton";
 import { useProperty } from "@/hooks/usePropertyQueries";
@@ -80,7 +80,7 @@ export default function PropertyDetailPage({
 			</div>
 
 			<div className="flex-1 min-h-0 overflow-hidden">
-				<ListingDetailViewAlt
+				<PropertyFullView
 					property={property}
 					isOwner
 					actions={

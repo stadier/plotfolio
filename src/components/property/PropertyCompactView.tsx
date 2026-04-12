@@ -1,11 +1,12 @@
 "use client";
 
+import MediaLightbox from "@/components/property/MediaLightbox";
 import {
 	DocumentsGrid,
 	formatCurrency,
 	formatDate,
 	getStatusColor,
-} from "@/components/property/PropertyDetailContent";
+} from "@/components/property/propertyDisplayHelpers";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { getPropertyMedia } from "@/lib/utils";
 import {
@@ -218,76 +219,14 @@ function MediaGallery({
 			{renderLayout()}
 
 			{lightbox !== null && (
-				<div
-					className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8"
-					onClick={() => setLightbox(null)}
-				>
-					<div
-						className="relative max-w-4xl max-h-[80vh] w-full h-full"
-						onClick={(e) => e.stopPropagation()}
-					>
-						{media[lightbox].type === MediaType.VIDEO ? (
-							<video
-								src={media[lightbox].url}
-								controls
-								autoPlay
-								className="w-full h-full object-contain"
-							/>
-						) : media[lightbox].type === MediaType.AUDIO ? (
-							<div className="w-full h-full flex flex-col items-center justify-center text-white gap-4">
-								<Mic className="w-16 h-16" />
-								<p className="text-lg">
-									{media[lightbox].caption ?? "Audio Track"}
-								</p>
-								<audio
-									src={media[lightbox].url}
-									controls
-									autoPlay
-									className="w-full max-w-lg"
-								/>
-							</div>
-						) : (
-							<Image
-								src={media[lightbox].url}
-								alt={name}
-								fill
-								className="object-contain"
-								sizes="90vw"
-							/>
-						)}
-					</div>
-					<button
-						type="button"
-						className="absolute top-6 right-6 text-white/80 hover:text-white text-2xl"
-						onClick={() => setLightbox(null)}
-					>
-						✕
-					</button>
-					{lightbox > 0 && (
-						<button
-							type="button"
-							className="absolute left-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-3xl"
-							onClick={(e) => {
-								e.stopPropagation();
-								setLightbox(lightbox - 1);
-							}}
-						>
-							‹
-						</button>
-					)}
-					{lightbox < media.length - 1 && (
-						<button
-							type="button"
-							className="absolute right-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-3xl"
-							onClick={(e) => {
-								e.stopPropagation();
-								setLightbox(lightbox + 1);
-							}}
-						>
-							›
-						</button>
-					)}
-				</div>
+				<MediaLightbox
+					media={media}
+					currentIndex={lightbox}
+					name={name}
+					onClose={() => setLightbox(null)}
+					onPrev={() => setLightbox(lightbox - 1)}
+					onNext={() => setLightbox(lightbox + 1)}
+				/>
 			)}
 		</>
 	);
@@ -684,7 +623,7 @@ function DocumentsSection({
 
 /* ─── Main Component ─────────────────────────────────────────── */
 
-export interface ListingDetailViewProps {
+export interface PropertyCompactViewProps {
 	property: Property;
 	/** "full" = marketplace-style two-col with gallery; "compact" = stacked for sidebar/drawer */
 	layout?: "full" | "compact";
@@ -706,7 +645,7 @@ export interface ListingDetailViewProps {
 	className?: string;
 }
 
-export default function ListingDetailView({
+export default function PropertyCompactView({
 	property,
 	layout = "full",
 	actions,
@@ -717,7 +656,7 @@ export default function ListingDetailView({
 	showOwner = true,
 	isOwner,
 	className = "",
-}: ListingDetailViewProps) {
+}: PropertyCompactViewProps) {
 	const mediaItems = getPropertyMedia(property);
 	const docCount = property.documents?.length ?? 0;
 	const hasCoordinates =

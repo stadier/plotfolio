@@ -78,35 +78,6 @@ export function formatDate(date: Date): string {
 	}).format(date);
 }
 
-export function calculateDistance(
-	lat1: number,
-	lng1: number,
-	lat2: number,
-	lng2: number,
-): number {
-	const R = 3959; // Earth's radius in miles
-	const dLat = toRadians(lat2 - lat1);
-	const dLng = toRadians(lng2 - lng1);
-
-	const a =
-		Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-		Math.cos(toRadians(lat1)) *
-			Math.cos(toRadians(lat2)) *
-			Math.sin(dLng / 2) *
-			Math.sin(dLng / 2);
-
-	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-	return R * c;
-}
-
-function toRadians(degrees: number): number {
-	return degrees * (Math.PI / 180);
-}
-
-export function generatePropertyId(): string {
-	return `prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
 export function getPropertyTypeColor(type: string): string {
 	const colors = {
 		residential: "#10B981", // green
@@ -118,18 +89,6 @@ export function getPropertyTypeColor(type: string): string {
 	};
 
 	return colors[type as keyof typeof colors] || "#6B7280";
-}
-
-export function debounce<T extends (...args: unknown[]) => unknown>(
-	func: T,
-	delay: number,
-): (...args: Parameters<T>) => void {
-	let timeoutId: NodeJS.Timeout;
-
-	return (...args: Parameters<T>) => {
-		clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => func(...args), delay);
-	};
 }
 
 /**

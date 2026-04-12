@@ -27,7 +27,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import MapPropertySidebar from "@/components/maps/MapPropertySidebar";
-import ListingDetailView from "@/components/property/ListingDetailView";
+import PropertyCompactView from "@/components/property/PropertyCompactView";
 
 // Dynamically import unified map component to avoid SSR issues
 const PlotfolioMap = dynamic(() => import("@/components/maps/PlotfolioMap"), {
@@ -166,18 +166,12 @@ export default function Home() {
 		surveyData: SurveyData,
 	) => {
 		try {
-			console.log("🔄 Uploading survey data to database...");
-			console.log("Property ID:", propertyId);
-			console.log("Survey data:", surveyData);
-
 			// Find the property and update it with survey data
 			const updatedProperty = await PropertyAPI.updateProperty(propertyId, {
 				surveyData: surveyData,
 			});
 
 			if (updatedProperty) {
-				console.log("✅ Property updated successfully:", updatedProperty);
-
 				// Invalidate cache to refresh data
 				queryClient.invalidateQueries({
 					queryKey: queryKeys.properties.my(user?.id ?? ""),
@@ -187,8 +181,6 @@ export default function Home() {
 				if (selectedProperty?.id === propertyId) {
 					setSelectedProperty(updatedProperty);
 				}
-
-				console.log("✅ Boundary saved to property!");
 			} else {
 				console.error("❌ Failed to update property - no response");
 			}
@@ -759,10 +751,10 @@ export default function Home() {
 								</div>
 							)}
 
-							{/* Expanded State - ListingDetailView compact */}
+							{/* Expanded State - PropertyCompactView */}
 							{isPropertyCardExpanded && (
 								<div className="overflow-y-auto p-4 pt-2">
-									<ListingDetailView
+									<PropertyCompactView
 										property={selectedProperty}
 										layout="compact"
 										showGallery={false}

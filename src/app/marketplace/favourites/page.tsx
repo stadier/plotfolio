@@ -4,19 +4,11 @@ import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useAllProperties } from "@/hooks/usePropertyQueries";
-import { getPropertyImageUrls } from "@/lib/utils";
+import { formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import { Bookmark, Heart, MapPin, ShoppingBag, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
-
-function formatCurrency(amount: number): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 0,
-	}).format(amount);
-}
 
 function getLocalityLabel(address?: string): string {
 	if (!address) return "No location";
