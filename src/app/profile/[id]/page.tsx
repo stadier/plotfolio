@@ -1,6 +1,7 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
+import BackButton from "@/components/ui/BackButton";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { formatArea, formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import {
@@ -10,7 +11,6 @@ import {
 	PropertyStatus,
 } from "@/types/property";
 import {
-	ArrowLeft,
 	Building2,
 	Calendar,
 	DollarSign,
@@ -367,13 +367,11 @@ export default function ProfilePage() {
 		<AppShell>
 			<div className="px-6 py-6">
 				{/* Back link */}
-				<Link
-					href="/portfolio"
-					className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary font-medium mb-6 transition-colors"
-				>
-					<ArrowLeft className="w-3.5 h-3.5" />
-					Back
-				</Link>
+				<BackButton
+					fallbackHref="/portfolio"
+					label="Back"
+					className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary font-medium mb-6 transition-colors cursor-pointer"
+				/>
 
 				{/* Loading */}
 				{loading && (

@@ -347,7 +347,7 @@ function PropertyCard({
 				</div>
 				<div className="flex items-center gap-2 shrink-0">
 					<a
-						href={`/portfolio/properties/${property.id}`}
+						href={`/portfolio/properties/${property.id}/edit`}
 						onClick={(e) => e.stopPropagation()}
 						title="Edit property"
 						className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high opacity-0 group-hover:opacity-100 transition-all"

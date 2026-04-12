@@ -4,8 +4,9 @@ import AppShell from "@/components/layout/AppShell";
 import ListingDetailViewAlt from "@/components/property/ListingDetailViewAlt";
 import { getStatusColor } from "@/components/property/PropertyDetailContent";
 import ShareModal from "@/components/property/ShareModal";
+import BackButton from "@/components/ui/BackButton";
 import { useProperty } from "@/hooks/usePropertyQueries";
-import { ArrowLeft, Pencil, Share2 } from "lucide-react";
+import { Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 
@@ -63,15 +64,9 @@ export default function PropertyDetailPage({
 	return (
 		<AppShell scrollable={false}>
 			{/* Page header */}
-			<div className="bg-surface-container-lowest border-b border-outline-variant/20 px-8 py-4 z-10">
+			<div className="bg-background border-b border-border px-8 py-4 z-10">
 				<div className="flex items-center gap-3">
-					<Link
-						href="/portfolio/properties"
-						className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors font-body"
-					>
-						<ArrowLeft className="w-4 h-4" />
-						Properties
-					</Link>
+					<BackButton fallbackHref="/portfolio/properties" label="Properties" />
 					<span className="text-outline-variant">/</span>
 					<h1 className="font-headline text-sm font-semibold text-primary truncate">
 						{property.name}

@@ -3,6 +3,7 @@ import { FavouritesProvider } from "@/components/FavouritesContext";
 import { PortfolioProvider } from "@/components/PortfolioContext";
 import QueryProvider from "@/components/QueryProvider";
 import ThemeProvider from "@/components/ThemeProvider";
+import { NavigationTracker } from "@/components/ui/BackButton";
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
@@ -40,7 +41,10 @@ export default function RootLayout({
 					<QueryProvider>
 						<AuthProvider>
 							<PortfolioProvider>
-								<FavouritesProvider>{children}</FavouritesProvider>
+								<FavouritesProvider>
+									<NavigationTracker />
+									{children}
+								</FavouritesProvider>
 							</PortfolioProvider>
 						</AuthProvider>
 					</QueryProvider>

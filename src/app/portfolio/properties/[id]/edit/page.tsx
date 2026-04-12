@@ -2,8 +2,8 @@
 
 import AppShell from "@/components/layout/AppShell";
 import CreatePropertyForm from "@/components/property/CreatePropertyForm";
+import BackButton from "@/components/ui/BackButton";
 import { useProperty } from "@/hooks/usePropertyQueries";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
@@ -48,15 +48,12 @@ export default function EditPropertyPage({
 	return (
 		<AppShell>
 			{/* Page header */}
-			<div className="bg-card border-b border-border px-8 py-4 sticky top-0 z-10">
+			<div className="bg-background border-b border-border px-8 py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
-					<Link
-						href={`/portfolio/properties/${id}`}
-						className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors font-body"
-					>
-						<ArrowLeft className="w-4 h-4" />
-						Back to Property
-					</Link>
+					<BackButton
+						fallbackHref={`/portfolio/properties/${id}`}
+						label="Back"
+					/>
 					<span className="text-outline">/</span>
 					<h1 className="font-headline text-lg font-bold text-on-surface">
 						Edit: {property.name}

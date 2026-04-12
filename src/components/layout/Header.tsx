@@ -57,8 +57,8 @@ export default function Header() {
 	const { user, logout } = useAuth();
 
 	return (
-		<header className="sticky top-0 z-30 shrink-0 bg-background">
-			<div className="relative flex items-center justify-between px-6 py-3 w-full">
+		<header className="relative z-40 shrink-0 bg-background">
+			<div className="relative flex items-center justify-between px-6 py-3 w-full pl-7">
 				{/* Portfolio / Marketplace switcher */}
 				<div className="hidden md:flex items-center relative bg-surface-container rounded-full p-0.5">
 					<SwitcherPill isMarketplace={isMarketplace} hasUser={!!user} />
@@ -69,7 +69,7 @@ export default function Header() {
 							className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${
 								!isMarketplace
 									? "text-white"
-									: "text-on-surface-variant hover:text-blue-600"
+									: "text-on-surface-variant"
 							}`}
 						>
 							<Briefcase className="w-3.5 h-3.5" />
@@ -82,7 +82,7 @@ export default function Header() {
 						className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${
 							isMarketplace || !user
 								? "text-white"
-								: "text-on-surface-variant hover:text-blue-600"
+								: "text-on-surface-variant"
 						}`}
 					>
 						<ShoppingBag className="w-3.5 h-3.5" />

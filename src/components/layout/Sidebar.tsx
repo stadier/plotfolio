@@ -12,7 +12,6 @@ import {
 	Grid,
 	Heart,
 	HelpCircle,
-	Home,
 	LayoutDashboard,
 	MapPin,
 	MessageSquare,
@@ -43,7 +42,6 @@ interface NavItem {
 
 const portfolioNav: NavItem[] = [
 	{ name: "Dashboard", href: "/portfolio", icon: LayoutDashboard },
-	{ name: "Classic", href: "/portfolio/classic", icon: Home },
 	{ name: "Properties", href: "/portfolio/properties", icon: Grid },
 	{ name: "Map View", href: "/portfolio/map", icon: MapPin },
 	{ name: "Analytics", href: "/portfolio/analytics", icon: BarChart3 },
@@ -217,7 +215,7 @@ export default function Sidebar({
 		>
 			{/* Logo */}
 			<div className="flex items-center px-4 gap-2 pt-4 pb-3">
-				<Link href="/" className="flex items-center gap-2 overflow-hidden">
+				<Link href="/" className="flex items-center gap-2">
 					<Image
 						src="/plotfolio-logo.svg"
 						alt="Plotfolio"

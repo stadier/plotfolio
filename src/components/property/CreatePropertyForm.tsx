@@ -421,12 +421,20 @@ export default function CreatePropertyForm({
 			? new Date(initialProperty.purchaseDate).toISOString().split("T")[0]
 			: "",
 	);
-	const [purchasePrice, setPurchasePrice] = useState(
-		initialProperty?.purchasePrice ? String(initialProperty.purchasePrice) : "",
-	);
-	const [currentValue, setCurrentValue] = useState(
-		initialProperty?.currentValue ? String(initialProperty.currentValue) : "",
-	);
+	const [purchasePrice, setPurchasePrice] = useState(() => {
+		if (!initialProperty?.purchasePrice) return "";
+		const raw = String(initialProperty.purchasePrice);
+		const parts = raw.split(".");
+		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		return parts.join(".");
+	});
+	const [currentValue, setCurrentValue] = useState(() => {
+		if (!initialProperty?.currentValue) return "";
+		const raw = String(initialProperty.currentValue);
+		const parts = raw.split(".");
+		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		return parts.join(".");
+	});
 
 	/* transaction */
 	const [boughtFrom, setBoughtFrom] = useState(

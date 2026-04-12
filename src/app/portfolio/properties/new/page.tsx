@@ -2,8 +2,7 @@
 
 import AppShell from "@/components/layout/AppShell";
 import CreatePropertyForm from "@/components/property/CreatePropertyForm";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import BackButton from "@/components/ui/BackButton";
 import { useEffect, useState } from "react";
 
 function generatePropertyName(): string {
@@ -24,15 +23,9 @@ export default function NewPropertyPage() {
 	return (
 		<AppShell>
 			{/* Page header */}
-			<div className="bg-card border-b border-border px-8 py-4 sticky top-0 z-10">
+			<div className="bg-background border-b border-border px-8 py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
-					<Link
-						href="/portfolio/properties"
-						className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors font-body"
-					>
-						<ArrowLeft className="w-4 h-4" />
-						Properties
-					</Link>
+					<BackButton fallbackHref="/portfolio/properties" label="Properties" />
 					<span className="text-outline">/</span>
 					<h1 className="font-headline text-lg font-bold text-on-surface">
 						{propertyName}

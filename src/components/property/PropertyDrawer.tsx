@@ -115,7 +115,8 @@ export default function PropertyDrawer({
 						{/* Edit property */}
 						<button
 							onClick={() =>
-								propertyId && router.push(`/portfolio/properties/${propertyId}`)
+								propertyId &&
+								router.push(`/portfolio/properties/${propertyId}/edit`)
 							}
 							title="Edit property"
 							className="p-2 rounded-lg hover:bg-surface-container-high dark:hover:bg-surface-container text-outline dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors"

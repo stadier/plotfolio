@@ -3,10 +3,10 @@
 import { useAuth, useRequireAuth } from "@/components/AuthContext";
 import { usePortfolio } from "@/components/PortfolioContext";
 import AppShell from "@/components/layout/AppShell";
+import BackButton from "@/components/ui/BackButton";
 import { PortfolioAPI, type PortfolioMemberWithUser } from "@/lib/api";
 import { PortfolioMemberStatus, PortfolioRole } from "@/types/property";
 import {
-	ArrowLeft,
 	Check,
 	ChevronDown,
 	Crown,
@@ -18,7 +18,6 @@ import {
 	Users,
 	X,
 } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /* ── Role metadata ─────────────────────────────────────────────────────────── */
@@ -116,15 +115,9 @@ export default function TeamPage() {
 	return (
 		<AppShell>
 			{/* Header */}
-			<div className="bg-card border-b border-border px-8 py-4 sticky top-0 z-10">
+			<div className="bg-background border-b border-border px-8 py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-3">
-					<Link
-						href="/portfolio"
-						className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors font-body"
-					>
-						<ArrowLeft className="w-4 h-4" />
-						Dashboard
-					</Link>
+					<BackButton fallbackHref="/portfolio" label="Dashboard" />
 					<span className="text-outline">/</span>
 					<h1 className="font-headline text-lg font-bold text-on-surface">
 						Team
