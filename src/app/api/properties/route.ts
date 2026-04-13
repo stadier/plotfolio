@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
 			properties = properties.filter((p) => p.owner?.id === ownerId);
 		}
 		const filtered = status
-			? properties.filter((p) => p.status === status)
+			? (() => {
+					const statuses = status.split(",");
+					return properties.filter((p) => statuses.includes(p.status));
+				})()
 			: properties;
 		return NextResponse.json(filtered);
 	} catch (error) {

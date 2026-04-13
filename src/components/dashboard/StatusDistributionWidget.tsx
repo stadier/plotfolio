@@ -15,10 +15,15 @@ const STATUS_COLORS: Record<
 		text: "text-blue-600 dark:text-blue-400",
 		label: "For Sale",
 	},
-	[PropertyStatus.DEVELOPMENT]: {
-		bg: "bg-amber-500 dark:bg-amber-400",
-		text: "text-amber-600 dark:text-amber-400",
-		label: "Development",
+	[PropertyStatus.FOR_RENT]: {
+		bg: "bg-teal-600 dark:bg-teal-400",
+		text: "text-teal-600 dark:text-teal-400",
+		label: "For Rent",
+	},
+	[PropertyStatus.FOR_LEASE]: {
+		bg: "bg-cyan-600 dark:bg-cyan-400",
+		text: "text-cyan-600 dark:text-cyan-400",
+		label: "For Lease",
 	},
 	[PropertyStatus.UNDER_CONTRACT]: {
 		bg: "bg-orange-500 dark:bg-orange-400",
@@ -29,6 +34,16 @@ const STATUS_COLORS: Record<
 		bg: "bg-purple-500 dark:bg-purple-400",
 		text: "text-purple-600 dark:text-purple-400",
 		label: "Rented",
+	},
+	[PropertyStatus.LEASED]: {
+		bg: "bg-indigo-500 dark:bg-indigo-400",
+		text: "text-indigo-600 dark:text-indigo-400",
+		label: "Leased",
+	},
+	[PropertyStatus.DEVELOPMENT]: {
+		bg: "bg-amber-500 dark:bg-amber-400",
+		text: "text-amber-600 dark:text-amber-400",
+		label: "Development",
 	},
 };
 

@@ -74,7 +74,12 @@ export function useMarketplaceListings(
 			let data = await PropertyAPI.getMarketplaceListings();
 			if (data.length === 0) {
 				const all = await PropertyAPI.getAllProperties();
-				data = all.filter((p) => p.status === "for_sale");
+				data = all.filter(
+					(p) =>
+						p.status === "for_sale" ||
+						p.status === "for_rent" ||
+						p.status === "for_lease",
+				);
 			}
 			return data;
 		},

@@ -122,7 +122,7 @@ export class PropertyAPI {
 	static async getMarketplaceListings(): Promise<Property[]> {
 		try {
 			const response = await fetch(
-				`${API_BASE_URL}/properties?status=for_sale`,
+				`${API_BASE_URL}/properties?status=for_sale,for_rent,for_lease`,
 			);
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);

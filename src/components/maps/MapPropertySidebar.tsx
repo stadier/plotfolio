@@ -18,12 +18,18 @@ function getStatusDot(status: PropertyStatus): string {
 			return "bg-green-500";
 		case PropertyStatus.FOR_SALE:
 			return "bg-blue-500";
-		case PropertyStatus.DEVELOPMENT:
-			return "bg-yellow-500";
+		case PropertyStatus.FOR_RENT:
+			return "bg-teal-500";
+		case PropertyStatus.FOR_LEASE:
+			return "bg-cyan-500";
 		case PropertyStatus.UNDER_CONTRACT:
 			return "bg-orange-500";
 		case PropertyStatus.RENTED:
 			return "bg-purple-500";
+		case PropertyStatus.LEASED:
+			return "bg-indigo-500";
+		case PropertyStatus.DEVELOPMENT:
+			return "bg-yellow-500";
 		default:
 			return "bg-outline";
 	}

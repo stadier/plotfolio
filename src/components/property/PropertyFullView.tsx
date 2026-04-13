@@ -887,6 +887,10 @@ export interface PropertyFullViewProps {
 	viewer?: { id: string; name: string; email: string };
 	isOwner?: boolean;
 	className?: string;
+	/** Force single-column (mobile) layout regardless of viewport width */
+	singleColumn?: boolean;
+	/** Hide the title row (name + price) — useful when a parent already shows them */
+	hideHeader?: boolean;
 }
 
 export default function PropertyFullView({
@@ -897,6 +901,8 @@ export default function PropertyFullView({
 	viewer,
 	isOwner,
 	className = "",
+	singleColumn = false,
+	hideHeader = false,
 }: PropertyFullViewProps) {
 	const mediaItems = getPropertyMedia(property);
 	const hasCoordinates =
@@ -915,10 +921,15 @@ export default function PropertyFullView({
 	const [mediaOpen, setMediaOpen] = useState(false);
 	const [docsOpen, setDocsOpen] = useState(false);
 
+	const twoCol = singleColumn ? "" : "lg:flex-row";
+	const leftCol = singleColumn ? "hidden" : "hidden lg:block w-full lg:w-3/5";
+	const rightCol = singleColumn ? "w-full" : "w-full lg:w-2/5 lg:border-l";
+	const mobileOnly = singleColumn ? "" : "lg:hidden";
+
 	return (
-		<div className={`flex flex-col lg:flex-row h-full ${className}`}>
+		<div className={`flex flex-col ${twoCol} h-full ${className}`}>
 			{/* ─── Left column: Media + Docs (desktop only) ──────── */}
-			<div className="hidden lg:block w-full lg:w-3/5 overflow-y-auto p-4 space-y-6">
+			<div className={`${leftCol} overflow-y-auto p-4 space-y-6`}>
 				<MediaGallery
 					media={mediaItems}
 					name={property.name}
@@ -936,10 +947,14 @@ export default function PropertyFullView({
 			</div>
 
 			{/* ─── Single column (mobile) / Right column (desktop) ── */}
-			<div className="w-full lg:w-2/5 overflow-y-auto p-4 space-y-6 lg:border-l border-border">
+			<div
+				className={`${rightCol} overflow-y-auto p-4 space-y-6 border-border`}
+			>
 				{/* Expandable Media section (mobile only) */}
 				{mediaItems.length > 0 && (
-					<div className="lg:hidden border border-border rounded-xl overflow-hidden">
+					<div
+						className={`${mobileOnly} border border-border rounded-xl overflow-hidden`}
+					>
 						<button
 							type="button"
 							onClick={() => setMediaOpen(!mediaOpen)}
@@ -995,7 +1010,9 @@ export default function PropertyFullView({
 
 				{/* Expandable Documents section (mobile only) */}
 				{(property.documents?.length ?? 0) > 0 && (
-					<div className="lg:hidden border border-border rounded-xl overflow-hidden">
+					<div
+						className={`${mobileOnly} border border-border rounded-xl overflow-hidden`}
+					>
 						<button
 							type="button"
 							onClick={() => setDocsOpen(!docsOpen)}
@@ -1032,7 +1049,7 @@ export default function PropertyFullView({
 				</div>
 
 				{/* Title row */}
-				<TitleRow property={property} actions={actions} />
+				{!hideHeader && <TitleRow property={property} actions={actions} />}
 
 				{/* Description */}
 				{property.description && (

@@ -219,9 +219,14 @@ export default function AnalyticsPage() {
 										value={`${properties.filter((p) => p.surveyData?.coordinates?.length).length}/${properties.length}`}
 									/>
 									<InsightRow
-										label="Listed for Sale"
+										label="Listed"
 										value={String(
-											properties.filter((p) => p.status === "for_sale").length,
+											properties.filter(
+												(p) =>
+													p.status === "for_sale" ||
+													p.status === "for_rent" ||
+													p.status === "for_lease",
+											).length,
 										)}
 									/>
 									<InsightRow

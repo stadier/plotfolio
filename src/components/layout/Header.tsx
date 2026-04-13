@@ -58,8 +58,8 @@ export default function Header() {
 	const { user, logout } = useAuth();
 
 	return (
-		<header className="relative z-40 shrink-0 bg-background">
-			<div className="relative flex items-center justify-between px-4 md:px-6 py-3 w-full md:pl-7">
+		<header className="relative z-40 shrink-0 bg-background h-16">
+			<div className="relative flex items-center justify-between px-4 md:px-6 h-full w-full md:pl-7">
 				{/* Mobile: logo + page title */}
 				<div className="flex md:hidden items-center gap-2">
 					<Link href="/" className="flex items-center gap-2">

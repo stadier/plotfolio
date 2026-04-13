@@ -1,11 +1,12 @@
 "use client";
 
+import { formatCurrency } from "@/lib/utils";
 import { Property } from "@/types/property";
 import { Maximize2, Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import PropertyCompactView from "./PropertyCompactView";
-import { formatCurrency, getStatusColor } from "./propertyDisplayHelpers";
+import PropertyFullView from "./PropertyFullView";
+import { getStatusColor } from "./propertyDisplayHelpers";
 
 interface PropertyDrawerProps {
 	propertyId: string | null;
@@ -83,27 +84,30 @@ export default function PropertyDrawer({
 			{/* Panel */}
 			<div
 				ref={panelRef}
-				className={`fixed right-0 top-[65px] h-[calc(100vh-65px)] bg-background border-l border-border shadow-2xl z-40 flex flex-col
+				className={`fixed right-0 top-[65px] h-[calc(100vh-65px)] bg-sidebar border-l border-border shadow-2xl z-40 flex flex-col
 					transition-transform duration-300 ease-in-out
-					w-full sm:w-[55vw] lg:w-[50vw]
+					w-full sm:w-[55vw] lg:w-[40vw]
 					${isOpen ? "translate-x-0" : "translate-x-full"}`}
 			>
 				{/* Header */}
-				<div className="flex items-start justify-between px-6 py-4 border-b border-border shrink-0">
-					<div className="min-w-0 flex-1 mr-4">
+				<div className="flex flex-wrap items-start justify-between gap-3 px-6 py-4 border-b border-border shrink-0">
+					<div className="min-w-0 flex-1">
 						{property ? (
 							<>
-								<h2 className="text-base font-semibold text-on-surface truncate">
+								<h1 className="font-headline text-xl font-bold text-on-surface truncate">
 									{property.name}
-								</h2>
+								</h1>
 								<div className="flex items-center gap-2 mt-1">
 									<span
 										className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
 									>
 										{property.status.replace(/_/g, " ")}
 									</span>
-									<span className="text-sm text-on-surface-variant">
-										{formatCurrency(property.purchasePrice)}
+									<span className="font-headline text-lg font-bold text-primary">
+										{formatCurrency(
+											property.currentValue ?? property.purchasePrice ?? 0,
+											property.country,
+										)}
 									</span>
 								</div>
 							</>
@@ -145,9 +149,9 @@ export default function PropertyDrawer({
 				</div>
 
 				{/* Body */}
-				<div className="flex-1 overflow-y-auto px-6 py-5">
+				<div className="flex-1 min-h-0 overflow-hidden">
 					{loading && (
-						<div className="space-y-4">
+						<div className="space-y-4 px-6 py-5">
 							{[1, 2, 3].map((i) => (
 								<div
 									key={i}
@@ -158,7 +162,7 @@ export default function PropertyDrawer({
 					)}
 
 					{error && !loading && (
-						<div className="flex flex-col items-center justify-center h-48 text-center">
+						<div className="flex flex-col items-center justify-center h-48 text-center px-6">
 							<p className="text-red-500 text-sm mb-3">{error}</p>
 							<button
 								onClick={() => propertyId && setLoading(true)}
@@ -170,12 +174,11 @@ export default function PropertyDrawer({
 					)}
 
 					{property && !loading && (
-						<PropertyCompactView
+						<PropertyFullView
 							property={property}
-							layout="compact"
-							showGallery={false}
-							showOwner={false}
 							isOwner
+							singleColumn
+							hideHeader
 						/>
 					)}
 				</div>

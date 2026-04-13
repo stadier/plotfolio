@@ -44,12 +44,18 @@ export function getStatusColor(status: PropertyStatus): string {
 			return "bg-green-100 text-green-700 border-green-200";
 		case PropertyStatus.FOR_SALE:
 			return "bg-blue-100 text-blue-700 border-blue-200";
-		case PropertyStatus.DEVELOPMENT:
-			return "bg-yellow-100 text-yellow-700 border-yellow-200";
+		case PropertyStatus.FOR_RENT:
+			return "bg-teal-100 text-teal-700 border-teal-200";
+		case PropertyStatus.FOR_LEASE:
+			return "bg-cyan-100 text-cyan-700 border-cyan-200";
 		case PropertyStatus.UNDER_CONTRACT:
 			return "bg-orange-100 text-orange-700 border-orange-200";
 		case PropertyStatus.RENTED:
 			return "bg-purple-100 text-purple-700 border-purple-200";
+		case PropertyStatus.LEASED:
+			return "bg-indigo-100 text-indigo-700 border-indigo-200";
+		case PropertyStatus.DEVELOPMENT:
+			return "bg-yellow-100 text-yellow-700 border-yellow-200";
 		default:
 			return "bg-surface-container-high text-on-surface-variant border-border";
 	}
@@ -610,4 +616,3 @@ export function DocumentsGrid({
 		</>
 	);
 }
-

@@ -136,11 +136,34 @@ export enum PropertyType {
 
 export enum PropertyStatus {
 	OWNED = "owned",
-	UNDER_CONTRACT = "under_contract",
 	FOR_SALE = "for_sale",
+	FOR_RENT = "for_rent",
+	FOR_LEASE = "for_lease",
+	UNDER_CONTRACT = "under_contract",
 	RENTED = "rented",
+	LEASED = "leased",
 	DEVELOPMENT = "development",
 }
+
+/** Tooltip descriptions for each property status */
+export const STATUS_DESCRIPTIONS: Record<PropertyStatus, string> = {
+	[PropertyStatus.OWNED]:
+		"Property you own and hold — not currently listed or available.",
+	[PropertyStatus.FOR_SALE]:
+		"Property actively listed for sale on the marketplace.",
+	[PropertyStatus.FOR_RENT]:
+		"Available for short-term rental (month-to-month, flexible terms).",
+	[PropertyStatus.FOR_LEASE]:
+		"Available for long-term lease (fixed contract, e.g. 1–5 years).",
+	[PropertyStatus.UNDER_CONTRACT]:
+		"A sale, rent, or lease agreement is in progress.",
+	[PropertyStatus.RENTED]:
+		"Currently rented out to a tenant on short-term/monthly terms.",
+	[PropertyStatus.LEASED]:
+		"Currently under a fixed-term lease agreement with a tenant.",
+	[PropertyStatus.DEVELOPMENT]:
+		"Under construction or active development — not yet ready.",
+};
 
 export enum PropertyVisibility {
 	PRIVATE = "private", // Only visible to the owner (default)

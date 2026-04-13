@@ -8,7 +8,7 @@ A global property management platform that lets landowners, investors, and devel
 
 - **Full CRUD** — Create, view, update, and delete properties with rich metadata (type, status, condition, zoning, tax ID, pricing, area, amenities)
 - **Property Types** — Residential, commercial, industrial, agricultural, vacant land, and mixed-use
-- **Status Tracking** — Owned, for sale, rented, under contract, development
+- **Status Tracking** — Owned, for sale, for rent, for lease, under contract, rented, leased, development
 - **Document Management** — Upload and organize title deeds, survey plans, contracts, certificates of occupancy, building permits, inspection reports, and more
 - **Document Access Control** — Public, request-required, and private access levels with an approval workflow
 

@@ -214,7 +214,7 @@ export default function Sidebar({
 			} ${className}`}
 		>
 			{/* Logo */}
-			<div className="flex items-center px-4 gap-2 pt-4 pb-3">
+			<div className="flex items-center px-4 gap-2 pt-4.5 pb-3">
 				<Link href="/" className="flex items-center gap-2">
 					<Image
 						src="/plotfolio-logo.svg"
@@ -236,7 +236,7 @@ export default function Sidebar({
 
 			{/* Portfolio switcher — under logo */}
 			{!isMarketplace && portfolios.length > 0 && (
-				<div ref={switcherRef} className="relative mb-3">
+				<div ref={switcherRef} className="relative my-3">
 					<button
 						onClick={() => {
 							setSwitcherOpen((prev) => !prev);

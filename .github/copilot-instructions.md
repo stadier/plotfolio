@@ -117,7 +117,7 @@ The project uses **CSS custom properties** defined in `globals.css` under `@them
 - Properties must have coordinates, area, and status
 - Properties can be land plots, houses, buildings, or any real estate
 - Support PropertyType enum: RESIDENTIAL, COMMERCIAL, etc.
-- Support PropertyStatus enum: OWNED, FOR_SALE, DEVELOPMENT, etc.
+- Support PropertyStatus enum: OWNED, FOR_SALE, FOR_RENT, FOR_LEASE, UNDER_CONTRACT, RENTED, LEASED, DEVELOPMENT
 - Support PropertyCondition enum: includes land conditions (bush, cleared, rocky) and building conditions (under_construction, finished, renovated, needs_repair)
 
 ### Boundary Registration

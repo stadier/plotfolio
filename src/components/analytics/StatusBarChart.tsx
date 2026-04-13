@@ -15,17 +15,23 @@ import {
 const STATUS_COLORS: Record<PropertyStatus, string> = {
 	[PropertyStatus.OWNED]: "#22c55e",
 	[PropertyStatus.FOR_SALE]: "#3b82f6",
-	[PropertyStatus.DEVELOPMENT]: "#f59e0b",
+	[PropertyStatus.FOR_RENT]: "#14b8a6",
+	[PropertyStatus.FOR_LEASE]: "#06b6d4",
 	[PropertyStatus.UNDER_CONTRACT]: "#f97316",
 	[PropertyStatus.RENTED]: "#a855f7",
+	[PropertyStatus.LEASED]: "#6366f1",
+	[PropertyStatus.DEVELOPMENT]: "#f59e0b",
 };
 
 const STATUS_LABELS: Record<PropertyStatus, string> = {
 	[PropertyStatus.OWNED]: "Owned",
 	[PropertyStatus.FOR_SALE]: "For Sale",
-	[PropertyStatus.DEVELOPMENT]: "Development",
+	[PropertyStatus.FOR_RENT]: "For Rent",
+	[PropertyStatus.FOR_LEASE]: "For Lease",
 	[PropertyStatus.UNDER_CONTRACT]: "Contract",
 	[PropertyStatus.RENTED]: "Rented",
+	[PropertyStatus.LEASED]: "Leased",
+	[PropertyStatus.DEVELOPMENT]: "Development",
 };
 
 interface StatusBarChartProps {

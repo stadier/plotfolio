@@ -20,15 +20,20 @@ export async function GET(
 
 		const owner = ownerProperties[0].owner;
 
-		// Public properties: explicitly marked public OR for_sale (for_sale implies public)
+		// Public properties: explicitly marked public OR listed (for_sale/for_rent/for_lease implies public)
 		const publicProperties = ownerProperties.filter(
 			(p) =>
 				p.visibility === PropertyVisibility.PUBLIC ||
-				p.status === PropertyStatus.FOR_SALE,
+				p.status === PropertyStatus.FOR_SALE ||
+				p.status === PropertyStatus.FOR_RENT ||
+				p.status === PropertyStatus.FOR_LEASE,
 		);
 
 		const listedCount = ownerProperties.filter(
-			(p) => p.status === PropertyStatus.FOR_SALE,
+			(p) =>
+				p.status === PropertyStatus.FOR_SALE ||
+				p.status === PropertyStatus.FOR_RENT ||
+				p.status === PropertyStatus.FOR_LEASE,
 		).length;
 
 		// Derive portfolio stats from ALL properties

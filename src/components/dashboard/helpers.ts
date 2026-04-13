@@ -15,10 +15,15 @@ export function getStatusBadge(status: PropertyStatus) {
 				label: "For Sale",
 				cls: "bg-blue-600 text-white dark:bg-blue-500/20 dark:text-blue-300",
 			};
-		case PropertyStatus.DEVELOPMENT:
+		case PropertyStatus.FOR_RENT:
 			return {
-				label: "Development",
-				cls: "bg-amber-500 text-white dark:bg-amber-500/20 dark:text-amber-300",
+				label: "For Rent",
+				cls: "bg-teal-600 text-white dark:bg-teal-500/20 dark:text-teal-300",
+			};
+		case PropertyStatus.FOR_LEASE:
+			return {
+				label: "For Lease",
+				cls: "bg-cyan-600 text-white dark:bg-cyan-500/20 dark:text-cyan-300",
 			};
 		case PropertyStatus.UNDER_CONTRACT:
 			return {
@@ -29,6 +34,16 @@ export function getStatusBadge(status: PropertyStatus) {
 			return {
 				label: "Rented",
 				cls: "bg-purple-600 text-white dark:bg-purple-500/20 dark:text-purple-300",
+			};
+		case PropertyStatus.LEASED:
+			return {
+				label: "Leased",
+				cls: "bg-indigo-600 text-white dark:bg-indigo-500/20 dark:text-indigo-300",
+			};
+		case PropertyStatus.DEVELOPMENT:
+			return {
+				label: "Development",
+				cls: "bg-amber-500 text-white dark:bg-amber-500/20 dark:text-amber-300",
 			};
 		default:
 			return {

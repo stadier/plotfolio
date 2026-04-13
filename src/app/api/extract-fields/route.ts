@@ -27,7 +27,7 @@ Fields:
 - ownerEmail: Email address if present
 - ownerPhone: Phone number if present
 - ownerType: One of: individual, company, trust
-- status: One of: OWNED, FOR_SALE, UNDER_DEVELOPMENT, DISPUTED, LEASED
+- status: One of: OWNED, FOR_SALE, FOR_RENT, FOR_LEASE, UNDER_CONTRACT, RENTED, LEASED, DEVELOPMENT
 
 Return ONLY valid JSON. No markdown, no explanation.`;
 

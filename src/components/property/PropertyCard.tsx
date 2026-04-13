@@ -41,9 +41,12 @@ interface PropertyCardProps {
 
 const statusColors = {
 	[PropertyStatus.OWNED]: "bg-green-100 text-green-800",
-	[PropertyStatus.UNDER_CONTRACT]: "bg-yellow-100 text-yellow-800",
 	[PropertyStatus.FOR_SALE]: "bg-blue-100 text-blue-800",
+	[PropertyStatus.FOR_RENT]: "bg-teal-100 text-teal-800",
+	[PropertyStatus.FOR_LEASE]: "bg-cyan-100 text-cyan-800",
+	[PropertyStatus.UNDER_CONTRACT]: "bg-yellow-100 text-yellow-800",
 	[PropertyStatus.RENTED]: "bg-purple-100 text-purple-800",
+	[PropertyStatus.LEASED]: "bg-indigo-100 text-indigo-800",
 	[PropertyStatus.DEVELOPMENT]: "bg-orange-100 text-orange-800",
 };
 
