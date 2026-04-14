@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 				followerCount: 0,
 				allowBookings: false,
 			});
-			user = created.toObject();
+			user = created.toObject() as typeof user;
 		}
 
 		// Ensure personal portfolio exists
