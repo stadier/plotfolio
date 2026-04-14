@@ -70,11 +70,12 @@ export async function PUT(
 			}),
 		);
 
-		const avatarUrl = `https://${B2_BUCKET}.s3.us-east-005.backblazeb2.com/${key}`;
+		const avatarUrl = `/api/portfolios/${id}/avatar/view`;
 
+		// Store the B2 key so the proxy view route can fetch it
 		const updated = await PortfolioModel.findOneAndUpdate(
 			{ id },
-			{ $set: { avatar: avatarUrl } },
+			{ $set: { avatar: avatarUrl, avatarKey: key } },
 			{ new: true },
 		).lean();
 

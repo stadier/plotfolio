@@ -1,4 +1,4 @@
-import { getReverseGeocodeProvider } from "@/lib/geocode";
+import { getReverseGeocodeWithFallback } from "@/lib/geocode";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const reverse = getReverseGeocodeProvider();
+		const reverse = getReverseGeocodeWithFallback();
 		const result = await reverse(latNum, lonNum);
 		if (!result) {
 			return NextResponse.json(null);

@@ -29,6 +29,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import MapPropertySidebar from "@/components/maps/MapPropertySidebar";
+import MapSearchControl from "@/components/maps/MapSearchControl";
 import PropertyCompactView from "@/components/property/PropertyCompactView";
 
 // Dynamically import unified map component to avoid SSR issues
@@ -253,6 +254,32 @@ export default function Home() {
 		}
 	};
 
+	const handleSearchLocationSelect = useCallback((lat: number, lng: number) => {
+		setViewport((prev) => ({
+			...prev,
+			center: [lat, lng],
+			zoom: 15,
+		}));
+	}, []);
+
+	const handleLocateMe = useCallback(() => {
+		if (typeof navigator !== "undefined" && navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					setViewport((prev) => ({
+						...prev,
+						center: [position.coords.latitude, position.coords.longitude],
+						zoom: 15,
+					}));
+				},
+				(err) => {
+					console.warn("Geolocation failed:", err.message);
+				},
+				{ enableHighAccuracy: true, timeout: 10000 },
+			);
+		}
+	}, []);
+
 	const handleMapViewModeChange = (
 		mode: "automatic" | "satellite" | "street",
 	) => {
@@ -432,9 +459,16 @@ export default function Home() {
 						/>
 					)}
 
+					{/* Map Search & Locate Controls */}
+					<MapSearchControl
+						onLocationSelect={handleSearchLocationSelect}
+						onLocateMe={handleLocateMe}
+						className="absolute top-3 right-3 z-1000"
+					/>
+
 					{/* Hovered State Indicator */}
 					{hoveredState && (
-						<div className="absolute top-6 right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-3 z-1000">
+						<div className="absolute top-16 right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-3 z-1000">
 							<div className="flex items-center space-x-2">
 								<div className="w-3 h-3 bg-blue-500 rounded-full"></div>
 								<span className="text-sm font-medium text-on-surface">
@@ -448,8 +482,8 @@ export default function Home() {
 					{climateRisk !== "none" && (
 						<div
 							className={`absolute ${
-								hoveredState ? "top-20" : "top-6"
-							} right-6 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000`}
+								hoveredState ? "top-28" : "top-16"
+							} right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000`}
 						>
 							<div className="flex items-center space-x-3">
 								<div className="flex items-center space-x-2">

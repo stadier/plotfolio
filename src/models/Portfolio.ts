@@ -17,6 +17,7 @@ const PortfolioSchema = new Schema<Portfolio & Document>(
 		slug: { type: String, required: true, unique: true },
 		description: { type: String },
 		avatar: { type: String },
+		avatarKey: { type: String },
 		type: {
 			type: String,
 			enum: ["personal", "business"],

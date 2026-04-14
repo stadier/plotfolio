@@ -286,7 +286,7 @@ export default function Sidebar({
 					</button>
 
 					{switcherOpen && (
-						<div className="absolute z-50 left-full ml-2 top-0 w-56 bg-card border border-border rounded-lg shadow-2xl overflow-hidden">
+						<div className="absolute z-50 left-full ml-3 top-0 w-56 bg-card border border-border rounded-md shadow-2xl overflow-hidden">
 							{/* Search */}
 							<div className="flex items-center gap-2 px-3 py-2 border-b border-border">
 								<Search className="w-3.5 h-3.5 text-outline shrink-0" />
@@ -368,7 +368,7 @@ export default function Sidebar({
 							<Link
 								href="/portfolio/all"
 								onClick={() => setSwitcherOpen(false)}
-								className="flex items-center justify-between px-3.5 py-1.5 hover:bg-surface-container transition-colors"
+								className="flex items-center justify-between p-2.5 px-3 m-1.5 hover:bg-surface-container transition-colors rounded-md"
 							>
 								<span className="text-[13px] font-medium text-on-surface">
 									All portfolios
@@ -376,7 +376,7 @@ export default function Sidebar({
 							</Link>
 
 							{/* New portfolio */}
-							<div className="px-2.5 pb-2.5 pt-1">
+							<div className="px-1.5 pb-2.5 pt-1.5">
 								<Link
 									href="/portfolio/new"
 									onClick={() => setSwitcherOpen(false)}

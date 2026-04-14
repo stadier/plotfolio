@@ -120,8 +120,27 @@ const providers: Record<string, GeocodeProvider> = {
 };
 
 export function getGeocodeProvider(): GeocodeProvider {
-	const name = (process.env.GEOCODE_PROVIDER || "photon").toLowerCase();
-	return providers[name] || photon;
+	const name = (process.env.GEOCODE_PROVIDER || "google").toLowerCase();
+	return providers[name] || google;
+}
+
+/**
+ * Returns a geocode function that tries Google first, then falls back
+ * to Photon → Nominatim if Google fails or returns no results.
+ */
+export function getGeocodeWithFallback(): GeocodeProvider {
+	return async (q: string) => {
+		const chain: GeocodeProvider[] = [google, photon, nominatim];
+		for (const provider of chain) {
+			try {
+				const results = await provider(q);
+				if (results.length > 0) return results;
+			} catch {
+				// try next provider
+			}
+		}
+		return [];
+	};
 }
 
 // ─── Reverse Geocoding ──────────────────────────────────────────
@@ -224,6 +243,29 @@ const reverseProviders: Record<string, ReverseGeocodeProvider> = {
 };
 
 export function getReverseGeocodeProvider(): ReverseGeocodeProvider {
-	const name = (process.env.GEOCODE_PROVIDER || "photon").toLowerCase();
-	return reverseProviders[name] || reversePhoton;
+	const name = (process.env.GEOCODE_PROVIDER || "google").toLowerCase();
+	return reverseProviders[name] || reverseGoogle;
+}
+
+/**
+ * Returns a reverse geocode function that tries Google first, then falls back
+ * to Photon → Nominatim if Google fails or returns null.
+ */
+export function getReverseGeocodeWithFallback(): ReverseGeocodeProvider {
+	return async (lat: number, lon: number) => {
+		const chain: ReverseGeocodeProvider[] = [
+			reverseGoogle,
+			reversePhoton,
+			reverseNominatim,
+		];
+		for (const provider of chain) {
+			try {
+				const result = await provider(lat, lon);
+				if (result) return result;
+			} catch {
+				// try next provider
+			}
+		}
+		return null;
+	};
 }

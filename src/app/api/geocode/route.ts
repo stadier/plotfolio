@@ -1,4 +1,4 @@
-import { getGeocodeProvider } from "@/lib/geocode";
+import { getGeocodeWithFallback } from "@/lib/geocode";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const search = getGeocodeProvider();
+		const search = getGeocodeWithFallback();
 		const results = await search(q.trim());
 		return NextResponse.json(results);
 	} catch {
