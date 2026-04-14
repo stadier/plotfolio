@@ -92,7 +92,8 @@ export async function POST(request: NextRequest) {
 				followerCount: 0,
 				allowBookings: false,
 			});
-			user = created.toObject() as typeof user;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			user = created.toObject() as any;
 		}
 
 		// Ensure personal portfolio exists
