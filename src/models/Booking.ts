@@ -22,6 +22,9 @@ const BookingSchema = new Schema<Booking & Document>(
 			default: BookingStatus.PENDING,
 		},
 		propertyId: { type: String },
+		ownerMessage: { type: String },
+		proposedDate: { type: String },
+		proposedTime: { type: String },
 	},
 	{ timestamps: true },
 );

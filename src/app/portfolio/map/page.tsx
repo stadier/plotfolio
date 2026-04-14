@@ -1,6 +1,7 @@
 "use client";
 
 import { useRequireAuth } from "@/components/AuthContext";
+import { usePortfolio } from "@/components/PortfolioContext";
 import AppShell from "@/components/layout/AppShell";
 import {
 	queryKeys,
@@ -45,12 +46,17 @@ export default function Home() {
 		null,
 	);
 	const { user } = useRequireAuth();
+	const { activePortfolio } = usePortfolio();
 	const queryClient = useQueryClient();
 	const {
 		data: properties = [],
 		isLoading: loading,
 		error: queryError,
-	} = useMyProperties(user?.id);
+	} = useMyProperties(
+		user?.id,
+		activePortfolio?.id,
+		activePortfolio?.createdBy === user?.id,
+	);
 	const error = queryError ? "Failed to load properties" : null;
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isBoundaryVisible, setIsBoundaryVisible] = useState(true);

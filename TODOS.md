@@ -40,6 +40,7 @@
 - [x] **19. Multi-User Property Ownership** — Portfolio entity model with roles (admin/manager/agent/viewer), invite by email/username, team management page, portfolio switcher in sidebar, auto-creation on signup, pending invite notifications
 - [ ] **20. Messaging System** — Direct buyer-seller messaging, threaded per-property conversations
 - [ ] **21. Reviews & Reputation** — Post-transaction reviews, seller reputation scoring, verified badges
+- [x] **27. Ownership Transfer & History** — Initiate ownership transfers to other users/entities, accept/reject/cancel flow, ownership history timeline with support for external/off-platform entities, chain-of-title tracking
 
 ### Developer & Platform
 
@@ -48,3 +49,11 @@
 - [ ] **24. CI/CD Pipeline** — GitHub Actions for lint/test/build on PR, staging deploy on development, production deploy on main
 - [ ] **25. Webhook & Integration Support** — Property event webhooks, listing site integrations, calendar sync (Google/iCal)
 - [ ] **26. Offline Support** — Service worker, cache recent properties/documents, queue uploads offline
+
+### Branding & Document Generation
+
+- [x] **28. Seal Creation & Management** — Create custom seals (circle, rectangle, diamond shapes) in Settings > Branding, use for signing documents, set default seal, up to 10 per user
+- [x] **29. Contract Generation** — Generate contracts (sale, lease, rent, transfer) from property detail view, prefilled party info, custom clauses, witness fields, seal/stamp integration, print/download as HTML
+- [x] **30. Watermark System** — Apply watermarks to documents and images (user seal + Plotfolio branding), configurable position/opacity/tiling, CSS overlay + canvas-based watermark utility
+- [ ] **31. PDF Export** — Convert generated HTML contracts to downloadable PDF files with embedded seal and watermark
+- [x] **32. Letterhead Templates** — Customizable letterhead with company/personal name, logo, tagline, address, contact details, accent colour, layout (centered/left-aligned/split), divider & footer toggles, live preview, auto-applied to generated contracts

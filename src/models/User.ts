@@ -1,4 +1,10 @@
 import { ProviderSettings } from "@/types/providers";
+import {
+	LetterheadConfig,
+	SealConfig,
+	SealShape,
+	WatermarkConfig,
+} from "@/types/seal";
 import crypto from "crypto";
 import mongoose, { Document, Schema } from "mongoose";
 
@@ -18,6 +24,19 @@ export interface IUser {
 	followerCount: number;
 	allowBookings: boolean;
 	providerSettings?: Partial<ProviderSettings>;
+	seals?: UserSealDoc[];
+	defaultWatermark?: WatermarkConfig;
+	letterhead?: LetterheadConfig;
+}
+
+export interface UserSealDoc {
+	id: string;
+	name: string;
+	config: SealConfig;
+	imageUrl?: string;
+	isDefault: boolean;
+	createdAt?: string;
+	updatedAt?: string;
 }
 
 const UserSchema = new Schema<IUser & Document>(
@@ -51,12 +70,77 @@ const UserSchema = new Schema<IUser & Document>(
 			},
 			default: undefined,
 		},
+		seals: {
+			type: [
+				{
+					id: { type: String, required: true },
+					name: { type: String, required: true },
+					config: {
+						text: [String],
+						outerText: String,
+						shape: {
+							type: String,
+							enum: Object.values(SealShape),
+							default: SealShape.CIRCLE,
+						},
+						color: { type: String, default: "#1e3a5f" },
+						backgroundColor: String,
+						logoUrl: String,
+						fontFamily: String,
+						borderWidth: { type: Number, default: 3 },
+						size: { type: Number, default: 200 },
+					},
+					imageUrl: String,
+					isDefault: { type: Boolean, default: false },
+				},
+			],
+			default: [],
+		},
+		defaultWatermark: {
+			type: {
+				type: { type: String },
+				sealId: String,
+				text: String,
+				opacity: { type: Number, default: 0.15 },
+				position: { type: String, default: "bottom-right" },
+				includePlatformBrand: { type: Boolean, default: true },
+			},
+		},
+		letterhead: {
+			type: {
+				companyName: { type: String },
+				tagline: String,
+				logoUrl: String,
+				address: String,
+				phone: String,
+				email: String,
+				website: String,
+				registrationNumber: String,
+				accentColor: { type: String, default: "#1e3a5f" },
+				fontFamily: String,
+				layout: {
+					type: String,
+					enum: ["centered", "left-aligned", "split"],
+					default: "centered",
+				},
+				showDivider: { type: Boolean, default: true },
+				showFooter: { type: Boolean, default: true },
+			},
+		},
 	},
 	{ timestamps: true },
 );
 
-export const UserModel =
-	mongoose.models.User || mongoose.model<IUser & Document>("User", UserSchema);
+// In development, delete cached model so schema changes are picked up on hot reload
+if (process.env.NODE_ENV !== "production" && mongoose.models.User) {
+	try {
+		mongoose.deleteModel("User");
+	} catch {
+		/* ignore */
+	}
+}
+
+export const UserModel = mongoose.model<IUser & Document>("User", UserSchema);
 
 /* ─── password utilities ──────────────────────────────────────── */
 

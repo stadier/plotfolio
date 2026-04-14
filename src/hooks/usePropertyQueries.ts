@@ -1,5 +1,5 @@
-import { PropertyAPI } from "@/lib/api";
-import { Property } from "@/types/property";
+import { BookingAPI, PropertyAPI } from "@/lib/api";
+import { Booking, Property } from "@/types/property";
 import {
 	useMutation,
 	useQuery,
@@ -12,9 +12,13 @@ import {
 export const queryKeys = {
 	properties: {
 		all: ["properties"] as const,
-		my: (ownerId: string) => ["properties", "my", ownerId] as const,
+		my: (ownerId: string, portfolioId?: string) =>
+			["properties", "my", ownerId, portfolioId ?? ""] as const,
 		detail: (id: string) => ["properties", "detail", id] as const,
 		marketplace: ["properties", "marketplace"] as const,
+	},
+	bookings: {
+		owner: (ownerId: string) => ["bookings", "owner", ownerId] as const,
 	},
 	settings: {
 		providers: ["settings", "providers"] as const,
@@ -35,18 +39,15 @@ export function useAllProperties(
 
 export function useMyProperties(
 	ownerId: string | undefined,
+	portfolioId?: string,
+	isOwnPortfolio?: boolean,
 	options?: Partial<UseQueryOptions<Property[]>>,
 ) {
 	return useQuery({
-		queryKey: queryKeys.properties.my(ownerId ?? ""),
+		queryKey: queryKeys.properties.my(ownerId ?? "", portfolioId),
 		queryFn: async () => {
 			if (!ownerId) return [];
-			let data = await PropertyAPI.getMyProperties(ownerId);
-			if (data.length === 0) {
-				await PropertyAPI.seedDatabase();
-				data = await PropertyAPI.getMyProperties(ownerId);
-			}
-			return data;
+			return PropertyAPI.getMyProperties(ownerId, portfolioId, isOwnPortfolio);
 		},
 		enabled: !!ownerId,
 		...options,
@@ -71,19 +72,28 @@ export function useMarketplaceListings(
 	return useQuery({
 		queryKey: queryKeys.properties.marketplace,
 		queryFn: async () => {
-			let data = await PropertyAPI.getMarketplaceListings();
-			if (data.length === 0) {
-				const all = await PropertyAPI.getAllProperties();
-				data = all.filter(
-					(p) =>
-						p.status === "for_sale" ||
-						p.status === "for_rent" ||
-						p.status === "for_lease",
-				);
-			}
-			return data;
+			const data = await PropertyAPI.getMarketplaceListings();
+			if (data.length > 0) return data;
+			// Fallback: filter all properties client-side if marketplace endpoint returns empty
+			const all = await PropertyAPI.getAllProperties();
+			return all.filter(
+				(p) =>
+					p.status === "for_sale" ||
+					p.status === "for_rent" ||
+					p.status === "for_lease",
+			);
 		},
 		...options,
+	});
+}
+
+// ── Booking queries ───────────────────────────────────────────────────────────
+
+export function useOwnerBookings(ownerId: string | undefined) {
+	return useQuery<Booking[]>({
+		queryKey: queryKeys.bookings.owner(ownerId ?? ""),
+		queryFn: () => BookingAPI.getBookings({ ownerId: ownerId! }),
+		enabled: !!ownerId,
 	});
 }
 
@@ -111,7 +121,7 @@ export function useCreateProperty() {
 			PropertyAPI.createProperty(property),
 		onSuccess: () => {
 			queryClient.invalidateQueries({
-				queryKey: queryKeys.properties.all,
+				queryKey: ["properties"],
 			});
 		},
 	});

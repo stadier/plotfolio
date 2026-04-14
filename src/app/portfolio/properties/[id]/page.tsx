@@ -1,12 +1,12 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
-import { getStatusColor } from "@/components/property/propertyDisplayHelpers";
 import PropertyFullView from "@/components/property/PropertyFullView";
 import ShareModal from "@/components/property/ShareModal";
+import StatusToggle from "@/components/property/StatusToggle";
 import BackButton from "@/components/ui/BackButton";
-import { useProperty } from "@/hooks/usePropertyQueries";
-import { Pencil, Share2 } from "lucide-react";
+import { useProperty, useUpdateProperty } from "@/hooks/usePropertyQueries";
+import { FileText, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 
@@ -30,6 +30,8 @@ export default function PropertyDetailPage({
 			? "Property not found"
 			: null;
 	const [shareOpen, setShareOpen] = useState(false);
+	const [contractOpen, setContractOpen] = useState(false);
+	const updateProperty = useUpdateProperty();
 
 	if (loading) {
 		return (
@@ -71,11 +73,16 @@ export default function PropertyDetailPage({
 					<h1 className="font-headline text-sm font-semibold text-primary truncate">
 						{property.name}
 					</h1>
-					<span
-						className={`ml-auto sm:ml-2 shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
-					>
-						{property.status.replace(/_/g, " ").toUpperCase()}
-					</span>
+					<StatusToggle
+						property={property}
+						onToggle={(newStatus) =>
+							updateProperty.mutate({
+								id: property.id,
+								updates: { status: newStatus },
+							})
+						}
+						isPending={updateProperty.isPending}
+					/>
 				</div>
 			</div>
 
@@ -94,6 +101,14 @@ export default function PropertyDetailPage({
 							</Link>
 							<button
 								type="button"
+								onClick={() => setContractOpen(true)}
+								className="p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors"
+								title="Generate contract"
+							>
+								<FileText className="w-5 h-5 text-on-surface-variant" />
+							</button>
+							<button
+								type="button"
 								onClick={() => setShareOpen(true)}
 								className="p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors"
 								title="Share property"
@@ -102,6 +117,8 @@ export default function PropertyDetailPage({
 							</button>
 						</>
 					}
+					showContractGenerator={contractOpen}
+					onCloseContractGenerator={() => setContractOpen(false)}
 				/>
 
 				{property && (

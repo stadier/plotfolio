@@ -1,8 +1,10 @@
 import {
+	DEFAULT_ROLE_PERMISSIONS,
 	PortfolioMemberStatus,
 	PortfolioRole,
 	type Portfolio,
 	type PortfolioMember,
+	type PortfolioPermissions,
 } from "@/types/property";
 import mongoose, { Document, Schema } from "mongoose";
 
@@ -41,6 +43,18 @@ const PortfolioMemberSchema = new Schema<PortfolioMember & Document>(
 			type: String,
 			enum: Object.values(PortfolioMemberStatus),
 			default: PortfolioMemberStatus.ACTIVE,
+		},
+		permissions: {
+			canViewProperties: { type: Boolean },
+			canCreateProperties: { type: Boolean },
+			canEditProperties: { type: Boolean },
+			canDeleteProperties: { type: Boolean },
+			canViewDocuments: { type: Boolean },
+			canUploadDocuments: { type: Boolean },
+			canDeleteDocuments: { type: Boolean },
+			canManageBookings: { type: Boolean },
+			canTransferProperties: { type: Boolean },
+			canInviteMembers: { type: Boolean },
 		},
 		invitedBy: { type: String },
 		joinedAt: { type: String },
@@ -113,10 +127,12 @@ export async function createPersonalPortfolio(
 	return clean as Portfolio;
 }
 
-/** Get all portfolios a user is a member of (with their role) */
+/** Get all portfolios a user is a member of (with their role and permissions) */
 export async function getUserPortfolios(
 	userId: string,
-): Promise<(Portfolio & { role: PortfolioRole })[]> {
+): Promise<
+	(Portfolio & { role: PortfolioRole; permissions: PortfolioPermissions })[]
+> {
 	const memberships = await PortfolioMemberModel.find({
 		userId,
 		status: PortfolioMemberStatus.ACTIVE,
@@ -129,12 +145,21 @@ export async function getUserPortfolios(
 		id: { $in: portfolioIds },
 	}).lean();
 
-	const roleMap = new Map(memberships.map((m: any) => [m.portfolioId, m.role]));
+	const memberMap = new Map(memberships.map((m: any) => [m.portfolioId, m]));
 
 	return portfolios.map((p: any) => {
 		const { _id, __v, ...clean } = p;
-		return { ...clean, role: roleMap.get(clean.id) ?? PortfolioRole.VIEWER };
-	}) as (Portfolio & { role: PortfolioRole })[];
+		const member = memberMap.get(clean.id);
+		const role = (member?.role as PortfolioRole) ?? PortfolioRole.VIEWER;
+		return {
+			...clean,
+			role,
+			permissions: resolvePermissions(role, member?.permissions),
+		};
+	}) as (Portfolio & {
+		role: PortfolioRole;
+		permissions: PortfolioPermissions;
+	})[];
 }
 
 /** Check if a user has at least the given role in a portfolio */
@@ -162,4 +187,22 @@ export async function checkPortfolioAccess(
 		roleHierarchy[(membership as any).role as PortfolioRole] ?? 0;
 	const requiredLevel = roleHierarchy[requiredRole] ?? 0;
 	return userLevel >= requiredLevel;
+}
+
+/** Resolve effective permissions for a member (role defaults + overrides) */
+export function resolvePermissions(
+	role: PortfolioRole,
+	overrides?: Partial<PortfolioPermissions> | null,
+): PortfolioPermissions {
+	const defaults =
+		DEFAULT_ROLE_PERMISSIONS[role] ??
+		DEFAULT_ROLE_PERMISSIONS[PortfolioRole.VIEWER];
+	if (!overrides) return { ...defaults };
+	const result = { ...defaults };
+	for (const key of Object.keys(defaults) as (keyof PortfolioPermissions)[]) {
+		if (overrides[key] !== undefined && overrides[key] !== null) {
+			result[key] = overrides[key]!;
+		}
+	}
+	return result;
 }

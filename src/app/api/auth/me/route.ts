@@ -52,6 +52,27 @@ export async function GET() {
 			);
 		}
 
+		// Fix properties owned by this user whose portfolioId points to someone else's portfolio
+		// (e.g. after a transfer where portfolioId wasn't updated)
+		const adminMembership = await PortfolioMemberModel.findOne({
+			userId,
+			status: "active",
+			role: "admin",
+		}).lean();
+		if (adminMembership) {
+			const personalPortfolioId = (adminMembership as any).portfolioId;
+			await PropertyModel.updateMany(
+				{
+					"owner.id": userId,
+					portfolioId: {
+						$exists: true,
+						$nin: [null, personalPortfolioId],
+					},
+				},
+				{ $set: { portfolioId: personalPortfolioId } },
+			);
+		}
+
 		// Fetch user's portfolios
 		const portfolios = await getUserPortfolios(userId);
 

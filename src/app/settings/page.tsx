@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuth } from "@/components/AuthContext";
+import LetterheadEditor from "@/components/branding/LetterheadEditor";
+import SealCreator, { SealPreview } from "@/components/branding/SealCreator";
 import AppShell from "@/components/layout/AppShell";
 import { type Theme, useTheme } from "@/components/ThemeProvider";
 import { queryKeys, useProviderSettings } from "@/hooks/usePropertyQueries";
@@ -9,6 +11,7 @@ import {
 	PROVIDER_DEFAULTS,
 	ProviderSettings,
 } from "@/types/providers";
+import { LetterheadConfig, SealConfig, WatermarkType } from "@/types/seal";
 import { useQueryClient } from "@tanstack/react-query";
 import {
 	AlertTriangle,
@@ -23,18 +26,27 @@ import {
 	Palette,
 	Server,
 	Shield,
+	Stamp,
 	Sun,
+	Trash2,
 	User,
 } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 /* ─── Constants ───────────────────────────────────────────────── */
 
-type Tab = "profile" | "appearance" | "privacy" | "advanced" | "danger";
+type Tab =
+	| "profile"
+	| "appearance"
+	| "branding"
+	| "privacy"
+	| "advanced"
+	| "danger";
 
 const TABS: { key: Tab; label: string; icon: typeof User }[] = [
 	{ key: "profile", label: "Profile", icon: User },
 	{ key: "appearance", label: "Appearance", icon: Palette },
+	{ key: "branding", label: "Branding", icon: Stamp },
 	{ key: "privacy", label: "Security", icon: Shield },
 	{ key: "advanced", label: "Advanced", icon: Server },
 	{ key: "danger", label: "Danger zone", icon: AlertTriangle },
@@ -515,7 +527,8 @@ function AppearanceSection() {
 /* ─── Security tab ────────────────────────────────────────────── */
 
 function SecuritySection() {
-	const { user } = useAuth();
+	const { user, logout } = useAuth();
+	const [loggingOut, setLoggingOut] = useState(false);
 	const [currentPw, setCurrentPw] = useState("");
 	const [newPw, setNewPw] = useState("");
 	const [confirmPw, setConfirmPw] = useState("");
@@ -658,6 +671,23 @@ function SecuritySection() {
 						Active
 					</span>
 				</div>
+				<div className="mt-4 pt-4 border-t border-outline-variant">
+					<button
+						type="button"
+						onClick={async () => {
+							setLoggingOut(true);
+							await logout();
+						}}
+						disabled={loggingOut}
+						className="sz-btn bg-error/10 text-error typo-btn font-bold uppercase tracking-widest hover:bg-error/20 transition-colors disabled:opacity-50 cursor-pointer"
+					>
+						{loggingOut ? (
+							<Loader2 className="w-4 h-4 animate-spin mx-auto" />
+						) : (
+							"Log out"
+						)}
+					</button>
+				</div>
 			</Section>
 		</>
 	);
@@ -788,6 +818,330 @@ function AdvancedSection() {
 				</div>
 			)}
 		</Section>
+	);
+}
+
+/* ─── Branding / Seal tab ─────────────────────────────────────── */
+
+interface SealData {
+	id: string;
+	name: string;
+	config: SealConfig;
+	imageUrl?: string;
+	isDefault: boolean;
+}
+
+function BrandingSection() {
+	const [seals, setSeals] = useState<SealData[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [showCreator, setShowCreator] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [sealError, setSealError] = useState<string | null>(null);
+	const [watermarkPosition, setWatermarkPosition] =
+		useState<string>("bottom-right");
+	const [watermarkOpacity, setWatermarkOpacity] = useState(0.15);
+	const [watermarkBrand, setWatermarkBrand] = useState(true);
+	const [letterhead, setLetterhead] = useState<LetterheadConfig | null>(null);
+	const [letterheadLoading, setLetterheadLoading] = useState(true);
+
+	useEffect(() => {
+		fetchSeals();
+		fetchLetterhead();
+	}, []);
+
+	const fetchSeals = async () => {
+		try {
+			const res = await fetch("/api/settings/seal");
+			if (res.ok) {
+				const data = await res.json();
+				setSeals(data.seals ?? []);
+				if (data.defaultWatermark) {
+					setWatermarkPosition(
+						data.defaultWatermark.position ?? "bottom-right",
+					);
+					setWatermarkOpacity(data.defaultWatermark.opacity ?? 0.15);
+					setWatermarkBrand(data.defaultWatermark.includePlatformBrand ?? true);
+				}
+			}
+		} catch {
+			// ignore
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const fetchLetterhead = async () => {
+		try {
+			const res = await fetch("/api/settings/letterhead");
+			if (res.ok) {
+				const data = await res.json();
+				setLetterhead(data.letterhead ?? null);
+			}
+		} catch {
+			// ignore
+		} finally {
+			setLetterheadLoading(false);
+		}
+	};
+
+	const handleSaveSeal = async (
+		config: SealConfig,
+		name: string,
+		imageDataUrl: string,
+	) => {
+		setSaving(true);
+		setSealError(null);
+		try {
+			const res = await fetch("/api/settings/seal", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ name, config, imageUrl: imageDataUrl }),
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				throw new Error(data.error || "Save failed");
+			}
+			await fetchSeals();
+			setShowCreator(false);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : "Failed to save seal";
+			setSealError(msg);
+			console.error("Seal save error:", err);
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	const handleDeleteSeal = async (sealId: string) => {
+		setDeletingId(sealId);
+		try {
+			await fetch(`/api/settings/seal?id=${encodeURIComponent(sealId)}`, {
+				method: "DELETE",
+			});
+			await fetchSeals();
+		} finally {
+			setDeletingId(null);
+		}
+	};
+
+	const handleSetDefault = async (sealId: string) => {
+		await fetch("/api/settings/seal", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ sealId, isDefault: true }),
+		});
+		await fetchSeals();
+	};
+
+	const handleSaveWatermark = async () => {
+		await fetch("/api/settings/seal", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				defaultWatermark: {
+					type: seals.find((s) => s.isDefault)
+						? WatermarkType.SEAL
+						: WatermarkType.PLATFORM,
+					sealId: seals.find((s) => s.isDefault)?.id,
+					position: watermarkPosition,
+					opacity: watermarkOpacity,
+					includePlatformBrand: watermarkBrand,
+				},
+			}),
+		});
+	};
+
+	return (
+		<>
+			<Section
+				title="Seals"
+				description="Create seals to sign and stamp documents. Your default seal will be used for watermarks."
+			>
+				{loading ? (
+					<div className="flex items-center gap-2 typo-body-sm text-on-surface-variant py-4">
+						<Loader2 className="w-4 h-4 animate-spin" />
+						Loading seals…
+					</div>
+				) : showCreator ? (
+					<>
+						{sealError && (
+							<div className="mb-3 px-3 py-2 sz-radius-md bg-error/10 border border-error/30 typo-body-sm text-error">
+								{sealError}
+							</div>
+						)}
+						<SealCreator
+							onSave={handleSaveSeal}
+							onCancel={() => {
+								setShowCreator(false);
+								setSealError(null);
+							}}
+							saving={saving}
+						/>
+					</>
+				) : (
+					<>
+						{seals.length === 0 ? (
+							<p className="typo-body-sm text-on-surface-variant mb-4">
+								No seals created yet. Create one to sign and watermark your
+								documents.
+							</p>
+						) : (
+							<div
+								className="grid gap-3 mb-4"
+								style={{
+									gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+								}}
+							>
+								{seals.map((seal) => (
+									<div
+										key={seal.id}
+										className={`relative bg-surface-container-lowest border-2 sz-radius-lg p-4 flex flex-col items-center gap-2 max-w-xs ${
+											seal.isDefault
+												? "border-primary"
+												: "border-outline-variant"
+										}`}
+									>
+										{seal.imageUrl ? (
+											<img
+												src={seal.imageUrl}
+												alt={seal.name}
+												className="w-20 h-20 object-contain"
+											/>
+										) : (
+											<SealPreview config={seal.config} size={80} />
+										)}
+										<span className="typo-body-sm font-medium text-on-surface text-center">
+											{seal.name}
+										</span>
+										{seal.isDefault && (
+											<span className="typo-badge font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+												Default
+											</span>
+										)}
+										<div className="flex gap-2 mt-1">
+											{!seal.isDefault && (
+												<button
+													type="button"
+													onClick={() => handleSetDefault(seal.id)}
+													className="typo-caption text-primary hover:underline cursor-pointer"
+												>
+													Set default
+												</button>
+											)}
+											<button
+												type="button"
+												onClick={() => handleDeleteSeal(seal.id)}
+												disabled={deletingId === seal.id}
+												className="typo-caption text-outline hover:text-error cursor-pointer"
+											>
+												{deletingId === seal.id ? (
+													<Loader2 className="w-3 h-3 animate-spin" />
+												) : (
+													<Trash2 className="w-3 h-3" />
+												)}
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+						)}
+						<button
+							type="button"
+							onClick={() => setShowCreator(true)}
+							className="sz-btn bg-primary text-on-primary typo-btn font-bold uppercase tracking-widest hover:opacity-90 transition-opacity cursor-pointer"
+						>
+							Create new seal
+						</button>
+					</>
+				)}
+			</Section>
+
+			<Section
+				title="Watermark preferences"
+				description="Configure default watermark applied to exported documents and images. Plotfolio branding helps promote the platform."
+			>
+				<div className="space-y-4">
+					<div>
+						<span className="typo-body-sm font-medium text-on-surface-variant mb-1.5 block">
+							Position
+						</span>
+						<div className="flex gap-2 flex-wrap">
+							{(
+								[
+									["bottom-right", "Bottom right"],
+									["bottom-left", "Bottom left"],
+									["center", "Center"],
+									["tiled", "Tiled"],
+								] as const
+							).map(([val, label]) => (
+								<button
+									key={val}
+									type="button"
+									onClick={() => {
+										setWatermarkPosition(val);
+										handleSaveWatermark();
+									}}
+									className={`px-3 py-1.5 sz-radius-md typo-body-sm font-medium border-2 transition-all cursor-pointer ${
+										watermarkPosition === val
+											? "border-primary bg-primary/10 text-primary"
+											: "border-outline-variant text-on-surface-variant hover:border-outline"
+									}`}
+								>
+									{label}
+								</button>
+							))}
+						</div>
+					</div>
+
+					<label className="block">
+						<span className="typo-body-sm font-medium text-on-surface-variant mb-1.5 block">
+							Opacity ({Math.round(watermarkOpacity * 100)}%)
+						</span>
+						<input
+							type="range"
+							min={0.02}
+							max={0.4}
+							step={0.01}
+							value={watermarkOpacity}
+							onChange={(e) => {
+								setWatermarkOpacity(Number(e.target.value));
+							}}
+							onMouseUp={() => handleSaveWatermark()}
+							className="w-full max-w-sm"
+						/>
+					</label>
+
+					<SettingsToggle
+						label="Include Plotfolio branding"
+						description="Adds a subtle Plotfolio watermark alongside your seal to help promote the platform."
+						checked={watermarkBrand}
+						onChange={(v) => {
+							setWatermarkBrand(v);
+							handleSaveWatermark();
+						}}
+					/>
+				</div>
+			</Section>
+
+			<Section
+				title="Letterhead"
+				description="Design branded stationery with your company details, logo, and contact info. Your letterhead is applied to generated contracts."
+			>
+				{letterheadLoading ? (
+					<div className="flex items-center gap-2 typo-body-sm text-on-surface-variant py-4">
+						<Loader2 className="w-4 h-4 animate-spin" />
+						Loading letterhead…
+					</div>
+				) : (
+					<LetterheadEditor
+						initial={letterhead}
+						sealImageUrl={seals.find((s) => s.isDefault)?.imageUrl}
+						onSaved={(cfg) => setLetterhead(cfg)}
+					/>
+				)}
+			</Section>
+		</>
 	);
 }
 
@@ -938,6 +1292,7 @@ export default function SettingsPage() {
 					<div className="flex-1 min-w-0">
 						{activeTab === "profile" && <ProfileSection />}
 						{activeTab === "appearance" && <AppearanceSection />}
+						{activeTab === "branding" && <BrandingSection />}
 						{activeTab === "privacy" && <SecuritySection />}
 						{activeTab === "advanced" && <AdvancedSection />}
 						{activeTab === "danger" && <DangerSection />}

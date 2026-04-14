@@ -3,7 +3,7 @@ import { BookingModel } from "@/models/Booking";
 import { BookingStatus } from "@/types/property";
 import { NextRequest, NextResponse } from "next/server";
 
-// PATCH /api/bookings/[id] — update booking status (confirm, cancel, complete)
+// PATCH /api/bookings/[id] — update booking status (confirm, cancel, complete, reschedule)
 export async function PATCH(
 	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
@@ -13,7 +13,7 @@ export async function PATCH(
 
 		const { id } = await params;
 		const body = await request.json();
-		const { status } = body;
+		const { status, ownerMessage, proposedDate, proposedTime } = body;
 
 		if (!status || !Object.values(BookingStatus).includes(status)) {
 			return NextResponse.json(
@@ -24,11 +24,24 @@ export async function PATCH(
 			);
 		}
 
-		const updated = await BookingModel.findOneAndUpdate(
-			{ id },
-			{ status },
-			{ new: true },
-		).lean();
+		const update: Record<string, unknown> = { status };
+		if (ownerMessage !== undefined) update.ownerMessage = ownerMessage;
+		if (status === BookingStatus.RESCHEDULED) {
+			if (!proposedDate || !proposedTime) {
+				return NextResponse.json(
+					{
+						error: "proposedDate and proposedTime are required for reschedule",
+					},
+					{ status: 400 },
+				);
+			}
+			update.proposedDate = proposedDate;
+			update.proposedTime = proposedTime;
+		}
+
+		const updated = await BookingModel.findOneAndUpdate({ id }, update, {
+			new: true,
+		}).lean();
 
 		if (!updated) {
 			return NextResponse.json({ error: "Booking not found" }, { status: 404 });

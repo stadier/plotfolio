@@ -11,7 +11,7 @@ import AppShell from "@/components/layout/AppShell";
 import { usePortfolio } from "@/components/PortfolioContext";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
-import { useMyProperties } from "@/hooks/usePropertyQueries";
+import { useMyProperties, useOwnerBookings } from "@/hooks/usePropertyQueries";
 import { formatCurrencyCompact } from "@/lib/utils";
 import {
 	Building2,
@@ -62,7 +62,10 @@ export default function DashboardV2Page() {
 	const animate = useAnimateOnce("dashboard-v2");
 	const { data: properties = [], isLoading: loading } = useMyProperties(
 		user?.id,
+		activePortfolio?.id,
+		activePortfolio?.createdBy === user?.id,
 	);
+	const { data: bookings = [] } = useOwnerBookings(user?.id);
 
 	if (authLoading || !user) {
 		return (
@@ -206,7 +209,7 @@ export default function DashboardV2Page() {
 
 						{/* ── Widget masonry ── */}
 						<div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4 mt-4">
-							<CalendarWidget properties={properties} />
+							<CalendarWidget properties={properties} bookings={bookings} />
 							<MiniMapWidget properties={properties} onSelect={setSelectedId} />
 							<PortfolioHealthWidget properties={properties} />
 							<RecentDocumentsWidget properties={properties} />

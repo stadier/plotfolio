@@ -2,7 +2,7 @@
 
 import { formatCurrency } from "@/lib/utils";
 import { Property } from "@/types/property";
-import { Maximize2, Pencil, X } from "lucide-react";
+import { Maximize2, Pencil, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import PropertyFullView from "./PropertyFullView";
@@ -12,12 +12,16 @@ interface PropertyDrawerProps {
 	propertyId: string | null;
 	onClose: () => void;
 	onChange?: (property: Property) => void;
+	sharedFrom?: string | null;
+	canEdit?: boolean;
 }
 
 export default function PropertyDrawer({
 	propertyId,
 	onClose,
 	onChange,
+	sharedFrom,
+	canEdit = true,
 }: PropertyDrawerProps) {
 	const [property, setProperty] = useState<Property | null>(null);
 	const [loading, setLoading] = useState(false);
@@ -110,6 +114,14 @@ export default function PropertyDrawer({
 										)}
 									</span>
 								</div>
+								{sharedFrom && (
+									<div className="flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 w-fit">
+										<Users className="w-3 h-3 text-indigo-500 shrink-0" />
+										<span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+											Shared from {sharedFrom}
+										</span>
+									</div>
+								)}
 							</>
 						) : (
 							<div className="h-5 w-40 bg-surface-container-highest dark:bg-surface-container rounded animate-pulse" />
@@ -117,16 +129,18 @@ export default function PropertyDrawer({
 					</div>
 					<div className="flex items-center gap-1 shrink-0">
 						{/* Edit property */}
-						<button
-							onClick={() =>
-								propertyId &&
-								router.push(`/portfolio/properties/${propertyId}/edit`)
-							}
-							title="Edit property"
-							className="p-2 rounded-lg hover:bg-surface-container-high dark:hover:bg-surface-container text-outline dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors"
-						>
-							<Pencil className="w-4 h-4" />
-						</button>
+						{canEdit && (
+							<button
+								onClick={() =>
+									propertyId &&
+									router.push(`/portfolio/properties/${propertyId}/edit`)
+								}
+								title="Edit property"
+								className="p-2 rounded-lg hover:bg-surface-container-high dark:hover:bg-surface-container text-outline dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface transition-colors"
+							>
+								<Pencil className="w-4 h-4" />
+							</button>
+						)}
 						{/* Expand to full page */}
 						<button
 							onClick={() =>

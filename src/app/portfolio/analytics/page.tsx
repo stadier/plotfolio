@@ -1,6 +1,7 @@
 "use client";
 
 import { useRequireAuth } from "@/components/AuthContext";
+import { usePortfolio } from "@/components/PortfolioContext";
 import AnalyticsChartCard from "@/components/analytics/AnalyticsChartCard";
 import AreaDistributionChart from "@/components/analytics/AreaDistributionChart";
 import ConditionBreakdownChart from "@/components/analytics/ConditionBreakdownChart";
@@ -26,8 +27,11 @@ import {
 
 export default function AnalyticsPage() {
 	const { user, loading: authLoading } = useRequireAuth();
+	const { activePortfolio } = usePortfolio();
 	const { data: properties = [], isLoading: loading } = useMyProperties(
 		user?.id,
+		activePortfolio?.id,
+		activePortfolio?.createdBy === user?.id,
 	);
 
 	if (authLoading || !user) {

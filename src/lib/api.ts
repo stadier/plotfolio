@@ -7,8 +7,12 @@ import type {
 } from "@/types/document";
 import {
 	AccessRequestStatus,
+	Booking,
 	DocumentAccessLevel,
 	DocumentAccessRequest,
+	OwnershipRecord,
+	OwnershipTransfer,
+	PortfolioPermissions,
 	Property,
 } from "@/types/property";
 
@@ -30,10 +34,23 @@ export class PropertyAPI {
 		}
 	}
 
-	static async getMyProperties(ownerId: string): Promise<Property[]> {
+	static async getMyProperties(
+		ownerId: string,
+		portfolioId?: string,
+		isOwnPortfolio?: boolean,
+	): Promise<Property[]> {
 		try {
+			const params = new URLSearchParams();
+			if (portfolioId) {
+				params.set("portfolioId", portfolioId);
+				if (isOwnPortfolio) {
+					params.set("ownerId", ownerId);
+				}
+			} else {
+				params.set("ownerId", ownerId);
+			}
 			const response = await fetch(
-				`${API_BASE_URL}/properties?ownerId=${encodeURIComponent(ownerId)}`,
+				`${API_BASE_URL}/properties?${params.toString()}`,
 			);
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
@@ -390,6 +407,273 @@ export class PropertyAPI {
 	}
 }
 
+/* ── Transfer API ──────────────────────────────────────────────────────────── */
+
+export class TransferAPI {
+	static async getMyTransfers(userId: string): Promise<OwnershipTransfer[]> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/transfers?userId=${encodeURIComponent(userId)}`,
+			);
+			if (!res.ok) return [];
+			return await res.json();
+		} catch {
+			return [];
+		}
+	}
+
+	static async lookupUser(username: string): Promise<{
+		found: boolean;
+		user?: {
+			id: string;
+			name: string;
+			username: string;
+			displayName: string;
+			email: string;
+			avatar?: string;
+			type: string;
+		};
+	}> {
+		try {
+			const clean = username.replace(/^@/, "").trim();
+			if (!clean) return { found: false };
+			const res = await fetch(
+				`${API_BASE_URL}/profile/lookup?username=${encodeURIComponent(clean)}`,
+			);
+			if (!res.ok) return { found: false };
+			return await res.json();
+		} catch {
+			return { found: false };
+		}
+	}
+
+	static async getTransfers(
+		propertyId: string,
+		userId?: string,
+	): Promise<OwnershipTransfer[]> {
+		try {
+			const params = new URLSearchParams();
+			if (userId) params.set("userId", userId);
+			const res = await fetch(
+				`${API_BASE_URL}/properties/${propertyId}/transfers?${params}`,
+			);
+			if (!res.ok) return [];
+			return await res.json();
+		} catch {
+			return [];
+		}
+	}
+
+	static async initiateTransfer(
+		propertyId: string,
+		data: {
+			fromUserId: string;
+			toEmail?: string;
+			toUsername?: string;
+			toName: string;
+			message?: string;
+			transferDate?: string;
+			price?: number;
+		},
+	): Promise<{ transfer?: OwnershipTransfer; error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/properties/${propertyId}/transfers`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				},
+			);
+			const result = await res.json();
+			if (!res.ok)
+				return { error: result.error || "Failed to initiate transfer" };
+			return { transfer: result };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async respondToTransfer(
+		propertyId: string,
+		data: {
+			transferId: string;
+			action: "accept" | "reject" | "cancel";
+			userId: string;
+			responseMessage?: string;
+		},
+	): Promise<{ transfer?: OwnershipTransfer; error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/properties/${propertyId}/transfers`,
+				{
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				},
+			);
+			const result = await res.json();
+			if (!res.ok)
+				return { error: result.error || "Failed to update transfer" };
+			return { transfer: result };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+}
+
+/* ── Ownership History API ─────────────────────────────────────────────────── */
+
+export class OwnershipHistoryAPI {
+	static async getHistory(propertyId: string): Promise<OwnershipRecord[]> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/properties/${propertyId}/ownership-history`,
+			);
+			if (!res.ok) return [];
+			return await res.json();
+		} catch {
+			return [];
+		}
+	}
+
+	static async addRecord(
+		propertyId: string,
+		data: {
+			ownerName: string;
+			ownerEmail?: string;
+			ownerType: string;
+			acquiredDate?: string;
+			transferredDate?: string;
+			acquisitionMethod: string;
+			price?: number;
+			notes?: string;
+		},
+	): Promise<{ record?: OwnershipRecord; error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/properties/${propertyId}/ownership-history`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				},
+			);
+			const result = await res.json();
+			if (!res.ok) return { error: result.error || "Failed to add record" };
+			return { record: result };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async updateRecord(
+		propertyId: string,
+		recordId: string,
+		updates: Partial<OwnershipRecord>,
+	): Promise<{ record?: OwnershipRecord; error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/properties/${propertyId}/ownership-history`,
+				{
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ recordId, ...updates }),
+				},
+			);
+			const result = await res.json();
+			if (!res.ok) return { error: result.error || "Failed to update record" };
+			return { record: result };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async deleteRecord(
+		propertyId: string,
+		recordId: string,
+	): Promise<{ error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/properties/${propertyId}/ownership-history?recordId=${recordId}`,
+				{ method: "DELETE" },
+			);
+			if (!res.ok) {
+				const result = await res.json().catch(() => ({}));
+				return { error: result.error || "Failed to delete record" };
+			}
+			return {};
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+}
+
+/* ── Booking API ───────────────────────────────────────────────────────────── */
+
+export class BookingAPI {
+	static async createBooking(
+		booking: Omit<Booking, "id" | "status" | "createdAt" | "updatedAt">,
+	): Promise<{ booking?: Booking; error?: string }> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/bookings`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(booking),
+			});
+			const data = await response.json();
+			if (!response.ok)
+				return { error: data.error || "Failed to create booking" };
+			return { booking: data.booking };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async getBookings(params: {
+		ownerId?: string;
+		requesterId?: string;
+	}): Promise<Booking[]> {
+		try {
+			const search = new URLSearchParams();
+			if (params.ownerId) search.set("ownerId", params.ownerId);
+			if (params.requesterId) search.set("requesterId", params.requesterId);
+			const response = await fetch(
+				`${API_BASE_URL}/bookings?${search.toString()}`,
+			);
+			if (!response.ok) return [];
+			const data = await response.json();
+			return data.bookings ?? [];
+		} catch {
+			return [];
+		}
+	}
+
+	static async updateBooking(
+		id: string,
+		update: {
+			status: string;
+			ownerMessage?: string;
+			proposedDate?: string;
+			proposedTime?: string;
+		},
+	): Promise<{ booking?: Booking; error?: string }> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(update),
+			});
+			const data = await response.json();
+			if (!response.ok)
+				return { error: data.error || "Failed to update booking" };
+			return { booking: data.booking };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+}
+
 /* ── Portfolio API ─────────────────────────────────────────────────────────── */
 
 import type {
@@ -403,6 +687,7 @@ export interface PortfolioWithRole extends Portfolio {
 }
 
 export interface PortfolioMemberWithUser extends PortfolioMember {
+	resolvedPermissions?: PortfolioPermissions;
 	user: {
 		id: string;
 		name: string;
@@ -528,7 +813,11 @@ export class PortfolioAPI {
 	static async updateMember(
 		portfolioId: string,
 		memberId: string,
-		data: { role?: PortfolioRole; status?: string },
+		data: {
+			role?: PortfolioRole;
+			status?: string;
+			permissions?: Partial<PortfolioPermissions>;
+		},
 	): Promise<{ error?: string }> {
 		try {
 			const res = await fetch(

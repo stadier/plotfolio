@@ -1,41 +1,55 @@
 "use client";
 
-import { Property } from "@/types/property";
+import { Booking, BookingType, Property } from "@/types/property";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface CalendarWidgetProps {
 	properties: Property[];
+	bookings?: Booking[];
 }
 
-/** Generate simulated schedule events based on property data. */
-function generateEvents(properties: Property[]) {
-	const eventTypes = [
-		{ label: "Survey renewal", color: "bg-red-500" },
-		{ label: "Tax payment", color: "bg-amber-500" },
-		{ label: "Insurance review", color: "bg-blue-500" },
-		{ label: "Lease review", color: "bg-violet-500" },
-		{ label: "Inspection due", color: "bg-emerald-500" },
-		{ label: "Site visit", color: "bg-cyan-500" },
-	];
+const BOOKING_TYPE_COLORS: Record<BookingType, string> = {
+	[BookingType.CONSULTATION]: "bg-blue-500",
+	[BookingType.INSPECTION]: "bg-emerald-500",
+	[BookingType.INQUIRY]: "bg-amber-500",
+	[BookingType.SITE_VISIT]: "bg-cyan-500",
+	[BookingType.VALUATION]: "bg-violet-500",
+	[BookingType.NEGOTIATION]: "bg-red-500",
+	[BookingType.OTHER]: "bg-slate-500",
+};
 
-	return properties.slice(0, 8).map((p, i) => {
-		const d = new Date();
-		d.setDate(d.getDate() + (i * 5 + 2));
-		const type = eventTypes[i % eventTypes.length];
-		return {
-			id: p.id,
-			propertyName: p.name,
-			type: type.label,
-			color: type.color,
-			date: d,
-		};
-	});
+const BOOKING_TYPE_LABELS: Record<BookingType, string> = {
+	[BookingType.CONSULTATION]: "Consultation",
+	[BookingType.INSPECTION]: "Inspection",
+	[BookingType.INQUIRY]: "Inquiry",
+	[BookingType.SITE_VISIT]: "Site Visit",
+	[BookingType.VALUATION]: "Valuation",
+	[BookingType.NEGOTIATION]: "Negotiation",
+	[BookingType.OTHER]: "Other",
+};
+
+function bookingsToEvents(bookings: Booking[], properties: Property[]) {
+	const propMap = new Map(properties.map((p) => [p.id, p.name]));
+	return bookings
+		.filter((b) => b.status !== "cancelled")
+		.map((b) => ({
+			id: b.id,
+			propertyName: b.propertyId
+				? (propMap.get(b.propertyId) ?? "Property")
+				: "General",
+			type: BOOKING_TYPE_LABELS[b.type] ?? b.type,
+			color: BOOKING_TYPE_COLORS[b.type] ?? "bg-slate-500",
+			date: new Date(b.date + "T00:00:00"),
+		}));
 }
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export default function CalendarWidget({ properties }: CalendarWidgetProps) {
+export default function CalendarWidget({
+	properties,
+	bookings,
+}: CalendarWidgetProps) {
 	const [monthOffset, setMonthOffset] = useState(0);
 
 	const today = new Date();
@@ -47,7 +61,10 @@ export default function CalendarWidget({ properties }: CalendarWidgetProps) {
 	const year = viewDate.getFullYear();
 	const month = viewDate.getMonth();
 
-	const events = useMemo(() => generateEvents(properties), [properties]);
+	const events = useMemo(
+		() => bookingsToEvents(bookings ?? [], properties),
+		[bookings, properties],
+	);
 
 	// Build calendar grid
 	const firstDay = new Date(year, month, 1);
@@ -197,6 +214,11 @@ export default function CalendarWidget({ properties }: CalendarWidgetProps) {
 						</div>
 					))}
 				</div>
+			)}
+			{events.length === 0 && (
+				<p className="mt-3 pt-3 border-t border-border typo-badge text-outline text-center">
+					No upcoming bookings
+				</p>
 			)}
 		</div>
 	);

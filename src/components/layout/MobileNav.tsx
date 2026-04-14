@@ -13,8 +13,10 @@ import {
 	LayoutDashboard,
 	MapPin,
 	Menu,
+	MessageSquare,
 	Monitor,
 	Moon,
+	Send,
 	Settings,
 	ShoppingBag,
 	Sun,
@@ -42,7 +44,9 @@ const portfolioNav: NavItem[] = [
 ];
 
 const portfolioMore: NavItem[] = [
+	{ name: "Transfers", href: "/portfolio/transfers", icon: Send },
 	{ name: "Documents", href: "/portfolio/documents", icon: FileText },
+	{ name: "Bookings", href: "/portfolio/bookings", icon: MessageSquare },
 	{ name: "Team", href: "/portfolio/team", icon: Users },
 	{ name: "Settings", href: "/settings", icon: Settings },
 ];

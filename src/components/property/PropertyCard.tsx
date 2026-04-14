@@ -27,6 +27,7 @@ import {
 	Mic,
 	Play,
 	Square,
+	Users,
 	Video,
 } from "lucide-react";
 import Image from "next/image";
@@ -37,6 +38,7 @@ interface PropertyCardProps {
 	onClick?: () => void;
 	isSelected?: boolean;
 	className?: string;
+	sharedFrom?: string | null;
 }
 
 const statusColors = {
@@ -106,6 +108,7 @@ export default function PropertyCard({
 	onClick,
 	isSelected = false,
 	className = "",
+	sharedFrom,
 }: PropertyCardProps) {
 	const mediaItems = getPropertyMedia(property);
 	const hasMultipleMedia = mediaItems.length > 1;
@@ -266,6 +269,16 @@ export default function PropertyCard({
 
 			{/* Property Details */}
 			<div className="p-4">
+				{/* Shared portfolio badge */}
+				{sharedFrom && (
+					<div className="flex items-center gap-1.5 mb-3 px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
+						<Users className="w-3 h-3 text-indigo-500 shrink-0" />
+						<span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300 truncate">
+							Shared from {sharedFrom}
+						</span>
+					</div>
+				)}
+
 				{/* Type + Name row */}
 				<div className="mb-3">
 					<div className="flex items-center gap-2 mb-1">

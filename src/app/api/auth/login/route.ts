@@ -15,13 +15,14 @@ export async function POST(request: NextRequest) {
 
 		if (!email || !password) {
 			return NextResponse.json(
-				{ error: "Email and password are required" },
+				{ error: "Email/username and password are required" },
 				{ status: 400 },
 			);
 		}
 
+		const identifier = email.toLowerCase().trim();
 		const user = await UserModel.findOne({
-			email: email.toLowerCase(),
+			$or: [{ email: identifier }, { username: identifier }],
 		}).lean();
 
 		if (!user) {

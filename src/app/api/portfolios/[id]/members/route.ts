@@ -1,5 +1,9 @@
 import connectDB from "@/lib/mongoose";
-import { checkPortfolioAccess, PortfolioMemberModel } from "@/models/Portfolio";
+import {
+	checkPortfolioAccess,
+	PortfolioMemberModel,
+	resolvePermissions,
+} from "@/models/Portfolio";
 import { UserModel } from "@/models/User";
 import { PortfolioMemberStatus, PortfolioRole } from "@/types/property";
 import crypto from "crypto";
@@ -53,6 +57,7 @@ export async function GET(
 			const { _id, __v, ...clean } = m;
 			return {
 				...clean,
+				resolvedPermissions: resolvePermissions(m.role, m.permissions),
 				user: user
 					? {
 							id: user.id,

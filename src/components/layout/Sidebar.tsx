@@ -22,6 +22,7 @@ import {
 	PanelLeftOpen,
 	Plus,
 	Search,
+	Send,
 	Settings,
 	ShoppingBag,
 	Sun,
@@ -44,6 +45,8 @@ const portfolioNav: NavItem[] = [
 	{ name: "Dashboard", href: "/portfolio", icon: LayoutDashboard },
 	{ name: "Properties", href: "/portfolio/properties", icon: Grid },
 	{ name: "Map View", href: "/portfolio/map", icon: MapPin },
+	{ name: "Transfers", href: "/portfolio/transfers", icon: Send },
+	{ name: "Bookings", href: "/portfolio/bookings", icon: MessageSquare },
 	{ name: "Analytics", href: "/portfolio/analytics", icon: BarChart3 },
 	{ name: "Documents", href: "/portfolio/documents", icon: FileText },
 	{ name: "Team", href: "/portfolio/team", icon: Users },
@@ -144,6 +147,7 @@ export default function Sidebar({
 		setActivePortfolioId,
 		pendingInvites,
 		refresh,
+		activePermissions,
 	} = usePortfolio();
 	const [switcherOpen, setSwitcherOpen] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -486,7 +490,8 @@ export default function Sidebar({
 						</span>
 					</Link>
 				) : (
-					!hideAddProperty && (
+					!hideAddProperty &&
+					activePermissions.canCreateProperties && (
 						<Link
 							href="/portfolio/properties/new"
 							title={collapsed ? "Add Property" : undefined}

@@ -1,11 +1,13 @@
 "use client";
 
 import { useAuth } from "@/components/AuthContext";
+import { usePortfolio } from "@/components/PortfolioContext";
 import ChipInput from "@/components/ui/ChipInput";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import WitnessTagInput, {
 	type WitnessEntry,
 } from "@/components/ui/WitnessTagInput";
+import { queryKeys } from "@/hooks/usePropertyQueries";
 import { extractFieldsFromDocument } from "@/lib/documentExtractor";
 import {
 	DocumentType,
@@ -15,6 +17,7 @@ import {
 	PropertyStatus,
 	PropertyType,
 } from "@/types/property";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, MapPin, Save, Upload } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -367,6 +370,8 @@ export default function CreatePropertyForm({
 }: CreatePropertyFormProps) {
 	const router = useRouter();
 	const { user } = useAuth();
+	const { activePortfolio } = usePortfolio();
+	const queryClient = useQueryClient();
 	const isEdit = !!initialProperty;
 
 	/* basic info */
@@ -598,6 +603,7 @@ export default function CreatePropertyForm({
 			const property = {
 				id,
 				name: name.trim() || "Untitled Property",
+				portfolioId: activePortfolio?.id,
 				address: address.trim() || undefined,
 				description: description.trim() || undefined,
 				coordinates:
@@ -691,6 +697,11 @@ export default function CreatePropertyForm({
 					body: formData,
 				});
 			}
+
+			// Invalidate property queries so lists update immediately
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.all,
+			});
 
 			router.push(
 				isEdit ? `/portfolio/properties/${id}` : "/portfolio/properties",

@@ -2,6 +2,7 @@
 
 import { useRequireAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import { usePortfolio } from "@/components/PortfolioContext";
 import {
 	formatDate,
 	getStatusColor,
@@ -32,6 +33,7 @@ import {
 	Pencil,
 	Search,
 	TrendingUp,
+	Users,
 	X,
 } from "lucide-react";
 import Image from "next/image";
@@ -353,9 +355,13 @@ function PropertyHero({ property }: { property: Property }) {
 function PropertyCard({
 	property,
 	onSelect,
+	sharedFrom,
+	canEdit = true,
 }: {
 	property: Property;
 	onSelect: (id: string) => void;
+	sharedFrom?: string | null;
+	canEdit?: boolean;
 }) {
 	const docCount = property.documents?.length ?? 0;
 	const hasWorth = property.currentValue != null;
@@ -383,17 +389,29 @@ function PropertyCard({
 					</div>
 				</div>
 				<div className="flex items-center gap-2 shrink-0">
-					<Link
-						href={`/portfolio/properties/${property.id}/edit`}
-						onClick={(e) => e.stopPropagation()}
-						title="Edit property"
-						className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high opacity-0 group-hover:opacity-100 transition-all"
-					>
-						<Pencil className="w-3.5 h-3.5" />
-					</Link>
+					{canEdit && (
+						<Link
+							href={`/portfolio/properties/${property.id}/edit`}
+							onClick={(e) => e.stopPropagation()}
+							title="Edit property"
+							className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high opacity-0 group-hover:opacity-100 transition-all"
+						>
+							<Pencil className="w-3.5 h-3.5" />
+						</Link>
+					)}
 					<PropertyKindBadge property={property} />
 				</div>
 			</div>
+
+			{/* Shared portfolio badge */}
+			{sharedFrom && (
+				<div className="flex items-center gap-1.5 mb-3 px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
+					<Users className="w-3 h-3 text-indigo-500 shrink-0" />
+					<span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300 truncate">
+						Shared from {sharedFrom}
+					</span>
+				</div>
+			)}
 
 			{/* Status · Type — inline text, not pills */}
 			<div className="flex items-center gap-1.5 mb-3 text-[11px] font-medium uppercase tracking-wide">
@@ -509,12 +527,20 @@ function PropertyCard({
 
 export default function PropertiesPage() {
 	const { user, loading: authLoading } = useRequireAuth();
+	const { activePortfolio, activePermissions } = usePortfolio();
 	const queryClient = useQueryClient();
+	const isExternalPortfolio =
+		!!activePortfolio && activePortfolio.createdBy !== user?.id;
+	const sharedPortfolioName = isExternalPortfolio ? activePortfolio.name : null;
 	const {
 		data: rawProperties = [],
 		isLoading: loading,
 		error: queryError,
-	} = useMyProperties(user?.id);
+	} = useMyProperties(
+		user?.id,
+		activePortfolio?.id,
+		activePortfolio?.createdBy === user?.id,
+	);
 	const properties = useMemo(
 		() => rawProperties.map(hydratePropertyPreview),
 		[rawProperties],
@@ -845,7 +871,12 @@ export default function PropertiesPage() {
 								className="animate-fade-in-up"
 								style={{ animationDelay: `${(i % 6) * 0.07}s` }}
 							>
-								<PropertyCard property={property} onSelect={setSelectedId} />
+								<PropertyCard
+									property={property}
+									onSelect={setSelectedId}
+									sharedFrom={sharedPortfolioName}
+									canEdit={activePermissions.canEditProperties}
+								/>
 							</div>
 						))}
 					</MasonryGrid>
@@ -886,7 +917,17 @@ export default function PropertiesPage() {
 											className="cursor-pointer transition-colors hover:bg-surface-container"
 										>
 											<td className="px-4 py-3 font-medium text-on-surface whitespace-nowrap">
-												{property.name}
+												<span className="flex items-center gap-2">
+													{property.name}
+													{sharedPortfolioName && (
+														<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300">
+															<Users className="w-2.5 h-2.5" />
+															<span className="text-[10px] font-medium">
+																Shared
+															</span>
+														</span>
+													)}
+												</span>
 											</td>
 											<td className="px-4 py-3 text-on-surface-variant max-w-[200px] truncate">
 												{property.address || "—"}
@@ -955,14 +996,16 @@ export default function PropertiesPage() {
 												{property.documents?.length ?? 0}
 											</td>
 											<td className="px-4 py-3 text-center whitespace-nowrap">
-												<a
-													href={`/portfolio/properties/${property.id}`}
-													onClick={(e) => e.stopPropagation()}
-													title="Edit property"
-													className="inline-flex p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
-												>
-													<Pencil className="w-3.5 h-3.5" />
-												</a>
+												{activePermissions.canEditProperties && (
+													<a
+														href={`/portfolio/properties/${property.id}`}
+														onClick={(e) => e.stopPropagation()}
+														title="Edit property"
+														className="inline-flex p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
+													>
+														<Pencil className="w-3.5 h-3.5" />
+													</a>
+												)}
 											</td>
 										</tr>
 									);
@@ -978,9 +1021,14 @@ export default function PropertiesPage() {
 				onClose={() => setSelectedId(null)}
 				onChange={() =>
 					queryClient.invalidateQueries({
-						queryKey: queryKeys.properties.my(user?.id ?? ""),
+						queryKey: queryKeys.properties.my(
+							user?.id ?? "",
+							activePortfolio?.id,
+						),
 					})
 				}
+				sharedFrom={sharedPortfolioName}
+				canEdit={activePermissions.canEditProperties}
 			/>
 		</AppShell>
 	);

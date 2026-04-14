@@ -1,11 +1,9 @@
 "use client";
 
+import BookingModal from "@/components/property/BookingModal";
 import MediaLightbox from "@/components/property/MediaLightbox";
-import {
-	DocumentsGrid,
-	formatDate,
-	getStatusColor,
-} from "@/components/property/propertyDisplayHelpers";
+import OwnershipPanel from "@/components/property/OwnershipPanel";
+import { DocumentsGrid } from "@/components/property/propertyDisplayHelpers";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { countryFlag } from "@/lib/locale";
@@ -20,7 +18,6 @@ import {
 	Bath,
 	BedDouble,
 	Building2,
-	Calendar,
 	Car,
 	ChevronDown,
 	ChevronLeft,
@@ -47,9 +44,15 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { formatDate, getStatusColor } from "./PropertyDetailContent";
 
 const PropertyMiniMap = dynamic(
 	() => import("@/components/maps/PropertyMiniMap"),
+	{ ssr: false },
+);
+
+const DocumentGenerator = dynamic(
+	() => import("@/components/branding/DocumentGenerator"),
 	{ ssr: false },
 );
 
@@ -656,9 +659,9 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 /* ─── Schedule Viewing Card ──────────────────────────────────── */
 
 function ScheduleViewingCard({ property }: { property: Property }) {
-	const [startDate, setStartDate] = useState("");
-	const [endDate, setEndDate] = useState("");
+	const [selectedDate, setSelectedDate] = useState("");
 	const [currentMonth, setCurrentMonth] = useState(new Date());
+	const [bookingOpen, setBookingOpen] = useState(false);
 
 	const today = useMemo(() => {
 		const d = new Date();
@@ -692,64 +695,24 @@ function ScheduleViewingCard({ property }: { property: Property }) {
 			const d = new Date(daysInMonth.year, daysInMonth.month, day);
 			if (d < today) return;
 			const iso = d.toISOString().split("T")[0];
-			if (!startDate || (startDate && endDate)) {
-				setStartDate(iso);
-				setEndDate("");
-			} else {
-				if (iso < startDate) {
-					setEndDate(startDate);
-					setStartDate(iso);
-				} else {
-					setEndDate(iso);
-				}
-			}
+			setSelectedDate(iso);
+			setBookingOpen(true);
 		},
-		[daysInMonth, startDate, endDate, today],
+		[daysInMonth, today],
 	);
-
-	const formatDisplayDate = (iso: string) => {
-		if (!iso) return "";
-		const d = new Date(iso + "T00:00:00");
-		return d.toLocaleDateString("en-US", {
-			month: "short",
-			day: "2-digit",
-			year: "numeric",
-		});
-	};
-
-	const isInRange = (day: number) => {
-		if (!startDate || !endDate) return false;
-		const d = new Date(daysInMonth.year, daysInMonth.month, day)
-			.toISOString()
-			.split("T")[0];
-		return d >= startDate && d <= endDate;
-	};
 
 	const isSelected = (day: number) => {
 		const d = new Date(daysInMonth.year, daysInMonth.month, day)
 			.toISOString()
 			.split("T")[0];
-		return d === startDate || d === endDate;
+		return d === selectedDate;
 	};
 
 	return (
 		<div className="bg-card border border-border rounded-2xl p-5 space-y-4">
 			<h3 className="font-headline text-sm font-semibold text-on-surface">
-				{property.owner?.allowBookings
-					? "Schedule a Viewing"
-					: "View Availability"}
+				Schedule a Viewing
 			</h3>
-
-			{/* Date range inputs */}
-			<div className="flex items-center gap-2">
-				<div className="flex-1 border border-border rounded-lg px-3 py-2 text-sm text-on-surface">
-					{startDate ? formatDisplayDate(startDate) : "Start Date"}
-				</div>
-				<span className="text-outline">–</span>
-				<div className="flex-1 border border-border rounded-lg px-3 py-2 text-sm text-on-surface">
-					{endDate ? formatDisplayDate(endDate) : "End Date"}
-				</div>
-			</div>
 
 			{/* Mini calendar */}
 			<div>
@@ -788,7 +751,6 @@ function ScheduleViewingCard({ property }: { property: Property }) {
 						const d = new Date(daysInMonth.year, daysInMonth.month, day);
 						const isPast = d < today;
 						const selected = isSelected(day);
-						const inRange = isInRange(day);
 
 						return (
 							<button
@@ -801,9 +763,7 @@ function ScheduleViewingCard({ property }: { property: Property }) {
 										? "text-outline/40 cursor-not-allowed"
 										: selected
 											? "bg-on-surface text-card font-semibold"
-											: inRange
-												? "bg-surface-container-high text-on-surface"
-												: "text-on-surface hover:bg-surface-container-high"
+											: "text-on-surface hover:bg-surface-container-high"
 								}`}
 							>
 								{day}
@@ -813,16 +773,17 @@ function ScheduleViewingCard({ property }: { property: Property }) {
 				</div>
 			</div>
 
-			{/* Book button */}
-			{property.owner?.allowBookings && (
-				<Link
-					href={`/profile/${property.owner?.id}`}
-					className="flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-lg text-sm font-semibold bg-primary text-on-primary hover:opacity-90 transition-opacity"
-				>
-					<Calendar className="w-4 h-4" />
-					Schedule Visit
-				</Link>
-			)}
+			<p className="text-xs text-on-surface-variant text-center">
+				Select a date to schedule a visit
+			</p>
+
+			{/* Booking modal */}
+			<BookingModal
+				open={bookingOpen}
+				onClose={() => setBookingOpen(false)}
+				property={property}
+				selectedDate={selectedDate}
+			/>
 		</div>
 	);
 }
@@ -891,6 +852,10 @@ export interface PropertyFullViewProps {
 	singleColumn?: boolean;
 	/** Hide the title row (name + price) — useful when a parent already shows them */
 	hideHeader?: boolean;
+	/** Show the contract generator panel */
+	showContractGenerator?: boolean;
+	/** Called when contract generator is closed */
+	onCloseContractGenerator?: () => void;
 }
 
 export default function PropertyFullView({
@@ -903,6 +868,8 @@ export default function PropertyFullView({
 	className = "",
 	singleColumn = false,
 	hideHeader = false,
+	showContractGenerator = false,
+	onCloseContractGenerator,
 }: PropertyFullViewProps) {
 	const mediaItems = getPropertyMedia(property);
 	const hasCoordinates =
@@ -920,6 +887,28 @@ export default function PropertyFullView({
 
 	const [mediaOpen, setMediaOpen] = useState(false);
 	const [docsOpen, setDocsOpen] = useState(false);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const [userSeals, setUserSeals] = useState<any[]>([]);
+
+	// Fetch seals when contract generator opens
+	const sealsFetched = useRef(false);
+	const fetchSeals = useCallback(async () => {
+		if (sealsFetched.current) return;
+		sealsFetched.current = true;
+		try {
+			const res = await fetch("/api/settings/seal");
+			if (res.ok) {
+				const data = await res.json();
+				setUserSeals(data.seals ?? []);
+			}
+		} catch {
+			// ignore
+		}
+	}, []);
+
+	if (showContractGenerator && !sealsFetched.current) {
+		fetchSeals();
+	}
 
 	const twoCol = singleColumn ? "" : "lg:flex-row";
 	const leftCol = singleColumn ? "hidden" : "hidden lg:block w-full lg:w-3/5";
@@ -930,20 +919,36 @@ export default function PropertyFullView({
 		<div className={`flex flex-col ${twoCol} h-full ${className}`}>
 			{/* ─── Left column: Media + Docs (desktop only) ──────── */}
 			<div className={`${leftCol} overflow-y-auto p-4 space-y-6`}>
-				<MediaGallery
-					media={mediaItems}
-					name={property.name}
-					isOwner={isOwner}
-				/>
+				{showContractGenerator ? (
+					<DocumentGenerator
+						propertyId={property.id}
+						propertyName={property.name}
+						propertyAddress={property.address}
+						ownerName={property.owner?.name ?? ""}
+						ownerEmail={property.owner?.email}
+						ownerPhone={property.owner?.phone}
+						ownerType={property.owner?.type}
+						seals={userSeals}
+						onClose={() => onCloseContractGenerator?.()}
+					/>
+				) : (
+					<>
+						<MediaGallery
+							media={mediaItems}
+							name={property.name}
+							isOwner={isOwner}
+						/>
 
-				{/* Documents */}
-				<DocumentsSection
-					property={property}
-					accessRequests={accessRequests}
-					onAccessRequested={onAccessRequested}
-					viewer={viewer}
-					isOwner={isOwner}
-				/>
+						{/* Documents */}
+						<DocumentsSection
+							property={property}
+							accessRequests={accessRequests}
+							onAccessRequested={onAccessRequested}
+							viewer={viewer}
+							isOwner={isOwner}
+						/>
+					</>
+				)}
 			</div>
 
 			{/* ─── Single column (mobile) / Right column (desktop) ── */}
@@ -1062,6 +1067,30 @@ export default function PropertyFullView({
 				{/* Property Features */}
 				<PropertyFeatures property={property} />
 
+				{/* Listing meta */}
+				{!hideHeader && (
+					<div className="text-xs text-outline space-y-1 px-1">
+						{property.createdAt && (
+							<p>
+								Listed:{" "}
+								<span className="text-on-surface font-medium">
+									{formatDate(property.createdAt)}
+								</span>
+							</p>
+						)}
+						{property.status && (
+							<p>
+								Status:{" "}
+								<span
+									className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+								>
+									{property.status.replace(/_/g, " ").toUpperCase()}
+								</span>
+							</p>
+						)}
+					</div>
+				)}
+
 				{/* Map */}
 				{hasCoordinates && (
 					<PropertyMiniMap
@@ -1071,34 +1100,15 @@ export default function PropertyFullView({
 					/>
 				)}
 
+				{/* Ownership transfers & history */}
+				<OwnershipPanel property={property} />
+
 				{/* Owner / Price / Schedule — masonry grid */}
 				<MasonryGrid minColWidth={250} gap={16}>
 					{!isOwner && <OwnerCard property={property} />}
 					<PriceBreakdownCard property={property} />
 					{!isOwner && <ScheduleViewingCard property={property} />}
 				</MasonryGrid>
-
-				{/* Listing meta */}
-				<div className="text-xs text-outline space-y-1 px-1">
-					{property.createdAt && (
-						<p>
-							Listed:{" "}
-							<span className="text-on-surface font-medium">
-								{formatDate(property.createdAt)}
-							</span>
-						</p>
-					)}
-					{property.status && (
-						<p>
-							Status:{" "}
-							<span
-								className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
-							>
-								{property.status.replace(/_/g, " ").toUpperCase()}
-							</span>
-						</p>
-					)}
-				</div>
 			</div>
 		</div>
 	);

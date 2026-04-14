@@ -1,6 +1,10 @@
 import connectDB from "@/lib/mongoose";
 import { checkPortfolioAccess, PortfolioMemberModel } from "@/models/Portfolio";
-import { PortfolioMemberStatus, PortfolioRole } from "@/types/property";
+import {
+	PortfolioMemberStatus,
+	PortfolioRole,
+	type PortfolioPermissions,
+} from "@/types/property";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -90,6 +94,8 @@ export async function PUT(
 		const updates: Record<string, any> = {};
 		if (body.role && Object.values(PortfolioRole).includes(body.role)) {
 			updates.role = body.role;
+			// Reset custom permissions when role changes
+			updates.permissions = undefined;
 		}
 		if (
 			body.status &&
@@ -99,6 +105,29 @@ export async function PUT(
 			if (body.status === PortfolioMemberStatus.ACTIVE) {
 				updates.joinedAt = new Date().toISOString();
 			}
+		}
+		// Allow setting custom permission overrides
+		if (body.permissions !== undefined) {
+			const VALID_KEYS: (keyof PortfolioPermissions)[] = [
+				"canViewProperties",
+				"canCreateProperties",
+				"canEditProperties",
+				"canDeleteProperties",
+				"canViewDocuments",
+				"canUploadDocuments",
+				"canDeleteDocuments",
+				"canManageBookings",
+				"canTransferProperties",
+				"canInviteMembers",
+			];
+			const sanitized: Record<string, boolean> = {};
+			for (const key of VALID_KEYS) {
+				if (typeof body.permissions[key] === "boolean") {
+					sanitized[key] = body.permissions[key];
+				}
+			}
+			updates.permissions =
+				Object.keys(sanitized).length > 0 ? sanitized : undefined;
 		}
 
 		const updated = await PortfolioMemberModel.findOneAndUpdate(

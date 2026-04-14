@@ -1,16 +1,30 @@
 "use client";
 
 import { useAuth, useRequireAuth } from "@/components/AuthContext";
-import { usePortfolio } from "@/components/PortfolioContext";
+import {
+	type PendingInvite,
+	usePortfolio,
+} from "@/components/PortfolioContext";
 import AppShell from "@/components/layout/AppShell";
 import BackButton from "@/components/ui/BackButton";
+import UserLookupField, {
+	type LookedUpUser,
+	type LookupStatus,
+} from "@/components/ui/UserLookupField";
 import { PortfolioAPI, type PortfolioMemberWithUser } from "@/lib/api";
-import { PortfolioMemberStatus, PortfolioRole } from "@/types/property";
+import {
+	DEFAULT_ROLE_PERMISSIONS,
+	PortfolioMemberStatus,
+	PortfolioPermissions,
+	PortfolioRole,
+} from "@/types/property";
 import {
 	Check,
 	ChevronDown,
 	Crown,
 	Loader2,
+	Lock,
+	Mail,
 	MoreVertical,
 	Shield,
 	Trash2,
@@ -63,7 +77,7 @@ const ASSIGNABLE_ROLES = [
 export default function TeamPage() {
 	const { loading: authLoading } = useRequireAuth();
 	const { user } = useAuth();
-	const { activePortfolio } = usePortfolio();
+	const { activePortfolio, pendingInvites, refresh } = usePortfolio();
 
 	const [members, setMembers] = useState<PortfolioMemberWithUser[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -127,6 +141,17 @@ export default function TeamPage() {
 
 			{/* Body */}
 			<div className="px-4 sm:px-8 pt-6 sm:pt-8 pb-16 max-w-3xl">
+				{/* Incoming invitations from other portfolios */}
+				{pendingInvites.length > 0 && (
+					<IncomingInvites
+						invites={pendingInvites}
+						onResponded={() => {
+							refresh();
+							fetchMembers();
+						}}
+					/>
+				)}
+
 				{/* Portfolio name + member count */}
 				<div className="flex items-start justify-between mb-8">
 					<div>
@@ -225,6 +250,8 @@ function InviteSection({
 	const [identifier, setIdentifier] = useState("");
 	const [role, setRole] = useState<PortfolioRole>(PortfolioRole.AGENT);
 	const [sending, setSending] = useState(false);
+	const [lookupStatus, setLookupStatus] = useState<LookupStatus>("idle");
+	const [resolvedUser, setResolvedUser] = useState<LookedUpUser | null>(null);
 	const [feedback, setFeedback] = useState<{
 		type: "success" | "error";
 		message: string;
@@ -237,20 +264,30 @@ function InviteSection({
 		setSending(true);
 		setFeedback(null);
 
+		// If user was resolved via username lookup, send their email;
+		// otherwise send the raw identifier (plain email or username).
+		const resolvedIdentifier = resolvedUser
+			? resolvedUser.email
+			: identifier.trim();
+
 		const { member, error } = await PortfolioAPI.inviteMember(portfolioId, {
-			identifier: identifier.trim(),
+			identifier: resolvedIdentifier,
 			role,
 		});
 
 		if (error) {
 			setFeedback({ type: "error", message: error });
 		} else {
-			const name = member?.user?.displayName || identifier.trim();
+			const name =
+				resolvedUser?.displayName ||
+				member?.user?.displayName ||
+				identifier.trim();
 			setFeedback({
 				type: "success",
 				message: `Invite sent to ${name}`,
 			});
 			setIdentifier("");
+			setResolvedUser(null);
 			onInvited();
 		}
 		setSending(false);
@@ -265,24 +302,31 @@ function InviteSection({
 				</h3>
 			</div>
 
-			<form onSubmit={handleInvite} className="flex flex-wrap gap-3">
-				{/* Email / Username input */}
-				<input
-					type="text"
-					value={identifier}
-					onChange={(e) => {
-						setIdentifier(e.target.value);
-						setFeedback(null);
-					}}
-					placeholder="Email or username"
-					className="flex-1 min-w-[200px] px-4 py-2.5 rounded-lg border border-border bg-card text-on-surface placeholder:text-outline text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
-				/>
+			<form
+				onSubmit={handleInvite}
+				className="flex flex-wrap items-start gap-3"
+			>
+				{/* Email / @username input with live lookup */}
+				<div className="flex-1 min-w-[200px]">
+					<UserLookupField
+						value={identifier}
+						onChange={(v) => {
+							setIdentifier(v);
+							setFeedback(null);
+						}}
+						onUserFound={(u) => setResolvedUser(u)}
+						onUserCleared={() => setResolvedUser(null)}
+						onStatusChange={setLookupStatus}
+						placeholder="Email or @username"
+						disabled={sending}
+					/>
+				</div>
 
 				{/* Role picker */}
 				<select
 					value={role}
 					onChange={(e) => setRole(e.target.value as PortfolioRole)}
-					className="px-3 py-2.5 rounded-lg border border-border bg-card text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+					className="h-[42px] px-3 rounded-lg border border-border bg-card text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
 				>
 					{ASSIGNABLE_ROLES.map((r) => (
 						<option key={r} value={r}>
@@ -295,7 +339,7 @@ function InviteSection({
 				<button
 					type="submit"
 					disabled={sending || !identifier.trim()}
-					className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-5 py-2.5 rounded-lg shadow active:scale-95 transition-all flex items-center gap-2 btn-press disabled:opacity-50 disabled:pointer-events-none"
+					className="h-[42px] signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-5 rounded-lg shadow active:scale-95 transition-all flex items-center gap-2 btn-press disabled:opacity-50 disabled:pointer-events-none"
 				>
 					{sending ? (
 						<Loader2 className="w-4 h-4 animate-spin" />
@@ -322,6 +366,100 @@ function InviteSection({
 	);
 }
 
+/* ── Incoming Invites (cross-portfolio) ─────────────────────────────────────── */
+
+function IncomingInvites({
+	invites,
+	onResponded,
+}: {
+	invites: PendingInvite[];
+	onResponded: () => void;
+}) {
+	const [busy, setBusy] = useState<string | null>(null);
+
+	async function handleAccept(invite: PendingInvite) {
+		setBusy(invite.id);
+		const { error } = await PortfolioAPI.updateMember(
+			invite.portfolioId,
+			invite.id,
+			{ status: PortfolioMemberStatus.ACTIVE },
+		);
+		setBusy(null);
+		if (!error) onResponded();
+	}
+
+	async function handleDecline(invite: PendingInvite) {
+		setBusy(invite.id);
+		const { error } = await PortfolioAPI.removeMember(
+			invite.portfolioId,
+			invite.id,
+		);
+		setBusy(null);
+		if (!error) onResponded();
+	}
+
+	return (
+		<div className="mb-8 p-5 bg-card border border-border rounded-xl">
+			<div className="flex items-center gap-2 mb-4">
+				<Mail className="w-4 h-4 text-primary" />
+				<h3 className="font-headline text-sm font-bold text-on-surface">
+					You have {invites.length} pending invite
+					{invites.length !== 1 && "s"}
+				</h3>
+			</div>
+
+			<div className="space-y-3">
+				{invites.map((inv) => {
+					const meta = ROLE_META[inv.role] ?? ROLE_META.viewer;
+					const isBusy = busy === inv.id;
+					return (
+						<div
+							key={inv.id}
+							className="flex items-center justify-between gap-3 p-3 rounded-lg bg-surface-container"
+						>
+							<div className="min-w-0">
+								<p className="text-sm font-semibold text-on-surface truncate">
+									{inv.portfolio?.name ?? "Unknown portfolio"}
+								</p>
+								<p className="text-xs text-on-surface-variant">
+									Invited as{" "}
+									<span className={`font-medium ${meta.color}`}>
+										{meta.label}
+									</span>
+								</p>
+							</div>
+							<div className="flex items-center gap-2 shrink-0">
+								<button
+									type="button"
+									disabled={isBusy}
+									onClick={() => handleAccept(inv)}
+									className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+								>
+									{isBusy ? (
+										<Loader2 className="w-3.5 h-3.5 animate-spin" />
+									) : (
+										<Check className="w-3.5 h-3.5" />
+									)}
+									Accept
+								</button>
+								<button
+									type="button"
+									disabled={isBusy}
+									onClick={() => handleDecline(inv)}
+									className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors disabled:opacity-50"
+								>
+									<X className="w-3.5 h-3.5" />
+									Decline
+								</button>
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
 /* ── Member Row ────────────────────────────────────────────────────────────── */
 
 function MemberRow({
@@ -341,12 +479,22 @@ function MemberRow({
 }) {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [rolePickerOpen, setRolePickerOpen] = useState(false);
+	const [permissionsOpen, setPermissionsOpen] = useState(false);
 	const [busy, setBusy] = useState(false);
+	const [savingPerms, setSavingPerms] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
 
 	const meta = ROLE_META[member.role as PortfolioRole] ?? ROLE_META.viewer;
 	const RoleIcon = meta.icon;
 	const isPending = member.status === PortfolioMemberStatus.PENDING;
+
+	// Resolved permissions = role defaults merged with custom overrides
+	const roleDefaults =
+		DEFAULT_ROLE_PERMISSIONS[member.role as PortfolioRole] ??
+		DEFAULT_ROLE_PERMISSIONS[PortfolioRole.VIEWER];
+	const resolved: PortfolioPermissions = member.resolvedPermissions ?? {
+		...roleDefaults,
+	};
 
 	// Close menu on outside click
 	useEffect(() => {
@@ -372,6 +520,31 @@ function MemberRow({
 		setBusy(false);
 		setMenuOpen(false);
 		setRolePickerOpen(false);
+	}
+
+	async function handleTogglePermission(key: keyof PortfolioPermissions) {
+		setSavingPerms(true);
+		const currentValue = resolved[key];
+		const newOverrides = {
+			...(member.permissions ?? {}),
+			[key]: !currentValue,
+		};
+		const { error } = await PortfolioAPI.updateMember(portfolioId, member.id, {
+			permissions: newOverrides,
+		});
+		if (error) onError(error);
+		else onUpdated();
+		setSavingPerms(false);
+	}
+
+	async function handleResetPermissions() {
+		setSavingPerms(true);
+		const { error } = await PortfolioAPI.updateMember(portfolioId, member.id, {
+			permissions: {},
+		});
+		if (error) onError(error);
+		else onUpdated();
+		setSavingPerms(false);
 	}
 
 	async function handleAcceptInvite() {
@@ -402,149 +575,324 @@ function MemberRow({
 		setMenuOpen(false);
 	}
 
-	return (
-		<div
-			className={`flex items-center gap-3 p-3 rounded-lg border border-border bg-card transition-colors ${
-				isPending ? "opacity-70" : ""
-			}`}
-		>
-			{/* Avatar */}
-			{member.user?.avatar ? (
-				<img
-					src={member.user.avatar}
-					alt=""
-					className="w-9 h-9 rounded-full object-cover shrink-0"
-				/>
-			) : (
-				<span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-					{(member.user?.name ?? "?").charAt(0).toUpperCase()}
-				</span>
-			)}
+	const hasCustomPermissions =
+		member.permissions && Object.keys(member.permissions).length > 0;
 
-			{/* Name + role */}
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-2">
-					<p className="text-sm font-semibold text-on-surface truncate">
-						{member.user?.displayName ?? member.user?.email ?? "Unknown"}
-					</p>
-					{isSelf && (
-						<span className="text-[10px] font-bold text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded-full">
-							You
-						</span>
-					)}
-					{isPending && (
-						<span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">
-							Pending
-						</span>
-					)}
-				</div>
-				<div className="flex items-center gap-1.5 mt-0.5">
-					<RoleIcon className={`w-3 h-3 ${meta.color}`} />
-					<span className={`text-xs ${meta.color} font-medium`}>
-						{meta.label}
+	return (
+		<div className="rounded-lg border border-border bg-card transition-colors">
+			<div
+				className={`flex items-center gap-3 p-3 ${isPending ? "opacity-70" : ""}`}
+			>
+				{/* Avatar */}
+				{member.user?.avatar ? (
+					<img
+						src={member.user.avatar}
+						alt=""
+						className="w-9 h-9 rounded-full object-cover shrink-0"
+					/>
+				) : (
+					<span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+						{(member.user?.name ?? "?").charAt(0).toUpperCase()}
 					</span>
-					{member.user?.username && (
-						<span className="text-xs text-outline">
-							@{member.user.username}
+				)}
+
+				{/* Name + role */}
+				<div className="flex-1 min-w-0">
+					<div className="flex items-center gap-2">
+						<p className="text-sm font-semibold text-on-surface truncate">
+							{member.user?.displayName ?? member.user?.email ?? "Unknown"}
+						</p>
+						{isSelf && (
+							<span className="text-[10px] font-bold text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded-full">
+								You
+							</span>
+						)}
+						{isPending && (
+							<span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">
+								Pending
+							</span>
+						)}
+						{hasCustomPermissions && (
+							<span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-1.5 py-0.5 rounded-full">
+								Custom
+							</span>
+						)}
+					</div>
+					<div className="flex items-center gap-1.5 mt-0.5">
+						<RoleIcon className={`w-3 h-3 ${meta.color}`} />
+						<span className={`text-xs ${meta.color} font-medium`}>
+							{meta.label}
 						</span>
-					)}
+						{member.user?.username && (
+							<span className="text-xs text-outline">
+								@{member.user.username}
+							</span>
+						)}
+					</div>
 				</div>
+
+				{/* Accept button for own pending invites */}
+				{isPending && isSelf && (
+					<button
+						onClick={handleAcceptInvite}
+						disabled={busy}
+						className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors disabled:opacity-50"
+					>
+						{busy ? (
+							<Loader2 className="w-3 h-3 animate-spin" />
+						) : (
+							<Check className="w-3 h-3" />
+						)}
+						Accept
+					</button>
+				)}
+
+				{/* Permissions button (admin only, not self, not for admins) */}
+				{isAdmin && !isSelf && member.role !== PortfolioRole.ADMIN && (
+					<button
+						onClick={() => setPermissionsOpen((p) => !p)}
+						className={`p-1.5 rounded-md transition-colors ${
+							permissionsOpen
+								? "bg-primary/10 text-primary"
+								: "hover:bg-surface-container-high text-on-surface-variant"
+						}`}
+						title="Manage permissions"
+					>
+						<Lock className="w-4 h-4" />
+					</button>
+				)}
+
+				{/* Menu for admin actions or self-leave */}
+				{(isAdmin || isSelf) && !busy && (
+					<div ref={menuRef} className="relative">
+						<button
+							onClick={() => setMenuOpen((prev) => !prev)}
+							className="p-1.5 rounded-md hover:bg-surface-container-high transition-colors text-on-surface-variant"
+						>
+							<MoreVertical className="w-4 h-4" />
+						</button>
+
+						{menuOpen && (
+							<div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg py-1 w-52 z-50">
+								{/* Role picker (admin only, not for self) */}
+								{isAdmin && !isSelf && (
+									<div>
+										<button
+											onClick={() => setRolePickerOpen((p) => !p)}
+											className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
+										>
+											<span>Change role</span>
+											<ChevronDown
+												className={`w-3.5 h-3.5 transition-transform ${
+													rolePickerOpen ? "rotate-180" : ""
+												}`}
+											/>
+										</button>
+										{rolePickerOpen && (
+											<div className="border-t border-border py-1">
+												{(
+													[
+														PortfolioRole.ADMIN,
+														...ASSIGNABLE_ROLES,
+													] as PortfolioRole[]
+												).map((r) => {
+													const rm = ROLE_META[r];
+													const Icon = rm.icon;
+													return (
+														<button
+															key={r}
+															onClick={() => handleChangeRole(r)}
+															className={`w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-surface-container-high transition-colors ${
+																r === member.role
+																	? "bg-surface-container-high"
+																	: ""
+															}`}
+														>
+															<Icon className={`w-3.5 h-3.5 ${rm.color}`} />
+															<div className="flex-1 min-w-0">
+																<p className="text-sm font-medium text-on-surface">
+																	{rm.label}
+																</p>
+																<p className="text-[10px] text-on-surface-variant">
+																	{rm.description}
+																</p>
+															</div>
+															{r === member.role && (
+																<Check className="w-3.5 h-3.5 text-secondary shrink-0" />
+															)}
+														</button>
+													);
+												})}
+											</div>
+										)}
+									</div>
+								)}
+
+								{/* Remove / Leave */}
+								<button
+									onClick={handleRemove}
+									className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+								>
+									<Trash2 className="w-3.5 h-3.5" />
+									{isSelf ? "Leave portfolio" : "Remove member"}
+								</button>
+							</div>
+						)}
+					</div>
+				)}
 			</div>
 
-			{/* Accept button for own pending invites */}
-			{isPending && isSelf && (
-				<button
-					onClick={handleAcceptInvite}
-					disabled={busy}
-					className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors disabled:opacity-50"
-				>
-					{busy ? (
-						<Loader2 className="w-3 h-3 animate-spin" />
-					) : (
-						<Check className="w-3 h-3" />
-					)}
-					Accept
-				</button>
+			{/* Permissions panel */}
+			{permissionsOpen && isAdmin && !isSelf && (
+				<PermissionsPanel
+					resolved={resolved}
+					roleDefaults={roleDefaults}
+					customOverrides={member.permissions}
+					saving={savingPerms}
+					onToggle={handleTogglePermission}
+					onReset={handleResetPermissions}
+				/>
 			)}
+		</div>
+	);
+}
 
-			{/* Menu for admin actions or self-leave */}
-			{(isAdmin || isSelf) && !busy && (
-				<div ref={menuRef} className="relative">
+/* ── Permission Labels ─────────────────────────────────────────────────────── */
+
+const PERMISSION_LABELS: Record<
+	keyof PortfolioPermissions,
+	{ label: string; description: string }
+> = {
+	canViewProperties: {
+		label: "View properties",
+		description: "See property details, photos, and documents",
+	},
+	canCreateProperties: {
+		label: "Create properties",
+		description: "Add new properties to this portfolio",
+	},
+	canEditProperties: {
+		label: "Edit properties",
+		description: "Modify property details and upload media",
+	},
+	canDeleteProperties: {
+		label: "Delete properties",
+		description: "Permanently remove properties",
+	},
+	canViewDocuments: {
+		label: "View documents",
+		description: "Access property documents and files",
+	},
+	canUploadDocuments: {
+		label: "Upload documents",
+		description: "Add new documents to properties",
+	},
+	canDeleteDocuments: {
+		label: "Delete documents",
+		description: "Remove documents from properties",
+	},
+	canManageBookings: {
+		label: "Manage bookings",
+		description: "View and respond to booking requests",
+	},
+	canTransferProperties: {
+		label: "Transfer properties",
+		description: "Initiate property ownership transfers",
+	},
+	canInviteMembers: {
+		label: "Invite members",
+		description: "Add new members to this portfolio",
+	},
+};
+
+const PERMISSION_KEYS = Object.keys(
+	PERMISSION_LABELS,
+) as (keyof PortfolioPermissions)[];
+
+/* ── Permissions Panel ─────────────────────────────────────────────────────── */
+
+function PermissionsPanel({
+	resolved,
+	roleDefaults,
+	customOverrides,
+	saving,
+	onToggle,
+	onReset,
+}: {
+	resolved: PortfolioPermissions;
+	roleDefaults: PortfolioPermissions;
+	customOverrides?: Partial<PortfolioPermissions> | null;
+	saving: boolean;
+	onToggle: (key: keyof PortfolioPermissions) => void;
+	onReset: () => void;
+}) {
+	const hasOverrides =
+		customOverrides && Object.keys(customOverrides).length > 0;
+
+	return (
+		<div className="border-t border-border px-4 py-3 bg-surface-container/30 rounded-b-lg">
+			<div className="flex items-center justify-between mb-3">
+				<h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+					Permissions
+				</h4>
+				{hasOverrides && (
 					<button
-						onClick={() => setMenuOpen((prev) => !prev)}
-						className="p-1.5 rounded-md hover:bg-surface-container-high transition-colors text-on-surface-variant"
+						onClick={onReset}
+						disabled={saving}
+						className="text-[10px] font-medium text-primary hover:underline disabled:opacity-50"
 					>
-						<MoreVertical className="w-4 h-4" />
+						Reset to role defaults
 					</button>
-
-					{menuOpen && (
-						<div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg py-1 w-52 z-50">
-							{/* Role picker (admin only, not for self) */}
-							{isAdmin && !isSelf && (
-								<div>
-									<button
-										onClick={() => setRolePickerOpen((p) => !p)}
-										className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
+				)}
+			</div>
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+				{PERMISSION_KEYS.map((key) => {
+					const isOn = resolved[key];
+					const isDefault = roleDefaults[key];
+					const isCustom = customOverrides?.[key] !== undefined;
+					return (
+						<button
+							key={key}
+							onClick={() => onToggle(key)}
+							disabled={saving}
+							className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors disabled:opacity-50 ${
+								isOn
+									? "bg-emerald-50 dark:bg-emerald-900/20"
+									: "bg-surface-container/50 hover:bg-surface-container-high/50"
+							}`}
+						>
+							<div
+								className={`w-8 h-4.5 rounded-full relative transition-colors shrink-0 ${
+									isOn ? "bg-emerald-500" : "bg-outline/30"
+								}`}
+							>
+								<div
+									className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${
+										isOn ? "translate-x-[calc(100%-2px)]" : "translate-x-0.5"
+									}`}
+								/>
+							</div>
+							<div className="min-w-0 flex-1">
+								<div className="flex items-center gap-1.5">
+									<span
+										className={`text-xs font-medium ${isOn ? "text-on-surface" : "text-outline"}`}
 									>
-										<span>Change role</span>
-										<ChevronDown
-											className={`w-3.5 h-3.5 transition-transform ${
-												rolePickerOpen ? "rotate-180" : ""
-											}`}
-										/>
-									</button>
-									{rolePickerOpen && (
-										<div className="border-t border-border py-1">
-											{(
-												[
-													PortfolioRole.ADMIN,
-													...ASSIGNABLE_ROLES,
-												] as PortfolioRole[]
-											).map((r) => {
-												const rm = ROLE_META[r];
-												const Icon = rm.icon;
-												return (
-													<button
-														key={r}
-														onClick={() => handleChangeRole(r)}
-														className={`w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-surface-container-high transition-colors ${
-															r === member.role
-																? "bg-surface-container-high"
-																: ""
-														}`}
-													>
-														<Icon className={`w-3.5 h-3.5 ${rm.color}`} />
-														<div className="flex-1 min-w-0">
-															<p className="text-sm font-medium text-on-surface">
-																{rm.label}
-															</p>
-															<p className="text-[10px] text-on-surface-variant">
-																{rm.description}
-															</p>
-														</div>
-														{r === member.role && (
-															<Check className="w-3.5 h-3.5 text-secondary shrink-0" />
-														)}
-													</button>
-												);
-											})}
-										</div>
+										{PERMISSION_LABELS[key].label}
+									</span>
+									{isCustom && (
+										<span className="text-[9px] font-bold text-violet-500 bg-violet-100 dark:bg-violet-900/30 px-1 py-px rounded">
+											Custom
+										</span>
 									)}
 								</div>
-							)}
-
-							{/* Remove / Leave */}
-							<button
-								onClick={handleRemove}
-								className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-							>
-								<Trash2 className="w-3.5 h-3.5" />
-								{isSelf ? "Leave portfolio" : "Remove member"}
-							</button>
-						</div>
-					)}
-				</div>
-			)}
+								<p className="text-[10px] text-outline leading-tight">
+									{PERMISSION_LABELS[key].description}
+								</p>
+							</div>
+						</button>
+					);
+				})}
+			</div>
 		</div>
 	);
 }

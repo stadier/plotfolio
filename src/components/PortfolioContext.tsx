@@ -1,6 +1,11 @@
 "use client";
 
-import { Portfolio, PortfolioRole } from "@/types/property";
+import {
+	DEFAULT_ROLE_PERMISSIONS,
+	Portfolio,
+	PortfolioPermissions,
+	PortfolioRole,
+} from "@/types/property";
 import {
 	createContext,
 	ReactNode,
@@ -13,6 +18,7 @@ import { useAuth } from "./AuthContext";
 
 export type PortfolioWithRole = Portfolio & {
 	role: PortfolioRole;
+	permissions?: PortfolioPermissions;
 	memberCount?: number;
 };
 
@@ -26,6 +32,7 @@ export interface PendingInvite {
 interface PortfolioContextValue {
 	portfolios: PortfolioWithRole[];
 	activePortfolio: PortfolioWithRole | null;
+	activePermissions: PortfolioPermissions;
 	setActivePortfolioId: (id: string) => void;
 	pendingInvites: PendingInvite[];
 	loading: boolean;
@@ -99,12 +106,16 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 	);
 
 	const activePortfolio = portfolios.find((p) => p.id === activeId) ?? null;
+	const activePermissions: PortfolioPermissions =
+		activePortfolio?.permissions ??
+		DEFAULT_ROLE_PERMISSIONS[activePortfolio?.role ?? PortfolioRole.ADMIN];
 
 	return (
 		<PortfolioContext.Provider
 			value={{
 				portfolios,
 				activePortfolio,
+				activePermissions,
 				setActivePortfolioId,
 				pendingInvites,
 				loading,

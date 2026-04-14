@@ -256,15 +256,19 @@ export default function LoginPage() {
 								htmlFor="email"
 								className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-on-surface-variant mb-1.5"
 							>
-								Email
+								{mode === "login" ? "Email or Username" : "Email"}
 							</label>
 							<input
 								id="email"
-								type="email"
+								type={mode === "login" ? "text" : "email"}
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
-								placeholder="you@example.com"
-								autoComplete="email"
+								placeholder={
+									mode === "login"
+										? "you@example.com or username"
+										: "you@example.com"
+								}
+								autoComplete={mode === "login" ? "username" : "email"}
 								required
 								className="w-full px-3 py-2.5 rounded-lg border border-border bg-slate-50 dark:bg-surface-container-low text-sm text-on-surface placeholder:text-slate-400 dark:placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
 							/>

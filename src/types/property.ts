@@ -227,12 +227,81 @@ export interface Portfolio {
 	updatedAt?: string;
 }
 
+export interface PortfolioPermissions {
+	canViewProperties: boolean;
+	canCreateProperties: boolean;
+	canEditProperties: boolean;
+	canDeleteProperties: boolean;
+	canViewDocuments: boolean;
+	canUploadDocuments: boolean;
+	canDeleteDocuments: boolean;
+	canManageBookings: boolean;
+	canTransferProperties: boolean;
+	canInviteMembers: boolean;
+}
+
+/** Default permissions for each role */
+export const DEFAULT_ROLE_PERMISSIONS: Record<
+	PortfolioRole,
+	PortfolioPermissions
+> = {
+	[PortfolioRole.ADMIN]: {
+		canViewProperties: true,
+		canCreateProperties: true,
+		canEditProperties: true,
+		canDeleteProperties: true,
+		canViewDocuments: true,
+		canUploadDocuments: true,
+		canDeleteDocuments: true,
+		canManageBookings: true,
+		canTransferProperties: true,
+		canInviteMembers: true,
+	},
+	[PortfolioRole.MANAGER]: {
+		canViewProperties: true,
+		canCreateProperties: true,
+		canEditProperties: true,
+		canDeleteProperties: false,
+		canViewDocuments: true,
+		canUploadDocuments: true,
+		canDeleteDocuments: false,
+		canManageBookings: true,
+		canTransferProperties: false,
+		canInviteMembers: false,
+	},
+	[PortfolioRole.AGENT]: {
+		canViewProperties: true,
+		canCreateProperties: false,
+		canEditProperties: false,
+		canDeleteProperties: false,
+		canViewDocuments: true,
+		canUploadDocuments: false,
+		canDeleteDocuments: false,
+		canManageBookings: true,
+		canTransferProperties: false,
+		canInviteMembers: false,
+	},
+	[PortfolioRole.VIEWER]: {
+		canViewProperties: true,
+		canCreateProperties: false,
+		canEditProperties: false,
+		canDeleteProperties: false,
+		canViewDocuments: true,
+		canUploadDocuments: false,
+		canDeleteDocuments: false,
+		canManageBookings: false,
+		canTransferProperties: false,
+		canInviteMembers: false,
+	},
+};
+
 export interface PortfolioMember {
 	id: string;
 	portfolioId: string;
 	userId: string;
 	role: PortfolioRole;
 	status: PortfolioMemberStatus;
+	permissions?: Partial<PortfolioPermissions>; // overrides for the role defaults
 	invitedBy?: string; // userId who invited
 	joinedAt?: string;
 	createdAt?: string;
@@ -348,6 +417,11 @@ export interface Follow {
 export enum BookingType {
 	CONSULTATION = "consultation",
 	INSPECTION = "inspection",
+	INQUIRY = "inquiry",
+	SITE_VISIT = "site_visit",
+	VALUATION = "valuation",
+	NEGOTIATION = "negotiation",
+	OTHER = "other",
 }
 
 export enum BookingStatus {
@@ -355,6 +429,7 @@ export enum BookingStatus {
 	CONFIRMED = "confirmed",
 	CANCELLED = "cancelled",
 	COMPLETED = "completed",
+	RESCHEDULED = "rescheduled",
 }
 
 export interface Booking {
@@ -369,6 +444,68 @@ export interface Booking {
 	message?: string;
 	status: BookingStatus;
 	propertyId?: string; // optional — specific property for inspection
+	ownerMessage?: string; // owner's response message
+	proposedDate?: string; // owner-proposed reschedule date (YYYY-MM-DD)
+	proposedTime?: string; // owner-proposed reschedule time (HH:mm)
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+/* ─── Ownership Transfer ──────────────────────────────────────── */
+
+export enum TransferStatus {
+	PENDING = "pending", // Transfer initiated, awaiting recipient confirmation
+	ACCEPTED = "accepted", // Recipient accepted the transfer
+	REJECTED = "rejected", // Recipient rejected the transfer
+	CANCELLED = "cancelled", // Sender cancelled before acceptance
+	COMPLETED = "completed", // Transfer finalized — ownership changed
+}
+
+export interface OwnershipTransfer {
+	id: string;
+	propertyId: string;
+	propertyName: string;
+	fromUserId: string; // current owner's user ID
+	fromName: string;
+	fromEmail: string;
+	fromAvatar?: string;
+	toUserId?: string; // recipient's user ID (null for external transfers)
+	toName: string;
+	toEmail: string;
+	toAvatar?: string;
+	status: TransferStatus;
+	message?: string; // optional note from sender
+	responseMessage?: string; // optional note from recipient
+	transferDate?: string; // date the transfer is effective
+	price?: number; // sale price (0 for gift/inheritance)
+	documentIds?: string[]; // associated document IDs (deed of transfer, etc.)
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+/* ─── Ownership History ───────────────────────────────────────── */
+
+export interface OwnershipRecord {
+	id: string;
+	propertyId: string;
+	ownerId?: string; // user ID if on-platform; absent for external entities
+	ownerName: string;
+	ownerEmail?: string;
+	ownerAvatar?: string;
+	ownerType: "individual" | "company" | "trust" | "government" | "external";
+	acquiredDate?: string; // ISO date when this owner acquired the property
+	transferredDate?: string; // ISO date when they transferred it away
+	acquisitionMethod:
+		| "purchase"
+		| "inheritance"
+		| "gift"
+		| "government_grant"
+		| "development"
+		| "transfer"
+		| "other";
+	price?: number; // amount paid (0 for non-sale acquisitions)
+	notes?: string; // freeform context
+	transferId?: string; // linked OwnershipTransfer ID if via the platform
 	createdAt?: string;
 	updatedAt?: string;
 }

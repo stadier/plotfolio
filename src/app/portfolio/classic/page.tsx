@@ -11,6 +11,7 @@ import TrackingCard from "@/components/dashboard/TrackingCard";
 import UpcomingDatesWidget from "@/components/dashboard/UpcomingDatesWidget";
 import ValueTrendWidget from "@/components/dashboard/ValueTrendWidget";
 import AppShell from "@/components/layout/AppShell";
+import { usePortfolio } from "@/components/PortfolioContext";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties } from "@/hooks/usePropertyQueries";
@@ -25,9 +26,12 @@ import { useState } from "react";
 export default function DashboardPage() {
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const { user, loading: authLoading } = useRequireAuth();
+	const { activePortfolio } = usePortfolio();
 	const animate = useAnimateOnce("dashboard");
 	const { data: properties = [], isLoading: loading } = useMyProperties(
 		user?.id,
+		activePortfolio?.id,
+		activePortfolio?.createdBy === user?.id,
 	);
 
 	// Show loading while checking auth
