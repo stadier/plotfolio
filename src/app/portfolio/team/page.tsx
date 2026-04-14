@@ -120,10 +120,12 @@ export default function TeamPage() {
 	}
 
 	const activeMembers = members.filter(
-		(m) => m.status === PortfolioMemberStatus.ACTIVE,
+		(m) => m.status === PortfolioMemberStatus.ACTIVE && !m.type,
 	);
 	const pendingMembers = members.filter(
-		(m) => m.status === PortfolioMemberStatus.PENDING,
+		(m) =>
+			m.status === PortfolioMemberStatus.PENDING ||
+			m.status === ("pending" as PortfolioMemberStatus),
 	);
 
 	return (
@@ -187,17 +189,28 @@ export default function TeamPage() {
 							Pending Invites
 						</h3>
 						<div className="space-y-2">
-							{pendingMembers.map((m) => (
-								<MemberRow
-									key={m.id}
-									member={m}
-									isAdmin={isAdmin}
-									isSelf={m.userId === user.id}
-									portfolioId={activePortfolio.id}
-									onUpdated={fetchMembers}
-									onError={setError}
-								/>
-							))}
+							{pendingMembers.map((m) =>
+								m.type === "email_invitation" ? (
+									<EmailInviteRow
+										key={m.id}
+										invitation={m}
+										isAdmin={isAdmin}
+										portfolioId={activePortfolio.id}
+										onUpdated={fetchMembers}
+										onError={setError}
+									/>
+								) : (
+									<MemberRow
+										key={m.id}
+										member={m}
+										isAdmin={isAdmin}
+										isSelf={m.userId === user.id}
+										portfolioId={activePortfolio.id}
+										onUpdated={fetchMembers}
+										onError={setError}
+									/>
+								),
+							)}
 						</div>
 					</div>
 				)}
@@ -278,13 +291,16 @@ function InviteSection({
 		if (error) {
 			setFeedback({ type: "error", message: error });
 		} else {
+			const isEmailInvite = member?.type === "email_invitation";
 			const name =
 				resolvedUser?.displayName ||
 				member?.user?.displayName ||
 				identifier.trim();
 			setFeedback({
 				type: "success",
-				message: `Invite sent to ${name}`,
+				message: isEmailInvite
+					? `Email invitation sent to ${name}`
+					: `Invite sent to ${name}`,
 			});
 			setIdentifier("");
 			setResolvedUser(null);
@@ -455,6 +471,84 @@ function IncomingInvites({
 						</div>
 					);
 				})}
+			</div>
+		</div>
+	);
+}
+
+/* ── Email Invite Row (for non-users) ──────────────────────────────────────── */
+
+function EmailInviteRow({
+	invitation,
+	isAdmin,
+	portfolioId,
+	onUpdated,
+	onError,
+}: {
+	invitation: PortfolioMemberWithUser;
+	isAdmin: boolean;
+	portfolioId: string;
+	onUpdated: () => void;
+	onError: (msg: string) => void;
+}) {
+	const [busy, setBusy] = useState(false);
+	const meta = ROLE_META[invitation.role as PortfolioRole] ?? ROLE_META.viewer;
+	const RoleIcon = meta.icon;
+
+	async function handleCancel() {
+		if (!confirm(`Cancel invitation to ${invitation.email}?`)) return;
+		setBusy(true);
+		const { error } = await PortfolioAPI.cancelEmailInvitation(
+			portfolioId,
+			invitation.id,
+		);
+		if (error) onError(error);
+		else onUpdated();
+		setBusy(false);
+	}
+
+	return (
+		<div className="rounded-lg border border-border bg-card transition-colors">
+			<div className="flex items-center gap-3 p-3 opacity-70">
+				{/* Mail icon avatar */}
+				<span className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+					<Mail className="w-4 h-4" />
+				</span>
+
+				{/* Email + role */}
+				<div className="flex-1 min-w-0">
+					<div className="flex items-center gap-2">
+						<p className="text-sm font-semibold text-on-surface truncate">
+							{invitation.email}
+						</p>
+						<span className="text-badge font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">
+							Email Sent
+						</span>
+					</div>
+					<div className="flex items-center gap-1.5 mt-0.5">
+						<RoleIcon className={`w-3 h-3 ${meta.color}`} />
+						<span className={`text-xs ${meta.color} font-medium`}>
+							{meta.label}
+						</span>
+						<span className="text-xs text-outline">· No account yet</span>
+					</div>
+				</div>
+
+				{/* Cancel button */}
+				{isAdmin && (
+					<button
+						onClick={handleCancel}
+						disabled={busy}
+						className="p-1.5 rounded-md hover:bg-surface-container-high transition-colors text-on-surface-variant disabled:opacity-50"
+						title="Cancel invitation"
+					>
+						{busy ? (
+							<Loader2 className="w-4 h-4 animate-spin" />
+						) : (
+							<Trash2 className="w-4 h-4" />
+						)}
+					</button>
+				)}
 			</div>
 		</div>
 	);

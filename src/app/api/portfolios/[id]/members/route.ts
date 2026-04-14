@@ -1,7 +1,10 @@
+import { sendInvitationEmail } from "@/lib/email";
 import connectDB from "@/lib/mongoose";
+import { InvitationModel } from "@/models/Invitation";
 import {
 	checkPortfolioAccess,
 	PortfolioMemberModel,
+	PortfolioModel,
 	resolvePermissions,
 } from "@/models/Portfolio";
 import { UserModel } from "@/models/User";
@@ -71,7 +74,24 @@ export async function GET(
 			};
 		});
 
-		return NextResponse.json(members);
+		// Also fetch pending email invitations (non-users)
+		const emailInvitations = await InvitationModel.find({
+			portfolioId,
+			status: "pending",
+			expiresAt: { $gt: new Date() },
+		}).lean();
+
+		const emailInvites = emailInvitations.map((inv: any) => {
+			const { _id, __v, ...clean } = inv;
+			return {
+				...clean,
+				type: "email_invitation",
+				status: "pending",
+				user: null,
+			};
+		});
+
+		return NextResponse.json([...members, ...emailInvites]);
 	} catch (error) {
 		console.error("Error fetching members:", error);
 		return NextResponse.json(
@@ -133,13 +153,78 @@ export async function POST(
 			: await UserModel.findOne({ username: lookup.toLowerCase() }).lean();
 
 		if (!invitee) {
+			// If it's a username that doesn't exist, we can't send an email
+			if (!isEmail) {
+				return NextResponse.json(
+					{ error: "No user found with that username." },
+					{ status: 404 },
+				);
+			}
+
+			// Email user doesn't have an account — create an email invitation
+			const emailLower = lookup.toLowerCase();
+
+			// Check for existing pending email invitation
+			const existingInvite = await InvitationModel.findOne({
+				email: emailLower,
+				portfolioId,
+				status: "pending",
+			}).lean();
+
+			if (existingInvite) {
+				return NextResponse.json(
+					{ error: "An invitation has already been sent to this email" },
+					{ status: 409 },
+				);
+			}
+
+			const inviteToken = crypto.randomBytes(32).toString("hex");
+			const inviteId = crypto.randomUUID();
+			const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+			await InvitationModel.create({
+				id: inviteId,
+				email: emailLower,
+				portfolioId,
+				role: assignedRole,
+				token: inviteToken,
+				invitedBy: userId,
+				status: "pending",
+				expiresAt,
+			});
+
+			// Get inviter and portfolio info for the email
+			const [inviter, portfolio] = await Promise.all([
+				UserModel.findOne({ id: userId }).lean(),
+				PortfolioModel.findOne({ id: portfolioId }).lean(),
+			]);
+
+			const ROLE_LABELS: Record<string, string> = {
+				[PortfolioRole.MANAGER]: "Manager",
+				[PortfolioRole.AGENT]: "Agent",
+				[PortfolioRole.VIEWER]: "Viewer",
+			};
+
+			await sendInvitationEmail({
+				to: emailLower,
+				inviterName: (inviter as any)?.displayName || "A team member",
+				portfolioName: (portfolio as any)?.name || "a portfolio",
+				role: ROLE_LABELS[assignedRole] || assignedRole,
+				token: inviteToken,
+				isNewUser: true,
+			});
+
 			return NextResponse.json(
 				{
-					error: isEmail
-						? "No user found with that email. They need to create an account first."
-						: "No user found with that username.",
+					id: inviteId,
+					portfolioId,
+					email: emailLower,
+					role: assignedRole,
+					status: "pending",
+					type: "email_invitation",
+					invitedBy: userId,
 				},
-				{ status: 404 },
+				{ status: 201 },
 			);
 		}
 
@@ -175,6 +260,28 @@ export async function POST(
 			status: PortfolioMemberStatus.PENDING,
 			invitedBy: userId,
 		});
+
+		// Send notification email to existing user
+		const [inviter, portfolio] = await Promise.all([
+			UserModel.findOne({ id: userId }).lean(),
+			PortfolioModel.findOne({ id: portfolioId }).lean(),
+		]);
+
+		const ROLE_LABELS: Record<string, string> = {
+			[PortfolioRole.MANAGER]: "Manager",
+			[PortfolioRole.AGENT]: "Agent",
+			[PortfolioRole.VIEWER]: "Viewer",
+		};
+
+		// Fire and forget — don't block response on email delivery
+		sendInvitationEmail({
+			to: (invitee as any).email,
+			inviterName: (inviter as any)?.displayName || "A team member",
+			portfolioName: (portfolio as any)?.name || "a portfolio",
+			role: ROLE_LABELS[assignedRole] || assignedRole,
+			token: memberId, // existing users use their membership ID
+			isNewUser: false,
+		}).catch((err) => console.error("[invite] Email send failed:", err));
 
 		const obj = membership.toObject();
 		const { _id, __v, ...clean } = obj as any;

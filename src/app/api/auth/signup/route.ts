@@ -1,6 +1,11 @@
 import connectDB from "@/lib/mongoose";
-import { createPersonalPortfolio } from "@/models/Portfolio";
+import { InvitationModel } from "@/models/Invitation";
+import {
+	createPersonalPortfolio,
+	PortfolioMemberModel,
+} from "@/models/Portfolio";
 import { generateSessionToken, hashPassword, UserModel } from "@/models/User";
+import { PortfolioMemberStatus } from "@/types/property";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -91,6 +96,35 @@ export async function POST(request: NextRequest) {
 
 		// Create personal portfolio for new user
 		await createPersonalPortfolio(userId, user.displayName);
+
+		// Auto-accept any pending email invitations for this user
+		const pendingInvitations = await InvitationModel.find({
+			email: email.toLowerCase(),
+			status: "pending",
+			expiresAt: { $gt: new Date() },
+		}).lean();
+
+		for (const inv of pendingInvitations) {
+			const i = inv as any;
+			const existingMember = await PortfolioMemberModel.findOne({
+				portfolioId: i.portfolioId,
+				userId,
+			}).lean();
+
+			if (!existingMember) {
+				await PortfolioMemberModel.create({
+					id: crypto.randomUUID(),
+					portfolioId: i.portfolioId,
+					userId,
+					role: i.role,
+					status: PortfolioMemberStatus.ACTIVE,
+					invitedBy: i.invitedBy,
+					joinedAt: new Date().toISOString(),
+				});
+			}
+
+			await InvitationModel.updateOne({ id: i.id }, { status: "accepted" });
+		}
 
 		// Set session cookie
 		const token = generateSessionToken();

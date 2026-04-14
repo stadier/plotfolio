@@ -688,6 +688,8 @@ export interface PortfolioWithRole extends Portfolio {
 
 export interface PortfolioMemberWithUser extends PortfolioMember {
 	resolvedPermissions?: PortfolioPermissions;
+	type?: "email_invitation";
+	email?: string;
 	user: {
 		id: string;
 		name: string;
@@ -773,6 +775,25 @@ export class PortfolioAPI {
 		}
 	}
 
+	static async uploadAvatar(
+		id: string,
+		file: File,
+	): Promise<{ avatar?: string; error?: string }> {
+		try {
+			const form = new FormData();
+			form.append("file", file);
+			const res = await fetch(`${API_BASE_URL}/portfolios/${id}/avatar`, {
+				method: "PUT",
+				body: form,
+			});
+			const data = await res.json();
+			if (!res.ok) return { error: data.error || "Upload failed" };
+			return { avatar: data.avatar };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
 	// ── Members ──
 
 	static async getMembers(
@@ -850,6 +871,25 @@ export class PortfolioAPI {
 			if (!res.ok) {
 				const result = await res.json().catch(() => ({}));
 				return { error: result.error || "Failed to remove" };
+			}
+			return {};
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async cancelEmailInvitation(
+		portfolioId: string,
+		invitationId: string,
+	): Promise<{ error?: string }> {
+		try {
+			const res = await fetch(
+				`${API_BASE_URL}/portfolios/${portfolioId}/email-invitations/${invitationId}`,
+				{ method: "DELETE" },
+			);
+			if (!res.ok) {
+				const result = await res.json().catch(() => ({}));
+				return { error: result.error || "Failed to cancel invitation" };
 			}
 			return {};
 		} catch {

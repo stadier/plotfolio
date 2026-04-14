@@ -165,7 +165,7 @@ export default function PropertyCard({
 	return (
 		<div
 			className={cn(
-				"bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer border border-border",
+				"bg-card rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer border border-border",
 				isSelected && "ring-2 ring-blue-500 border-blue-500",
 				className,
 			)}
@@ -173,7 +173,7 @@ export default function PropertyCard({
 		>
 			{/* Property Media Slideshow or Placeholder */}
 			<div
-				className="h-48 bg-gray-200 dark:bg-surface-container rounded-t-lg relative overflow-hidden group"
+				className="h-48 bg-gray-200 dark:bg-surface-container rounded-t-xl relative overflow-hidden group"
 				onMouseEnter={() => setPaused(true)}
 				onMouseLeave={() => setPaused(false)}
 			>

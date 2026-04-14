@@ -88,13 +88,13 @@ export async function PUT(
 
 		if (body.name && typeof body.name === "string") {
 			updates.name = body.name.trim();
-			updates.slug = await generateUniqueSlug(body.name.trim());
+			updates.slug = await generateUniqueSlug(body.name.trim(), id);
 		}
 		if (body.description !== undefined) {
 			updates.description = body.description?.trim() || undefined;
 		}
 		if (body.avatar !== undefined) {
-			updates.avatar = body.avatar || undefined;
+			updates.avatar = body.avatar ?? undefined;
 		}
 
 		const updated = await PortfolioModel.findOneAndUpdate(

@@ -286,11 +286,7 @@ export default function Sidebar({
 					</button>
 
 					{switcherOpen && (
-						<div
-							className={`absolute z-50 top-full mt-1 bg-card border border-border rounded-xl shadow-2xl overflow-hidden ${
-								collapsed ? "left-full ml-2 top-0 mt-0 w-56" : "left-0 w-56"
-							}`}
-						>
+						<div className="absolute z-50 left-full ml-2 top-0 w-56 bg-card border border-border rounded-lg shadow-2xl overflow-hidden">
 							{/* Search */}
 							<div className="flex items-center gap-2 px-3 py-2 border-b border-border">
 								<Search className="w-3.5 h-3.5 text-outline shrink-0" />
@@ -369,19 +365,15 @@ export default function Sidebar({
 							</div>
 
 							{/* All portfolios */}
-							<div className="flex items-center justify-between px-3.5 py-1.5">
+							<Link
+								href="/portfolio/all"
+								onClick={() => setSwitcherOpen(false)}
+								className="flex items-center justify-between px-3.5 py-1.5 hover:bg-surface-container transition-colors"
+							>
 								<span className="text-[13px] font-medium text-on-surface">
 									All portfolios
 								</span>
-								<button
-									onClick={(e) => {
-										e.stopPropagation();
-									}}
-									className="p-0.5 rounded text-on-surface-variant hover:text-on-surface transition-colors"
-								>
-									<MoreHorizontal className="w-4 h-4" />
-								</button>
-							</div>
+							</Link>
 
 							{/* New portfolio */}
 							<div className="px-2.5 pb-2.5 pt-1">

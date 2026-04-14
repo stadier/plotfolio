@@ -138,7 +138,7 @@ export default function NewPortfolioPage() {
 						<button
 							type="submit"
 							disabled={saving || !name.trim()}
-							className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg shadow active:scale-95 transition-all flex items-center gap-2 btn-press disabled:opacity-50 disabled:pointer-events-none"
+							className="bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest px-6 py-2.5 rounded-md shadow-lg active:scale-95 transition-all flex items-center gap-2 btn-press disabled:opacity-50 disabled:pointer-events-none"
 						>
 							{saving && <Loader2 className="w-4 h-4 animate-spin" />}
 							Create Portfolio

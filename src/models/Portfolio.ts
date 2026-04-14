@@ -80,8 +80,12 @@ export const PortfolioMemberModel =
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Generate a URL-safe slug from a name, appending a suffix if needed */
-export async function generateUniqueSlug(name: string): Promise<string> {
+/** Generate a URL-safe slug from a name, appending a suffix if needed.
+ *  Pass excludeId to skip the current portfolio during uniqueness check (for updates). */
+export async function generateUniqueSlug(
+	name: string,
+	excludeId?: string,
+): Promise<string> {
 	const base = name
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
@@ -89,8 +93,11 @@ export async function generateUniqueSlug(name: string): Promise<string> {
 		.slice(0, 60);
 	let slug = base || "portfolio";
 	let suffix = 1;
-	while (await PortfolioModel.findOne({ slug }).lean()) {
+	const filter: Record<string, unknown> = { slug };
+	if (excludeId) filter.id = { $ne: excludeId };
+	while (await PortfolioModel.findOne(filter).lean()) {
 		slug = `${base}-${suffix++}`;
+		filter.slug = slug;
 	}
 	return slug;
 }

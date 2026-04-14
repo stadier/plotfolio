@@ -800,12 +800,12 @@ export default function PropertiesPage() {
 						)}
 
 						{/* View toggle */}
-						<div className="ml-auto flex items-center rounded-lg border border-border bg-card p-0.5">
+						<div className="ml-auto flex items-center rounded-md border border-border bg-card p-0.5">
 							<button
 								onClick={() => setViewMode("card")}
-								className={`p-1.5 rounded-md transition-colors ${
+								className={`p-1.5 rounded-sm transition-colors ${
 									viewMode === "card"
-										? "bg-primary text-white"
+										? "bg-blue-600 text-white"
 										: "text-outline hover:text-on-surface-variant"
 								}`}
 								title="Card view"
@@ -814,9 +814,9 @@ export default function PropertiesPage() {
 							</button>
 							<button
 								onClick={() => setViewMode("table")}
-								className={`p-1.5 rounded-md transition-colors ${
+								className={`p-1.5 rounded-sm transition-colors ${
 									viewMode === "table"
-										? "bg-primary text-white"
+										? "bg-blue-600 text-white"
 										: "text-outline hover:text-on-surface-variant"
 								}`}
 								title="Table view"
