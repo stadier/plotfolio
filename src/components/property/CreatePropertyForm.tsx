@@ -82,7 +82,10 @@ const STATUS_LABELS: Record<PropertyStatus, string> = {
 	[PropertyStatus.OWNED]: "Owned",
 	[PropertyStatus.UNDER_CONTRACT]: "Under Contract",
 	[PropertyStatus.FOR_SALE]: "For Sale",
+	[PropertyStatus.FOR_RENT]: "For Rent",
+	[PropertyStatus.FOR_LEASE]: "For Lease",
 	[PropertyStatus.RENTED]: "Rented",
+	[PropertyStatus.LEASED]: "Leased",
 	[PropertyStatus.DEVELOPMENT]: "Development",
 };
 
