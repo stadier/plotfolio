@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 				.map((w: string) => w[0].toUpperCase() + w.slice(1))
 				.join(" ");
 
-			user = await UserModel.create({
+			const created = await UserModel.create({
 				id: userId,
 				name: name || email.split("@")[0],
 				username,
@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
 				followerCount: 0,
 				allowBookings: false,
 			});
+			user = created.toObject();
 		}
 
 		// Ensure personal portfolio exists
