@@ -10,9 +10,11 @@ import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { PropertyAPI } from "@/lib/api";
 import { AIDocument, AIDocumentType } from "@/types/document";
 import { Property } from "@/types/property";
+import type { LetterheadConfig } from "@/types/seal";
 import {
 	ArrowUpDown,
 	Bold,
+	Bookmark,
 	Calendar,
 	ChevronDown,
 	ChevronLeft,
@@ -524,6 +526,16 @@ function CreateDocumentModal({
 	>([]);
 	const [saving, setSaving] = useState(false);
 
+	// Fetch saved letterhead from settings
+	const [savedLetterhead, setSavedLetterhead] =
+		useState<LetterheadConfig | null>(null);
+	useEffect(() => {
+		fetch("/api/settings/letterhead")
+			.then((r) => r.json())
+			.then((d) => setSavedLetterhead(d.letterhead ?? null))
+			.catch(() => {});
+	}, []);
+
 	function execCommand(cmd: string, value?: string) {
 		document.execCommand(cmd, false, value);
 		editorRef.current?.focus();
@@ -682,13 +694,52 @@ ${signatureHtml}
 									<input
 										type="checkbox"
 										checked={showLetterhead}
-										onChange={(e) => setShowLetterhead(e.target.checked)}
+										onChange={(e) => {
+											const on = e.target.checked;
+											setShowLetterhead(on);
+											if (
+												on &&
+												savedLetterhead?.companyName &&
+												!letterhead.companyName
+											) {
+												setLetterhead({
+													companyName: savedLetterhead.companyName,
+													tagline: savedLetterhead.tagline ?? "",
+													address: savedLetterhead.address ?? "",
+													phone: savedLetterhead.phone ?? "",
+													email: savedLetterhead.email ?? "",
+													accentColor: savedLetterhead.accentColor || "#1e3a5f",
+												});
+											}
+										}}
 										className="rounded border-border text-primary focus:ring-primary/20"
 									/>
 									<span className="text-xs font-medium text-on-surface-variant">
 										Include Letterhead
 									</span>
 								</label>
+
+								{/* Use saved letterhead */}
+								{showLetterhead && savedLetterhead?.companyName && (
+									<button
+										type="button"
+										onClick={() => {
+											setLetterhead({
+												companyName: savedLetterhead.companyName,
+												tagline: savedLetterhead.tagline ?? "",
+												address: savedLetterhead.address ?? "",
+												phone: savedLetterhead.phone ?? "",
+												email: savedLetterhead.email ?? "",
+												accentColor: savedLetterhead.accentColor || "#1e3a5f",
+											});
+										}}
+										className="flex items-center gap-1 text-badge text-primary hover:underline cursor-pointer mt-1"
+									>
+										<Bookmark className="w-3 h-3" />
+										Use saved letterhead
+									</button>
+								)}
+
 								{showLetterhead && (
 									<div className="mt-3 space-y-2">
 										<input

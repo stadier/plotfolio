@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/components/AuthContext";
+import DocumentTitle from "@/components/DocumentTitle";
 import { FavouritesProvider } from "@/components/FavouritesContext";
 import { PortfolioProvider } from "@/components/PortfolioContext";
 import QueryProvider from "@/components/QueryProvider";
@@ -21,9 +22,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-	title: "Plotfolio — Property Portfolio Management",
+	title: "Plotfolio",
 	description:
-		"Manage your Nigerian land plots with interactive maps, survey document integration, and portfolio tracking.",
+		"Manage your property portfolio with interactive maps, survey document integration, and portfolio tracking.",
 };
 
 export default function RootLayout({
@@ -41,6 +42,7 @@ export default function RootLayout({
 					<QueryProvider>
 						<AuthProvider>
 							<PortfolioProvider>
+								<DocumentTitle />
 								<FavouritesProvider>
 									<NavigationTracker />
 									{children}

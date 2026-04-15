@@ -528,6 +528,10 @@ export default function Sidebar({
 						<MoreHorizontal className="w-[18px] h-[18px]" />
 					</button>
 				</div>
+
+				<div className="text-center text-[10px] text-outline/60 font-mono tracking-wide select-none">
+					v0.8.0
+				</div>
 			</div>
 		</aside>
 	);

@@ -466,24 +466,10 @@ export default function Home() {
 						className="absolute top-3 right-3 z-1000"
 					/>
 
-					{/* Hovered State Indicator */}
-					{hoveredState && (
-						<div className="absolute top-16 right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-3 z-1000">
-							<div className="flex items-center space-x-2">
-								<div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-								<span className="text-sm font-medium text-on-surface">
-									{hoveredState}
-								</span>
-							</div>
-						</div>
-					)}
-
 					{/* Climate Risk Overlay Indicator */}
 					{climateRisk !== "none" && (
 						<div
-							className={`absolute ${
-								hoveredState ? "top-28" : "top-16"
-							} right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000`}
+							className="absolute top-16 right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000"
 						>
 							<div className="flex items-center space-x-3">
 								<div className="flex items-center space-x-2">

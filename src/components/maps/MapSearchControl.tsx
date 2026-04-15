@@ -101,10 +101,8 @@ export default function MapSearchControl({
 			{/* Search control */}
 			<div className="relative">
 				<div
-					className={`bg-glass backdrop-blur-sm shadow-md transition-all duration-300 ease-in-out overflow-hidden ${
-						isExpanded
-							? "w-64 sm:w-72 rounded-xl"
-							: "w-9 h-9 rounded-full cursor-pointer"
+					className={`bg-glass backdrop-blur-sm shadow-md transition-all duration-300 ease-in-out overflow-hidden rounded-full ${
+						isExpanded ? "w-64 sm:w-82" : "w-9 h-9 cursor-pointer"
 					}`}
 				>
 					{isExpanded ? (
