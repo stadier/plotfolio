@@ -80,6 +80,43 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 - **Detail panels and document upload/preview components must have a max-width and stay left-aligned/top-aligned**; on reduced space they should wrap/flex rather than stretch to fill extra width
 - **This max-width + top-left alignment rule applies to every UI component in the app**; components should only grow up to their max-width and then wrap/reflow rather than stretching to consume all horizontal space
 
+### Primary Action Button Standard
+
+All primary action buttons (Add Property, Upload, Create, Save, etc.) **must** use the `<PrimaryButton>` component from `@/components/ui/PrimaryButton`.
+
+```tsx
+import PrimaryButton from "@/components/ui/PrimaryButton";
+
+// As a button
+<PrimaryButton onClick={handleSave} disabled={saving}>
+  <Save className="w-4 h-4" />
+  Save
+</PrimaryButton>
+
+// As a link
+<PrimaryButton href="/portfolio/new">
+  <Plus className="w-4 h-4" />
+  New Portfolio
+</PrimaryButton>
+
+// With size overrides (merged via cn/twMerge)
+<PrimaryButton className="px-6 py-2 gap-1.5" />
+```
+
+The component encapsulates the standard classes:
+
+```
+bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest py-2.5 px-4 rounded-md shadow-lg active:scale-95 transition-all flex items-center gap-2 btn-press disabled:opacity-50 disabled:cursor-not-allowed
+```
+
+**Rules:**
+
+- **Always use `<PrimaryButton>`** — never write the class string inline
+- **Never use `bg-primary rounded-lg`** for action buttons
+- **Never use `text-sm font-semibold`** on action buttons
+- Pass `className` for overrides (e.g. `px-6`, `justify-center`) — they merge via `twMerge`
+- This applies everywhere: toolbars, modals, empty states, form footers, drawers, sidebar CTAs
+
 ### Dark Mode — Semantic Token Rules
 
 The project uses **CSS custom properties** defined in `globals.css` under `@theme` (light) and `.dark` (dark override). Tailwind `dark:` variant classes **do not reliably override** base utilities in this setup because `@theme` generates `var(--color-*)` references but the `dark:` specificity can fail. **Always use semantic tokens instead of `dark:` variant pairs.**

@@ -20,9 +20,7 @@ export default function AnalyticsChartCard({
 	className = "",
 }: AnalyticsChartCardProps) {
 	return (
-		<div
-			className={`bg-card sz-card border border-border max-w-3xl ${className}`}
-		>
+		<div className={`bg-card sz-card border border-border ${className}`}>
 			<div className="flex items-center justify-between mb-1">
 				<h3 className="typo-body font-semibold text-on-surface">{title}</h3>
 				{badge && (

@@ -6,6 +6,7 @@ import {
 	usePortfolio,
 } from "@/components/PortfolioContext";
 import AppShell from "@/components/layout/AppShell";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import { PortfolioAPI } from "@/lib/api";
 import {
 	Briefcase,
@@ -68,13 +69,10 @@ export default function AllPortfoliosPage() {
 					<h1 className="font-headline text-lg font-bold text-on-surface">
 						Portfolios
 					</h1>
-					<Link
-						href="/portfolio/new"
-						className="bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-md shadow-lg active:scale-95 transition-all flex items-center gap-1.5 btn-press"
-					>
+					<PrimaryButton href="/portfolio/new">
 						<Plus className="w-4 h-4" />
 						New portfolio
-					</Link>
+					</PrimaryButton>
 				</div>
 			</div>
 
@@ -140,13 +138,10 @@ export default function AllPortfoliosPage() {
 									: "You haven't created any portfolios yet."}
 						</p>
 						{tab === "mine" && !search && (
-							<Link
-								href="/portfolio/new"
-								className="inline-flex items-center gap-1.5 mt-4 bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-md shadow-lg active:scale-95 transition-all btn-press"
-							>
+							<PrimaryButton href="/portfolio/new" className="mt-4">
 								<Plus className="w-4 h-4" />
 								Create your first portfolio
-							</Link>
+							</PrimaryButton>
 						)}
 					</div>
 				)}

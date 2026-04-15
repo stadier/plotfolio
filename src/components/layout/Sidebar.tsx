@@ -2,6 +2,7 @@
 
 import { usePortfolio } from "@/components/PortfolioContext";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import { PortfolioAPI } from "@/lib/api";
 import {
 	BarChart3,
@@ -464,10 +465,10 @@ export default function Sidebar({
 			<div className="mt-auto pt-4 flex flex-col gap-3">
 				{/* Primary CTA */}
 				{isMarketplace ? (
-					<Link
+					<PrimaryButton
 						href="/marketplace"
 						title={collapsed ? "Find Property" : undefined}
-						className={`bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest py-2.5 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center btn-press overflow-hidden ${collapsed ? "" : "gap-2"}`}
+						className={`py-2.5 px-0 justify-center overflow-hidden ${collapsed ? "gap-0" : "gap-2"}`}
 					>
 						<Search className="w-4 h-4 shrink-0" />
 						<span
@@ -480,14 +481,14 @@ export default function Sidebar({
 						>
 							Find Property
 						</span>
-					</Link>
+					</PrimaryButton>
 				) : (
 					!hideAddProperty &&
 					activePermissions.canCreateProperties && (
-						<Link
+						<PrimaryButton
 							href="/portfolio/properties/new"
 							title={collapsed ? "Add Property" : undefined}
-							className={`bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest py-2.5 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center btn-press overflow-hidden ${collapsed ? "" : "gap-2"}`}
+							className={`py-2.5 px-0 justify-center overflow-hidden ${collapsed ? "gap-0" : "gap-2"}`}
 						>
 							<Plus className="w-4 h-4 shrink-0" />
 							<span
@@ -500,7 +501,7 @@ export default function Sidebar({
 							>
 								Add Property
 							</span>
-						</Link>
+						</PrimaryButton>
 					)
 				)}
 

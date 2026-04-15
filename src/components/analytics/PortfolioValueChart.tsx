@@ -115,17 +115,17 @@ export default function PortfolioValueChart({
 					dataKey="current"
 					name="Current Value"
 					stroke="#60a5fa"
-					strokeWidth={2.5}
+					strokeWidth={3.5}
 					fill="url(#gradCurrent)"
 					dot={false}
-					activeDot={{ r: 5, strokeWidth: 2, fill: "#fff" }}
+					activeDot={{ r: 6, strokeWidth: 2.5, fill: "#fff" }}
 				/>
 				<Area
 					type="monotone"
 					dataKey="purchased"
 					name="Purchase Price"
 					stroke="#f472b6"
-					strokeWidth={2}
+					strokeWidth={3}
 					fill="url(#gradPurchased)"
 					dot={false}
 					activeDot={{ r: 4, strokeWidth: 2, fill: "#fff" }}

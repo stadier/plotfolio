@@ -4,6 +4,7 @@ import { useRequireAuth } from "@/components/AuthContext";
 import { usePortfolio } from "@/components/PortfolioContext";
 import AppShell from "@/components/layout/AppShell";
 import BackButton from "@/components/ui/BackButton";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import { PortfolioAPI } from "@/lib/api";
 import { Briefcase, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -135,14 +136,14 @@ export default function NewPortfolioPage() {
 
 					{/* Submit */}
 					<div className="flex items-center gap-3 pt-2">
-						<button
+						<PrimaryButton
 							type="submit"
 							disabled={saving || !name.trim()}
-							className="bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest px-6 py-2.5 rounded-md shadow-lg active:scale-95 transition-all flex items-center gap-2 btn-press disabled:opacity-50 disabled:pointer-events-none"
+							className="px-6"
 						>
 							{saving && <Loader2 className="w-4 h-4 animate-spin" />}
 							Create Portfolio
-						</button>
+						</PrimaryButton>
 						<Link
 							href="/portfolio"
 							className="text-sm text-on-surface-variant hover:text-primary transition-colors"

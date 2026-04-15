@@ -201,6 +201,9 @@ export default function DashboardV2Page() {
 				{/* Constrained content area */}
 				{!loading && properties.length > 0 && (
 					<div className="sz-page pt-0 max-w-6xl">
+						{/* ── Dashboard overview chart + metrics ── */}
+						{/* <DashboardOverviewWidget properties={properties} /> */}
+
 						{/* ── Property billboard ── */}
 						<PropertySlideshowWidget
 							properties={properties}
