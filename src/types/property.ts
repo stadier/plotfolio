@@ -221,6 +221,7 @@ export interface Portfolio {
 	slug: string;
 	description?: string;
 	avatar?: string;
+	avatarKey?: string;
 	type: "personal" | "business";
 	createdBy: string; // userId who created it
 	createdAt?: string;
