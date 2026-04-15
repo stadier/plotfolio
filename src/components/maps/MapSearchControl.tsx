@@ -22,7 +22,7 @@ export default function MapSearchControl({
 	const [isLocating, setIsLocating] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
-	const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
 	// Focus input when expanded
 	useEffect(() => {
