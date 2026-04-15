@@ -88,8 +88,7 @@ export default function Home() {
 	>("none");
 	const [useImageMarkers, setUseImageMarkers] = useState(true);
 
-	// State hover and selection
-	const [hoveredState, setHoveredState] = useState<string | null>(null);
+	// State selection
 	const [selectedState, setSelectedState] = useState<string | null>(null);
 
 	// Default viewport
@@ -237,10 +236,6 @@ export default function Home() {
 		}
 		return bounds;
 	}, [properties]);
-
-	const handleStateHover = (stateName: string | null) => {
-		setHoveredState(stateName);
-	};
 
 	const handleStateClick = (stateName: string) => {
 		setSelectedState(stateName);
@@ -443,7 +438,7 @@ export default function Home() {
 							showPropertyGrids={isPropertyGridVisible}
 							showStateBorders={isStateBordersVisible}
 							onGridToggle={handleGridToggle}
-							onRegionHover={setHoveredState}
+							onRegionHover={() => {}}
 							onRegionClick={setSelectedState}
 							isDrawingBoundary={isDrawingBoundary}
 							isSelectingGrid={isSelectingGrid}
@@ -468,9 +463,7 @@ export default function Home() {
 
 					{/* Climate Risk Overlay Indicator */}
 					{climateRisk !== "none" && (
-						<div
-							className="absolute top-16 right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000"
-						>
+						<div className="absolute top-16 right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000">
 							<div className="flex items-center space-x-3">
 								<div className="flex items-center space-x-2">
 									{climateRisk === "flood" && (

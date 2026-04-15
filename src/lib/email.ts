@@ -47,7 +47,7 @@ export async function sendInvitationEmail({
 	});
 
 	try {
-		const { error } = await resend.emails.send({
+		const { data, error } = await resend.emails.send({
 			from: FROM_EMAIL,
 			to,
 			subject: `${inviterName} invited you to join "${portfolioName}" on Plotfolio`,
@@ -59,6 +59,7 @@ export async function sendInvitationEmail({
 			return { success: false, error: error.message };
 		}
 
+		console.log("[email] Invitation sent to", to, "id:", data?.id);
 		return { success: true };
 	} catch (err) {
 		console.error("[email] Error sending invitation:", err);
