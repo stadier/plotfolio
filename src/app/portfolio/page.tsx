@@ -13,15 +13,7 @@ import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties, useOwnerBookings } from "@/hooks/usePropertyQueries";
 import { formatCurrencyCompact } from "@/lib/utils";
-import {
-	Building2,
-	FileText,
-	Loader2,
-	MapPin,
-	TrendingUp,
-	Wallet,
-} from "lucide-react";
-import Link from "next/link";
+import { Building2, FileText, Loader2, MapPin, Wallet } from "lucide-react";
 import { useState } from "react";
 
 // ── Stat card used only in this dashboard ─────────────────────────────────────
@@ -221,7 +213,7 @@ export default function DashboardV2Page() {
 					</div>
 				)}
 				{/* ── Quick links ── */}
-				<div className="flex flex-wrap gap-3 justify-end mb-5 mr-5">
+				{/* <div className="flex flex-wrap gap-3 justify-end mb-5 mr-5">
 					<Link
 						href="/portfolio/properties"
 						className="signature-gradient text-white font-headline typo-btn font-bold uppercase tracking-widest sz-btn flex items-center gap-2 btn-press"
@@ -236,7 +228,7 @@ export default function DashboardV2Page() {
 						<MapPin className="sz-icon" />
 						Map View
 					</Link>
-				</div>
+				</div> */}
 			</div>
 
 			{/* Slide-in property drawer */}

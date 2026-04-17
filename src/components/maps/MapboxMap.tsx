@@ -63,6 +63,17 @@ export default function MapboxMap({
 	useEffect(() => {
 		const map = mapRef.current?.getMap();
 		if (map && !isAnimatingRef.current) {
+			// Skip if already at the target position (e.g. from user pan/zoom)
+			const currentCenter = map.getCenter();
+			const currentZoom = map.getZoom();
+			if (
+				Math.abs(currentCenter.lat - viewport.center[0]) < 0.0001 &&
+				Math.abs(currentCenter.lng - viewport.center[1]) < 0.0001 &&
+				Math.abs(currentZoom - viewport.zoom) < 0.1
+			) {
+				return;
+			}
+
 			isAnimatingRef.current = true;
 			// Use flyTo for smooth animation
 			map.flyTo({

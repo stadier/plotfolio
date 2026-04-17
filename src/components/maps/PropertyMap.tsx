@@ -66,6 +66,17 @@ function MapController({
 	// Fly to new location when viewport changes externally
 	useEffect(() => {
 		if (viewport.center && viewport.zoom && !isAnimatingRef.current) {
+			// Skip if the map is already at the target position (e.g. from user pan/zoom)
+			const currentCenter = map.getCenter();
+			const currentZoom = map.getZoom();
+			if (
+				Math.abs(currentCenter.lat - viewport.center[0]) < 0.0001 &&
+				Math.abs(currentCenter.lng - viewport.center[1]) < 0.0001 &&
+				Math.abs(currentZoom - viewport.zoom) < 0.1
+			) {
+				return;
+			}
+
 			isAnimatingRef.current = true;
 			map.flyTo(viewport.center, viewport.zoom, {
 				duration: 1.5, // Smooth animation

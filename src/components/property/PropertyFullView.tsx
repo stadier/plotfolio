@@ -251,189 +251,122 @@ function DescriptionBlock({ text }: { text: string }) {
 	);
 }
 
-/* ─── Property Specification Grid ────────────────────────────── */
+/* ─── Property Details Cards ─────────────────────────────────── */
 
-function SpecCard({ label, value }: { label: string; value: string }) {
+function DetailCard({
+	icon: Icon,
+	label,
+	value,
+}: {
+	icon: React.ComponentType<{ className?: string }>;
+	label: string;
+	value: string;
+}) {
 	return (
-		<div className="border border-border rounded-xl px-4 py-3 text-center min-w-0">
-			<p className="text-xs text-outline mb-1 truncate">{label}</p>
-			<p className="text-sm font-semibold text-on-surface truncate">{value}</p>
+		<div className="border border-border rounded-xl px-4 py-3 min-w-0 flex items-center gap-3">
+			<Icon className="w-4 h-4 text-outline shrink-0" />
+			<div className="min-w-0">
+				<p className="text-xs text-outline truncate">{label}</p>
+				<p className="text-sm font-semibold text-on-surface truncate">
+					{value}
+				</p>
+			</div>
 		</div>
 	);
 }
 
-function PropertySpecs({ property }: { property: Property }) {
-	const areaInSqm = property.area ?? 0;
-	const areaInSqft = Math.round(areaInSqm * 10.7639);
+function PropertyDetails({ property }: { property: Property }) {
+	const cards: {
+		icon: React.ComponentType<{ className?: string }>;
+		label: string;
+		value: string;
+	}[] = [];
 
-	const specs: { label: string; value: string }[] = [];
-
-	if (areaInSqft > 0) {
-		specs.push({
-			label: "Area",
-			value: `${areaInSqft.toLocaleString()} sq ft`,
-		});
-	}
 	if (property.propertyType) {
-		specs.push({
+		cards.push({
+			icon: Building2,
 			label: "Type",
 			value: property.propertyType
 				.replace(/_/g, " ")
 				.replace(/\b\w/g, (c) => c.toUpperCase()),
 		});
 	}
+	if (property.area) {
+		const sqft = Math.round(property.area * 10.7639);
+		cards.push({
+			icon: Ruler,
+			label: "Area",
+			value: `${sqft.toLocaleString()} sq ft`,
+		});
+	}
 	if (property.bedrooms != null) {
-		specs.push({ label: "Bedrooms", value: `${property.bedrooms}` });
+		cards.push({
+			icon: BedDouble,
+			label: "Bedrooms",
+			value: `${property.bedrooms}`,
+		});
 	}
 	if (property.bathrooms != null) {
-		specs.push({ label: "Bathrooms", value: `${property.bathrooms}` });
+		cards.push({
+			icon: Bath,
+			label: "Bathrooms",
+			value: `${property.bathrooms}`,
+		});
 	}
 	if (property.parkingSpaces != null) {
-		specs.push({ label: "Parking", value: `${property.parkingSpaces} Spaces` });
+		cards.push({
+			icon: Car,
+			label: "Parking",
+			value: `${property.parkingSpaces} Spaces`,
+		});
 	}
 	if (property.finishingType) {
-		specs.push({ label: "Finishing", value: property.finishingType });
-	}
-	if (property.conditions?.length && property.conditions.length > 0) {
-		specs.push({
-			label: "Condition",
-			value: property.conditions[0]
-				.replace(/_/g, " ")
-				.replace(/\b\w/g, (c) => c.toUpperCase()),
-		});
-	}
-	if (property.zoning) {
-		specs.push({ label: "Zoning", value: property.zoning });
-	}
-
-	if (specs.length === 0) return null;
-
-	return (
-		<section>
-			<h2 className="font-headline text-base font-semibold text-on-surface mb-3">
-				Property Specification
-			</h2>
-			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-				{specs.map((s) => (
-					<SpecCard key={s.label} label={s.label} value={s.value} />
-				))}
-			</div>
-		</section>
-	);
-}
-
-/* ─── Property Features (two sub-cards) ──────────────────────── */
-
-function FeatureItem({
-	icon: Icon,
-	label,
-}: {
-	icon: React.ComponentType<{ className?: string }>;
-	label: string;
-}) {
-	return (
-		<span className="inline-flex items-center gap-2 text-sm text-on-surface-variant">
-			<Icon className="w-4 h-4 text-outline shrink-0" />
-			{label}
-		</span>
-	);
-}
-
-function PropertyFeatures({ property }: { property: Property }) {
-	const technicalFeatures: {
-		icon: React.ComponentType<{ className?: string }>;
-		label: string;
-	}[] = [];
-	const additionalFeatures: {
-		icon: React.ComponentType<{ className?: string }>;
-		label: string;
-	}[] = [];
-
-	// Technical features (from property details)
-	if (property.propertyType) {
-		technicalFeatures.push({
-			icon: Building2,
-			label: property.propertyType
-				.replace(/_/g, " ")
-				.replace(/\b\w/g, (c) => c.toUpperCase()),
-		});
-	}
-	if (property.bedrooms != null) {
-		technicalFeatures.push({
-			icon: BedDouble,
-			label: `${property.bedrooms} Bedrooms`,
-		});
-	}
-	if (property.bathrooms != null) {
-		technicalFeatures.push({
-			icon: Bath,
-			label: `${property.bathrooms} Bathrooms`,
-		});
-	}
-	if (property.parkingSpaces != null) {
-		technicalFeatures.push({
-			icon: Car,
-			label: `${property.parkingSpaces} Parking`,
+		cards.push({
+			icon: Sparkles,
+			label: "Finishing",
+			value: property.finishingType,
 		});
 	}
 	if (property.projectName) {
-		technicalFeatures.push({ icon: Landmark, label: property.projectName });
-	}
-	if (property.area) {
-		const sqft = Math.round(property.area * 10.7639);
-		technicalFeatures.push({
-			icon: Ruler,
-			label: `${sqft.toLocaleString()} sq ft`,
+		cards.push({
+			icon: Landmark,
+			label: "Project",
+			value: property.projectName,
 		});
 	}
 	if ((property.quantity ?? 1) > 1) {
-		technicalFeatures.push({ icon: Tag, label: `${property.quantity} Units` });
+		cards.push({ icon: Tag, label: "Units", value: `${property.quantity}` });
 	}
-
-	// Additional features (amenities + conditions)
-	(property.amenities ?? []).forEach((a) => {
-		additionalFeatures.push({ icon: Sparkles, label: a });
-	});
+	if (property.zoning) {
+		cards.push({ icon: Shield, label: "Zoning", value: property.zoning });
+	}
 	(property.conditions ?? []).forEach((c) => {
-		const label = c
-			.replace(/_/g, " ")
-			.replace(/\b\w/g, (ch) => ch.toUpperCase());
-		additionalFeatures.push({ icon: conditionIcon(c), label });
+		cards.push({
+			icon: conditionIcon(c),
+			label: "Condition",
+			value: c.replace(/_/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase()),
+		});
+	});
+	(property.amenities ?? []).forEach((a) => {
+		cards.push({ icon: Sparkles, label: "Amenity", value: a });
 	});
 
-	if (technicalFeatures.length === 0 && additionalFeatures.length === 0)
-		return null;
+	if (cards.length === 0) return null;
 
 	return (
 		<section>
 			<h2 className="font-headline text-base font-semibold text-on-surface mb-3">
-				Property Features
+				Property Details
 			</h2>
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-				{technicalFeatures.length > 0 && (
-					<div className="border border-border rounded-xl p-4 space-y-3 max-w-md">
-						<h3 className="text-sm font-semibold text-on-surface">
-							Property Details
-						</h3>
-						<div className="grid grid-cols-2 gap-y-2 gap-x-4">
-							{technicalFeatures.map((f) => (
-								<FeatureItem key={f.label} icon={f.icon} label={f.label} />
-							))}
-						</div>
-					</div>
-				)}
-				{additionalFeatures.length > 0 && (
-					<div className="border border-border rounded-xl p-4 space-y-3 max-w-md">
-						<h3 className="text-sm font-semibold text-on-surface">
-							Conditions
-						</h3>
-						<div className="grid grid-cols-2 gap-y-2 gap-x-4">
-							{additionalFeatures.map((f) => (
-								<FeatureItem key={f.label} icon={f.icon} label={f.label} />
-							))}
-						</div>
-					</div>
-				)}
+			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+				{cards.map((c, i) => (
+					<DetailCard
+						key={`${c.label}-${i}`}
+						icon={c.icon}
+						label={c.label}
+						value={c.value}
+					/>
+				))}
 			</div>
 		</section>
 	);
@@ -1061,11 +994,8 @@ export default function PropertyFullView({
 					<DescriptionBlock text={property.description} />
 				)}
 
-				{/* Property Specification */}
-				<PropertySpecs property={property} />
-
-				{/* Property Features */}
-				<PropertyFeatures property={property} />
+				{/* Property Details */}
+				<PropertyDetails property={property} />
 
 				{/* Listing meta */}
 				{!hideHeader && (

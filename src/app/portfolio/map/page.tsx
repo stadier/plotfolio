@@ -418,7 +418,7 @@ export default function Home() {
 					{/* Mobile property list toggle */}
 					<button
 						onClick={() => setShowMobileSidebar(true)}
-						className="md:hidden absolute top-3 left-3 z-1000 bg-card shadow-lg rounded-xl px-3 py-2 flex items-center gap-2 text-sm font-medium text-on-surface border border-border"
+						className="md:hidden absolute top-3 left-3 z-1000 bg-card shadow-lg rounded-md px-3 py-2 flex items-center gap-2 text-sm font-medium text-on-surface border border-border"
 					>
 						<List className="w-4 h-4" />
 						Properties

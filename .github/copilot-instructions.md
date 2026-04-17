@@ -80,6 +80,24 @@ export default function Component({ prop1, prop2 }: ComponentProps) {
 - **Detail panels and document upload/preview components must have a max-width and stay left-aligned/top-aligned**; on reduced space they should wrap/flex rather than stretch to fill extra width
 - **This max-width + top-left alignment rule applies to every UI component in the app**; components should only grow up to their max-width and then wrap/reflow rather than stretching to consume all horizontal space
 
+### Border Radius Standard
+
+The standard border radius for all rectangular UI elements is **`rounded-md`** (matching the portfolio selector). This applies to:
+
+- Form inputs, selects, textareas
+- Tag/chip containers (e.g. WitnessTagInput)
+- Buttons (action buttons, toggle buttons)
+- Dropdown menus and popovers
+- Signature pad internal areas
+- Any inline rectangular component
+
+**Rules:**
+
+1. **Always use `rounded-md`** as the default border radius for inputs, buttons, containers, and interactive rectangles
+2. **Never use `rounded-xl` or `rounded-lg`** on form fields, input wrappers, or button-like elements
+3. **Exception:** Modal/dialog outer shells may use `rounded-2xl` for visual distinction; card wrappers (`FormSection`) may use `rounded-xl`
+4. **Exception:** Circular elements (avatars, icon-only buttons) use `rounded-full`
+
 ### Primary Action Button Standard
 
 All primary action buttons (Add Property, Upload, Create, Save, etc.) **must** use the `<PrimaryButton>` component from `@/components/ui/PrimaryButton`.

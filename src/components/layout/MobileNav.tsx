@@ -177,7 +177,7 @@ export default function MobileNav() {
 
 						{/* Section switcher */}
 						{user && (
-							<div className="flex gap-2 px-5 py-2">
+							<div className="flex gap-2 px-5 py-2 justify-center">
 								<Link
 									href="/portfolio"
 									className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
@@ -227,10 +227,7 @@ export default function MobileNav() {
 
 						{/* Theme switcher */}
 						<div className="px-5 py-3 border-t border-border">
-							<p className="text-[11px] font-semibold uppercase tracking-widest text-outline mb-2">
-								Theme
-							</p>
-							<div className="flex gap-2">
+							<div className="flex gap-2 justify-center">
 								{themeOptions.map((opt) => {
 									const Icon = opt.icon;
 									const active = theme === opt.value;

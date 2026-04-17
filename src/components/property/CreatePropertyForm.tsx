@@ -389,7 +389,7 @@ export default function CreatePropertyForm({
 
 	/* property details */
 	const [propertyType, setPropertyType] = useState<PropertyType>(
-		initialProperty?.propertyType || PropertyType.RESIDENTIAL,
+		initialProperty?.propertyType || PropertyType.MIXED_USE,
 	);
 	const [area, setArea] = useState(
 		initialProperty?.area ? String(initialProperty.area) : "",
@@ -908,7 +908,7 @@ export default function CreatePropertyForm({
 								{/* ── Location ────────────────────────────── */}
 								<FormSection title="Location">
 									{/* Map preview + prompt bar */}
-									<div className="rounded-lg border border-border overflow-hidden max-w-md">
+									<div className="rounded-md border border-border overflow-hidden max-w-md">
 										<div
 											className="relative w-full bg-surface-container cursor-pointer"
 											style={{ height: 180 }}
@@ -1162,7 +1162,7 @@ export default function CreatePropertyForm({
 
 					{/* ── Error ───────────────────────────────── */}
 					{error && (
-						<div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 font-body">
+						<div className="mt-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 font-body">
 							{error}
 						</div>
 					)}
@@ -1172,7 +1172,7 @@ export default function CreatePropertyForm({
 				<div className="sticky bottom-0 left-0 right-0 py-4 -mx-4 sm:-mx-8 px-4 sm:px-8 flex items-center gap-3 justify-center sm:justify-end border-t border-border bg-background">
 					<Link
 						href="/portfolio/properties"
-						className="px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors font-label"
+						className="px-5 py-2.5 rounded-md border border-border bg-card text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors font-label"
 					>
 						Cancel
 					</Link>
@@ -1180,7 +1180,7 @@ export default function CreatePropertyForm({
 					<button
 						type="submit"
 						disabled={submitting}
-						className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg shadow-lg active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+						className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-md shadow-lg active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
 					>
 						{submitting ? (
 							<Loader2 className="w-4 h-4 animate-spin" />

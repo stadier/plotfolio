@@ -803,7 +803,7 @@ export default function MarketplacePage() {
 				</div>
 
 				{/* Main layout: sidebar + grid */}
-				<div className="flex sz-gap-section items-start">
+				<div className="flex flex-col lg:flex-row sz-gap-section items-start">
 					{/* Mobile search + sort bar */}
 					<div className="lg:hidden w-full mb-4 flex flex-wrap gap-2">
 						<div className="relative flex-1 min-w-[160px]">
