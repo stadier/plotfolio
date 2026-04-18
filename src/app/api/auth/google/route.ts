@@ -103,6 +103,10 @@ export async function POST(request: NextRequest) {
 			await createPersonalPortfolio(userId, (user as any).displayName);
 		}
 
+		// Ensure free subscription exists
+		const { ensureFreeSubscription } = await import("@/lib/subscription");
+		await ensureFreeSubscription(userId);
+
 		// Set session cookie
 		const token = generateSessionToken();
 		await UserModel.updateOne(

@@ -57,3 +57,9 @@
 - [x] **30. Watermark System** — Apply watermarks to documents and images (user seal + Plotfolio branding), configurable position/opacity/tiling, CSS overlay + canvas-based watermark utility
 - [ ] **31. PDF Export** — Convert generated HTML contracts to downloadable PDF files with embedded seal and watermark
 - [x] **32. Letterhead Templates** — Customizable letterhead with company/personal name, logo, tagline, address, contact details, accent colour, layout (centered/left-aligned/split), divider & footer toggles, live preview, auto-applied to generated contracts
+
+### Subscriptions & Billing
+
+- [x] **33. Subscription Tiers & Feature Gating** — Free/Pro/Business/Enterprise tiers with per-tier feature flags and resource limits, two-layer access control (subscription ceiling + role permissions), tier configs in shared types, `useSubscription` hook for client-side gating, `checkAccess`/`checkFeatureAccess`/`checkLimitAccess` for server-side enforcement
+- [x] **34. Payment Gateway Abstraction** — Switchable payment gateways via `PaymentGateway` interface, Stripe and Paystack implementations, factory function selectable by `PAYMENT_GATEWAY` env var or per-request override, webhook handlers for both gateways
+- [ ] **35. Billing UI** — Settings billing tab with current plan display, tier comparison cards, upgrade/downgrade flow, cancel/resume controls, payment method management, billing history

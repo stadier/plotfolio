@@ -4,6 +4,7 @@ import { useAuth } from "@/components/AuthContext";
 import LetterheadEditor from "@/components/branding/LetterheadEditor";
 import SealCreator, { SealPreview } from "@/components/branding/SealCreator";
 import AppShell from "@/components/layout/AppShell";
+import { useSubscription } from "@/components/SubscriptionContext";
 import { type Theme, useTheme } from "@/components/ThemeProvider";
 import { queryKeys, useProviderSettings } from "@/hooks/usePropertyQueries";
 import {
@@ -17,6 +18,7 @@ import {
 	AlertTriangle,
 	Camera,
 	Check,
+	CreditCard,
 	Eye,
 	EyeOff,
 	Globe,
@@ -39,6 +41,7 @@ type Tab =
 	| "profile"
 	| "appearance"
 	| "branding"
+	| "billing"
 	| "privacy"
 	| "advanced"
 	| "danger";
@@ -47,6 +50,7 @@ const TABS: { key: Tab; label: string; icon: typeof User }[] = [
 	{ key: "profile", label: "Profile", icon: User },
 	{ key: "appearance", label: "Appearance", icon: Palette },
 	{ key: "branding", label: "Branding", icon: Stamp },
+	{ key: "billing", label: "Billing", icon: CreditCard },
 	{ key: "privacy", label: "Security", icon: Shield },
 	{ key: "advanced", label: "Advanced", icon: Server },
 	{ key: "danger", label: "Danger zone", icon: AlertTriangle },
@@ -112,7 +116,7 @@ function SettingsInput({
 				onChange={(e) => onChange(e.target.value)}
 				placeholder={placeholder}
 				disabled={disabled}
-				className="w-full max-w-sm typo-body bg-input border border-outline-variant sz-radius-md px-3 py-2 text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+				className="w-full typo-body bg-input border border-outline-variant sz-radius-md px-3 py-2 text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
 			/>
 			{note && (
 				<span className="typo-caption text-outline mt-1 block">{note}</span>
@@ -142,7 +146,7 @@ function SettingsSelect({
 			<select
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
-				className="w-full max-w-sm typo-body bg-input border border-outline-variant sz-radius-md px-3 py-2 text-on-surface focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer"
+				className="w-full typo-body bg-input border border-outline-variant sz-radius-md px-3 py-2 text-on-surface focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer"
 			>
 				{options.map((o) => (
 					<option key={o.value} value={o.value}>
@@ -169,7 +173,7 @@ function SettingsToggle({
 	onChange: (v: boolean) => void;
 }) {
 	return (
-		<div className="flex items-start justify-between gap-4 max-w-lg">
+		<div className="flex items-start justify-between gap-4">
 			<div>
 				<span className="typo-body font-medium text-on-surface">{label}</span>
 				{description && (
@@ -203,13 +207,17 @@ function Section({
 	title,
 	description,
 	children,
+	className,
 }: {
 	title: string;
 	description?: string;
 	children: React.ReactNode;
+	className?: string;
 }) {
 	return (
-		<section className="bg-card sz-card border border-outline-variant mb-6 max-w-2xl">
+		<section
+			className={`bg-card sz-card border border-outline-variant ${className ?? ""}`}
+		>
 			<h2 className="font-headline typo-section-title font-bold text-on-surface mb-1">
 				{title}
 			</h2>
@@ -351,7 +359,10 @@ function ProfileSection() {
 					</div>
 				</div>
 
-				<form onSubmit={handleSave} className="space-y-4">
+				<form
+					onSubmit={handleSave}
+					className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+				>
 					<SettingsInput
 						label="Full name"
 						value={name}
@@ -396,10 +407,12 @@ function ProfileSection() {
 					/>
 
 					{error && (
-						<p className="typo-body-sm text-error font-medium">{error}</p>
+						<p className="typo-body-sm text-error font-medium sm:col-span-2">
+							{error}
+						</p>
 					)}
 
-					<div className="flex items-center gap-3 pt-2">
+					<div className="flex items-center gap-3 pt-2 sm:col-span-2">
 						<button
 							type="submit"
 							disabled={saving}
@@ -424,7 +437,7 @@ function ProfileSection() {
 				title="Preferences"
 				description="Regional and display preferences."
 			>
-				<div className="space-y-4">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 					<SettingsSelect
 						label="Default currency"
 						value={
@@ -450,19 +463,21 @@ function ProfileSection() {
 						}}
 						options={MEASUREMENT_UNITS}
 					/>
-					<SettingsToggle
-						label="Allow bookings"
-						description="Let marketplace users request visits to your listed properties."
-						checked={user?.allowBookings ?? false}
-						onChange={async (v) => {
-							// Quick save — no form needed
-							await fetch("/api/settings/profile", {
-								method: "PUT",
-								headers: { "Content-Type": "application/json" },
-								body: JSON.stringify({ allowBookings: v }),
-							});
-						}}
-					/>
+					<div className="sm:col-span-2">
+						<SettingsToggle
+							label="Allow bookings"
+							description="Let marketplace users request visits to your listed properties."
+							checked={user?.allowBookings ?? false}
+							onChange={async (v) => {
+								// Quick save — no form needed
+								await fetch("/api/settings/profile", {
+									method: "PUT",
+									headers: { "Content-Type": "application/json" },
+									body: JSON.stringify({ allowBookings: v }),
+								});
+							}}
+						/>
+					</div>
 				</div>
 			</Section>
 		</>
@@ -584,8 +599,11 @@ function SecuritySection() {
 				title="Change password"
 				description="Update the password for your account."
 			>
-				<form onSubmit={handleChangePassword} className="space-y-4">
-					<div className="relative max-w-sm">
+				<form
+					onSubmit={handleChangePassword}
+					className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+				>
+					<div className="relative">
 						<SettingsInput
 							label="Current password"
 							value={currentPw}
@@ -604,7 +622,7 @@ function SecuritySection() {
 							)}
 						</button>
 					</div>
-					<div className="relative max-w-sm">
+					<div className="relative">
 						<SettingsInput
 							label="New password"
 							value={newPw}
@@ -632,10 +650,12 @@ function SecuritySection() {
 					/>
 
 					{error && (
-						<p className="typo-body-sm text-error font-medium">{error}</p>
+						<p className="typo-body-sm text-error font-medium sm:col-span-2">
+							{error}
+						</p>
 					)}
 
-					<div className="flex items-center gap-3 pt-2">
+					<div className="flex items-center gap-3 pt-2 sm:col-span-2">
 						<button
 							type="submit"
 							disabled={saving}
@@ -657,7 +677,7 @@ function SecuritySection() {
 			</Section>
 
 			<Section title="Sessions" description="Manage where you're signed in.">
-				<div className="flex items-center gap-3 max-w-lg">
+				<div className="flex items-center gap-3">
 					<Globe className="w-5 h-5 text-on-surface-variant shrink-0" />
 					<div className="min-w-0">
 						<p className="typo-body text-on-surface font-medium">
@@ -740,6 +760,7 @@ function AdvancedSection() {
 		<Section
 			title="Service providers"
 			description="Configure the service providers Plotfolio uses under the hood."
+			className="md:col-span-2 xl:col-span-3"
 		>
 			{loadingProviders ? (
 				<div className="flex items-center gap-2 typo-body-sm text-on-surface-variant py-4">
@@ -747,7 +768,7 @@ function AdvancedSection() {
 					Loading provider settings…
 				</div>
 			) : (
-				<div className="space-y-6">
+				<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
 					{PROVIDER_CATEGORIES.map((category) => {
 						const currentValue =
 							providers[category.key] ?? PROVIDER_DEFAULTS[category.key];
@@ -774,7 +795,7 @@ function AdvancedSection() {
 											<button
 												key={opt.value}
 												onClick={() => updateProvider(category.key, opt.value)}
-												className={`flex items-start gap-3 w-full max-w-lg text-left px-4 py-3 rounded-xl border-2 transition-all cursor-pointer ${
+												className={`flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl border-2 transition-all cursor-pointer ${
 													selected
 														? "border-primary bg-primary/5"
 														: "border-outline-variant hover:border-outline bg-surface-container-lowest"
@@ -1127,6 +1148,7 @@ function BrandingSection() {
 			<Section
 				title="Letterhead"
 				description="Design branded stationery with your company details, logo, and contact info. Your letterhead is applied to generated contracts."
+				className="md:col-span-2 xl:col-span-3"
 			>
 				{letterheadLoading ? (
 					<div className="flex items-center gap-2 typo-body-sm text-on-surface-variant py-4">
@@ -1181,7 +1203,7 @@ function DangerSection() {
 	};
 
 	return (
-		<section className="bg-card sz-card border-2 border-error/30 sz-radius-card mb-6 max-w-2xl">
+		<section className="bg-card sz-card border-2 border-error/30 sz-radius-card">
 			<div className="flex items-center gap-2 mb-1">
 				<AlertTriangle className="w-4 h-4 text-error" />
 				<h2 className="font-headline typo-section-title font-bold text-error">
@@ -1228,10 +1250,444 @@ function DangerSection() {
 	);
 }
 
+/* ─── Billing tab ─────────────────────────────────────────────── */
+
+function BillingSection() {
+	const sub = useSubscription();
+	const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">(
+		"monthly",
+	);
+	const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+	const [actionLoading, setActionLoading] = useState(false);
+
+	const currentTier = sub.subscription?.tier ?? "free";
+	const cancelAtPeriodEnd = sub.subscription?.cancelAtPeriodEnd ?? false;
+	const periodEnd = sub.subscription?.currentPeriodEnd;
+
+	const tiers = [
+		{
+			key: "free" as const,
+			name: "Free",
+			desc: "Get started with basic property management",
+			price: { monthly: 0, yearly: 0 },
+			highlights: [
+				"1 portfolio",
+				"5 properties",
+				"Basic maps",
+				"Marketplace access",
+				"100 MB storage",
+			],
+		},
+		{
+			key: "pro" as const,
+			name: "Pro",
+			desc: "For growing property portfolios",
+			price: { monthly: 19, yearly: 190 },
+			highlights: [
+				"5 portfolios",
+				"50 properties",
+				"5 team members",
+				"Document AI",
+				"Advanced analytics",
+				"Bulk operations",
+				"2 GB storage",
+			],
+			popular: true,
+		},
+		{
+			key: "business" as const,
+			name: "Business",
+			desc: "For teams and agencies",
+			price: { monthly: 49, yearly: 490 },
+			highlights: [
+				"Unlimited portfolios",
+				"Unlimited properties",
+				"25 team members",
+				"Custom branding",
+				"API access",
+				"10 GB storage",
+			],
+		},
+		{
+			key: "enterprise" as const,
+			name: "Enterprise",
+			desc: "Custom solutions for large organizations",
+			price: { monthly: 149, yearly: 1490 },
+			highlights: [
+				"Everything in Business",
+				"Unlimited team members",
+				"Unlimited storage",
+				"Priority support",
+			],
+		},
+	];
+
+	const handleUpgrade = async (tier: string) => {
+		if (tier === "free" || tier === currentTier) return;
+		setCheckoutLoading(tier);
+		try {
+			await sub.checkout(tier as any, billingInterval);
+		} catch {
+			// Error handled by context
+		} finally {
+			setCheckoutLoading(null);
+		}
+	};
+
+	const handleCancel = async () => {
+		setActionLoading(true);
+		try {
+			await sub.cancel();
+		} finally {
+			setActionLoading(false);
+		}
+	};
+
+	const handleResume = async () => {
+		setActionLoading(true);
+		try {
+			await sub.resume();
+		} finally {
+			setActionLoading(false);
+		}
+	};
+
+	const handlePortal = async () => {
+		setActionLoading(true);
+		try {
+			await sub.openPortal();
+		} finally {
+			setActionLoading(false);
+		}
+	};
+
+	if (sub.loading) {
+		return (
+			<Section
+				title="Billing"
+				description="Manage your subscription and billing"
+			>
+				<div className="flex items-center gap-2 text-outline py-8">
+					<Loader2 className="w-4 h-4 animate-spin" />
+					<span className="typo-body">Loading billing info…</span>
+				</div>
+			</Section>
+		);
+	}
+
+	return (
+		<div className="contents">
+			{/* Current plan banner */}
+			<Section
+				title="Current plan"
+				description="Your active subscription"
+				className="md:col-span-2 xl:col-span-3"
+			>
+				<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+					<div>
+						<div className="flex items-center gap-2">
+							<span className="font-headline text-lg font-bold text-on-surface capitalize">
+								{currentTier}
+							</span>
+							{currentTier !== "free" && (
+								<span className="typo-caption bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-md font-medium">
+									Active
+								</span>
+							)}
+							{cancelAtPeriodEnd && (
+								<span className="typo-caption bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-md font-medium">
+									Cancels{" "}
+									{periodEnd
+										? new Date(periodEnd).toLocaleDateString()
+										: "at period end"}
+								</span>
+							)}
+						</div>
+						<p className="typo-body-sm text-on-surface-variant mt-0.5">
+							{sub.tierConfig.description}
+						</p>
+					</div>
+					{currentTier !== "free" && (
+						<div className="flex items-center gap-2">
+							{cancelAtPeriodEnd ? (
+								<button
+									onClick={handleResume}
+									disabled={actionLoading}
+									className="typo-btn text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-md border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer disabled:opacity-50"
+								>
+									{actionLoading ? (
+										<Loader2 className="w-3.5 h-3.5 animate-spin" />
+									) : (
+										"Resume"
+									)}
+								</button>
+							) : (
+								<button
+									onClick={handleCancel}
+									disabled={actionLoading}
+									className="typo-btn text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-md border border-outline-variant text-on-surface-variant hover:text-error hover:border-error transition-colors cursor-pointer disabled:opacity-50"
+								>
+									{actionLoading ? (
+										<Loader2 className="w-3.5 h-3.5 animate-spin" />
+									) : (
+										"Cancel plan"
+									)}
+								</button>
+							)}
+							<button
+								onClick={handlePortal}
+								disabled={actionLoading}
+								className="typo-btn text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-md border border-outline-variant text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer disabled:opacity-50"
+							>
+								Manage billing
+							</button>
+						</div>
+					)}
+				</div>
+			</Section>
+
+			{/* Billing interval toggle */}
+			<div className="flex items-center gap-3 md:col-span-2 xl:col-span-3">
+				<span
+					className={`typo-body-sm font-medium ${billingInterval === "monthly" ? "text-on-surface" : "text-outline"}`}
+				>
+					Monthly
+				</span>
+				<button
+					type="button"
+					role="switch"
+					aria-checked={billingInterval === "yearly"}
+					onClick={() =>
+						setBillingInterval(
+							billingInterval === "monthly" ? "yearly" : "monthly",
+						)
+					}
+					className={`relative shrink-0 w-10 h-[22px] rounded-full transition-colors cursor-pointer ${
+						billingInterval === "yearly" ? "bg-primary" : "bg-outline-variant"
+					}`}
+				>
+					<span
+						className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-card transition-transform ${
+							billingInterval === "yearly" ? "translate-x-[18px]" : ""
+						}`}
+					/>
+				</button>
+				<span
+					className={`typo-body-sm font-medium ${billingInterval === "yearly" ? "text-on-surface" : "text-outline"}`}
+				>
+					Yearly
+				</span>
+				{billingInterval === "yearly" && (
+					<span className="typo-caption text-secondary font-medium">
+						Save ~17%
+					</span>
+				)}
+			</div>
+
+			{/* Plan cards */}
+			<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:col-span-2 xl:col-span-3">
+				{tiers.map((tier) => {
+					const isCurrent = currentTier === tier.key;
+					const price =
+						billingInterval === "monthly"
+							? tier.price.monthly
+							: tier.price.yearly;
+					const perMonth =
+						billingInterval === "yearly" && tier.price.yearly > 0
+							? Math.round(tier.price.yearly / 12)
+							: tier.price.monthly;
+
+					return (
+						<div
+							key={tier.key}
+							className={`bg-card border rounded-md p-5 flex flex-col ${
+								tier.popular
+									? "border-primary ring-1 ring-primary"
+									: "border-outline-variant"
+							} ${isCurrent ? "ring-2 ring-primary/30" : ""}`}
+						>
+							<div className="flex items-center gap-2 mb-1">
+								<h3 className="font-headline text-base font-bold text-on-surface">
+									{tier.name}
+								</h3>
+								{tier.popular && (
+									<span className="typo-caption bg-primary/10 text-primary px-1.5 py-0.5 rounded-md font-medium text-badge uppercase tracking-wider">
+										Popular
+									</span>
+								)}
+							</div>
+							<p className="typo-caption text-on-surface-variant mb-3">
+								{tier.desc}
+							</p>
+
+							<div className="mb-4">
+								{price === 0 ? (
+									<span className="font-headline text-2xl font-bold text-on-surface">
+										Free
+									</span>
+								) : (
+									<>
+										<span className="font-headline text-2xl font-bold text-on-surface">
+											${perMonth}
+										</span>
+										<span className="typo-body-sm text-outline">/mo</span>
+										{billingInterval === "yearly" && (
+											<p className="typo-caption text-outline mt-0.5">
+												${price}/yr billed annually
+											</p>
+										)}
+									</>
+								)}
+							</div>
+
+							<ul className="space-y-1.5 mb-5 flex-1">
+								{tier.highlights.map((h) => (
+									<li
+										key={h}
+										className="flex items-start gap-2 typo-body-sm text-on-surface-variant"
+									>
+										<Check className="w-3.5 h-3.5 text-secondary mt-0.5 shrink-0" />
+										{h}
+									</li>
+								))}
+							</ul>
+
+							{isCurrent ? (
+								<span className="typo-btn text-xs font-bold uppercase tracking-widest text-center py-2 px-4 rounded-md bg-surface-container-high text-on-surface-variant">
+									Current plan
+								</span>
+							) : tier.key === "free" ? (
+								<span className="typo-btn text-xs text-center py-2 px-4 rounded-md text-outline">
+									—
+								</span>
+							) : (
+								<button
+									onClick={() => handleUpgrade(tier.key)}
+									disabled={!!checkoutLoading}
+									className="bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-xs uppercase tracking-widest py-2 px-4 rounded-md shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 btn-press disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+								>
+									{checkoutLoading === tier.key ? (
+										<Loader2 className="w-3.5 h-3.5 animate-spin" />
+									) : currentTier === "free" ? (
+										"Upgrade"
+									) : (
+										"Switch plan"
+									)}
+								</button>
+							)}
+						</div>
+					);
+				})}
+			</div>
+
+			{/* Usage summary */}
+			<Section
+				title="Usage"
+				description="Current resource usage against your plan limits"
+			>
+				<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+					{[
+						{ label: "Portfolios", limit: sub.tierConfig.limits.maxPortfolios },
+						{ label: "Properties", limit: sub.tierConfig.limits.maxProperties },
+						{
+							label: "Team members",
+							limit: sub.tierConfig.limits.maxTeamMembers,
+						},
+						{
+							label: "Docs per property",
+							limit: sub.tierConfig.limits.maxDocumentsPerProperty,
+						},
+						{
+							label: "Storage",
+							limit: sub.tierConfig.limits.maxFileStorageMB,
+							suffix: " MB",
+						},
+					].map((item) => (
+						<div key={item.label} className="flex flex-col">
+							<span className="typo-caption text-outline font-medium">
+								{item.label}
+							</span>
+							<span className="typo-body font-bold text-on-surface">
+								{item.limit === -1
+									? "Unlimited"
+									: `${item.limit}${item.suffix ?? ""}`}
+							</span>
+						</div>
+					))}
+				</div>
+			</Section>
+
+			{/* Feature list */}
+			<Section title="Features" description="What's included in your plan">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+					{[
+						{ label: "Basic maps", enabled: sub.tierConfig.features.basicMaps },
+						{
+							label: "Marketplace",
+							enabled: sub.tierConfig.features.marketplace,
+						},
+						{
+							label: "Team management",
+							enabled: sub.tierConfig.features.teamManagement,
+						},
+						{
+							label: "Document AI",
+							enabled: sub.tierConfig.features.documentAI,
+						},
+						{
+							label: "Advanced analytics",
+							enabled: sub.tierConfig.features.advancedAnalytics,
+						},
+						{
+							label: "Bulk operations",
+							enabled: sub.tierConfig.features.bulkOperations,
+						},
+						{
+							label: "Custom branding",
+							enabled: sub.tierConfig.features.customBranding,
+						},
+						{ label: "API access", enabled: sub.tierConfig.features.apiAccess },
+						{
+							label: "Priority support",
+							enabled: sub.tierConfig.features.prioritySupport,
+						},
+					].map((f) => (
+						<div key={f.label} className="flex items-center gap-2 py-1">
+							{f.enabled ? (
+								<Check className="w-4 h-4 text-secondary shrink-0" />
+							) : (
+								<span className="w-4 h-4 flex items-center justify-center text-outline shrink-0">
+									—
+								</span>
+							)}
+							<span
+								className={`typo-body-sm ${f.enabled ? "text-on-surface" : "text-outline"}`}
+							>
+								{f.label}
+							</span>
+						</div>
+					))}
+				</div>
+			</Section>
+		</div>
+	);
+}
+
 /* ─── Main page ───────────────────────────────────────────────── */
 
 export default function SettingsPage() {
 	const [activeTab, setActiveTab] = useState<Tab>("profile");
+
+	// Auto-switch to billing tab when returning from checkout
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		if (
+			params.get("subscription") === "success" ||
+			params.get("subscription") === "cancelled"
+		) {
+			setActiveTab("billing");
+		}
+	}, []);
 
 	return (
 		<AppShell>
@@ -1289,10 +1745,11 @@ export default function SettingsPage() {
 					</div>
 
 					{/* Content area */}
-					<div className="flex-1 min-w-0">
+					<div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
 						{activeTab === "profile" && <ProfileSection />}
 						{activeTab === "appearance" && <AppearanceSection />}
 						{activeTab === "branding" && <BrandingSection />}
+						{activeTab === "billing" && <BillingSection />}
 						{activeTab === "privacy" && <SecuritySection />}
 						{activeTab === "advanced" && <AdvancedSection />}
 						{activeTab === "danger" && <DangerSection />}

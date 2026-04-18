@@ -97,6 +97,10 @@ export async function POST(request: NextRequest) {
 		// Create personal portfolio for new user
 		await createPersonalPortfolio(userId, user.displayName);
 
+		// Create free subscription for new user
+		const { ensureFreeSubscription } = await import("@/lib/subscription");
+		await ensureFreeSubscription(userId);
+
 		// Auto-accept any pending email invitations for this user
 		const pendingInvitations = await InvitationModel.find({
 			email: email.toLowerCase(),

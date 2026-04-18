@@ -3,6 +3,7 @@ import DocumentTitle from "@/components/DocumentTitle";
 import { FavouritesProvider } from "@/components/FavouritesContext";
 import { PortfolioProvider } from "@/components/PortfolioContext";
 import QueryProvider from "@/components/QueryProvider";
+import { SubscriptionProvider } from "@/components/SubscriptionContext";
 import ThemeProvider from "@/components/ThemeProvider";
 import { NavigationTracker } from "@/components/ui/BackButton";
 import type { Metadata } from "next";
@@ -42,11 +43,13 @@ export default function RootLayout({
 					<QueryProvider>
 						<AuthProvider>
 							<PortfolioProvider>
-								<DocumentTitle />
-								<FavouritesProvider>
-									<NavigationTracker />
-									{children}
-								</FavouritesProvider>
+								<SubscriptionProvider>
+									<DocumentTitle />
+									<FavouritesProvider>
+										<NavigationTracker />
+										{children}
+									</FavouritesProvider>
+								</SubscriptionProvider>
 							</PortfolioProvider>
 						</AuthProvider>
 					</QueryProvider>
