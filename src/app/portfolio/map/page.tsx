@@ -91,14 +91,22 @@ export default function Home() {
 	// State selection
 	const [selectedState, setSelectedState] = useState<string | null>(null);
 
-	// Default viewport
-	const [viewport, setViewport] = useState({
-		center: [20, 0] as [number, number],
-		zoom: 3,
-		bounds: [
-			[-60, -180],
-			[80, 180],
-		] as [[number, number], [number, number]],
+	// Default viewport – restore from sessionStorage when revisiting
+	const [viewport, setViewport] = useState(() => {
+		if (typeof window !== "undefined") {
+			try {
+				const cached = sessionStorage.getItem("plotfolio-map-viewport");
+				if (cached) return JSON.parse(cached);
+			} catch {}
+		}
+		return {
+			center: [20, 0] as [number, number],
+			zoom: 3,
+			bounds: [
+				[-60, -180],
+				[80, 180],
+			] as [[number, number], [number, number]],
+		};
 	});
 
 	const handleViewportChange = useCallback(
@@ -112,6 +120,16 @@ export default function Home() {
 		[],
 	);
 
+	// Persist viewport to sessionStorage so revisiting restores the view
+	useEffect(() => {
+		try {
+			sessionStorage.setItem(
+				"plotfolio-map-viewport",
+				JSON.stringify(viewport),
+			);
+		} catch {}
+	}, [viewport]);
+
 	// Sync mapType from saved provider settings whenever they change
 	useEffect(() => {
 		if (providerSettings?.mapRenderer) {
@@ -121,16 +139,26 @@ export default function Home() {
 		}
 	}, [providerSettings?.mapRenderer]);
 
-	// Set mounted state and geolocate user
+	// Set mounted state and geolocate user (skip if we restored a cached viewport)
 	useEffect(() => {
 		setIsMounted(true);
 
-		if (typeof navigator !== "undefined" && navigator.geolocation) {
+		const hasCachedViewport = !!sessionStorage.getItem(
+			"plotfolio-map-viewport",
+		);
+		if (
+			!hasCachedViewport &&
+			typeof navigator !== "undefined" &&
+			navigator.geolocation
+		) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
 					setViewport((prev) => ({
 						...prev,
-						center: [position.coords.latitude, position.coords.longitude],
+						center: [position.coords.latitude, position.coords.longitude] as [
+							number,
+							number,
+						],
 						zoom: 13,
 					}));
 				},

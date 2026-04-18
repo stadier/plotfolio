@@ -225,6 +225,9 @@ export default function PropertyMap({
 					attribution={currentLayer.attribution}
 					maxZoom={currentLayer.maxZoom}
 					maxNativeZoom={currentLayer.maxZoom}
+					keepBuffer={6}
+					updateWhenIdle={false}
+					updateWhenZooming={false}
 				/>
 
 				{/* Overlay layer for hybrid view */}
