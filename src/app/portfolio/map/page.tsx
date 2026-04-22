@@ -92,7 +92,11 @@ export default function Home() {
 	const [selectedState, setSelectedState] = useState<string | null>(null);
 
 	// Default viewport – restore from sessionStorage when revisiting
-	const [viewport, setViewport] = useState(() => {
+	const [viewport, setViewport] = useState<{
+		center: [number, number];
+		zoom: number;
+		bounds: [[number, number], [number, number]];
+	}>(() => {
 		if (typeof window !== "undefined") {
 			try {
 				const cached = sessionStorage.getItem("plotfolio-map-viewport");
