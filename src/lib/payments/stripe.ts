@@ -127,20 +127,28 @@ export const stripeGateway: PaymentGateway = {
 			}
 			case "invoice.payment_succeeded": {
 				const invoice = event.data.object as Stripe.Invoice;
+				const subscriptionId =
+					typeof invoice.parent?.subscription_details?.subscription === "string"
+						? invoice.parent.subscription_details.subscription
+						: invoice.parent?.subscription_details?.subscription?.id ?? "";
 				return {
 					type: "payment.succeeded",
 					gatewayCustomerId: invoice.customer as string,
-					gatewaySubscriptionId: (invoice.subscription as string) ?? "",
+					gatewaySubscriptionId: subscriptionId,
 					tier: SubscriptionTier.FREE, // will be resolved from DB
 					status: SubscriptionStatus.ACTIVE,
 				};
 			}
 			case "invoice.payment_failed": {
 				const invoice = event.data.object as Stripe.Invoice;
+				const subscriptionId =
+					typeof invoice.parent?.subscription_details?.subscription === "string"
+						? invoice.parent.subscription_details.subscription
+						: invoice.parent?.subscription_details?.subscription?.id ?? "";
 				return {
 					type: "payment.failed",
 					gatewayCustomerId: invoice.customer as string,
-					gatewaySubscriptionId: (invoice.subscription as string) ?? "",
+					gatewaySubscriptionId: subscriptionId,
 					tier: SubscriptionTier.FREE,
 					status: SubscriptionStatus.PAST_DUE,
 				};
