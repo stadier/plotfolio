@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 
@@ -619,7 +619,7 @@ function FilterSidebar({
 
 /* ─── marketplace page ────────────────────────────────────────── */
 
-export default function MarketplacePage() {
+function MarketplacePageContent() {
 	const {
 		data: allProperties = [],
 		isLoading: loading,
@@ -986,5 +986,23 @@ export default function MarketplacePage() {
 				</div>
 			</div>
 		</AppShell>
+	);
+}
+
+export default function MarketplacePage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="min-h-screen bg-background text-on-surface">
+					<AppShell>
+						<div className="p-6 text-sm text-on-surface-variant">
+							Loading marketplace...
+						</div>
+					</AppShell>
+				</div>
+			}
+		>
+			<MarketplacePageContent />
+		</Suspense>
 	);
 }
