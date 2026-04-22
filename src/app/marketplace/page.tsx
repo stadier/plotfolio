@@ -4,6 +4,7 @@ import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useMarketplaceListings } from "@/hooks/usePropertyQueries";
+import { isPlotWordsCode, toPlotWords } from "@/lib/plotwords";
 import { formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import { Property, PropertyType } from "@/types/property";
 import {
@@ -19,6 +20,7 @@ import {
 	X,
 } from "lucide-react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 /* ─── helpers ─────────────────────────────────────────────────── */
@@ -395,7 +397,7 @@ function FilterSidebar({
 				<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
 				<input
 					type="text"
-					placeholder="Search listings…"
+					placeholder="Search or enter PlotWords…"
 					value={search}
 					onChange={(e) => onSearchChange(e.target.value)}
 					className="w-full pl-9 pr-8 py-2.5 text-sm border border-border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40"
@@ -626,8 +628,18 @@ export default function MarketplacePage() {
 	const error = queryError ? "Failed to load marketplace listings" : null;
 	const { isFavourite, toggleFavourite } = useFavourites();
 
+	const searchParams = useSearchParams();
+
 	// Filters
 	const [search, setSearch] = useState("");
+
+	// Seed search from URL params (?search= or ?plotwords=)
+	useEffect(() => {
+		const pw = searchParams.get("plotwords");
+		const q = searchParams.get("search");
+		if (pw) setSearch(pw);
+		else if (q) setSearch(q);
+	}, [searchParams]);
 	const [filterType, setFilterType] = useState<string>("");
 	const [sortKey, setSortKey] = useState<SortKey>("price-desc");
 	const [minPrice, setMinPrice] = useState<string>("");
@@ -662,16 +674,28 @@ export default function MarketplacePage() {
 		let list = allProperties;
 
 		if (search.trim()) {
-			const q = search.toLowerCase();
-			list = list.filter(
-				(p) =>
-					p.name.toLowerCase().includes(q) ||
-					(p.address ?? "").toLowerCase().includes(q) ||
-					(p.description ?? "").toLowerCase().includes(q) ||
-					(p.owner?.name ?? "").toLowerCase().includes(q) ||
-					(p.owner?.username ?? "").toLowerCase().includes(q) ||
-					(p.owner?.displayName ?? "").toLowerCase().includes(q),
-			);
+			const q = search.trim().toLowerCase();
+
+			// PlotWords code match — filter by exact cell
+			if (isPlotWordsCode(q)) {
+				list = list.filter(
+					(p) =>
+						p.coordinates &&
+						p.coordinates.lat !== 0 &&
+						p.coordinates.lng !== 0 &&
+						toPlotWords(p.coordinates.lat, p.coordinates.lng) === q,
+				);
+			} else {
+				list = list.filter(
+					(p) =>
+						p.name.toLowerCase().includes(q) ||
+						(p.address ?? "").toLowerCase().includes(q) ||
+						(p.description ?? "").toLowerCase().includes(q) ||
+						(p.owner?.name ?? "").toLowerCase().includes(q) ||
+						(p.owner?.username ?? "").toLowerCase().includes(q) ||
+						(p.owner?.displayName ?? "").toLowerCase().includes(q),
+				);
+			}
 		}
 
 		if (filterType) {
@@ -810,7 +834,7 @@ export default function MarketplacePage() {
 							<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
 							<input
 								type="text"
-								placeholder="Search listings…"
+								placeholder="Search or enter PlotWords…"
 								value={search}
 								onChange={(e) => setSearch(e.target.value)}
 								className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"

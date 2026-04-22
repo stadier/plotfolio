@@ -16,9 +16,9 @@ export async function GET(req: NextRequest) {
 		const propertyId = searchParams.get("propertyId");
 		const documentType = searchParams.get("documentType");
 
-		const filter: Record<string, string> = {};
+		const filter: Record<string, unknown> = {};
 		if (userId) filter.userId = userId;
-		if (propertyId) filter.propertyId = propertyId;
+		if (propertyId) filter.propertyIds = propertyId;
 		if (documentType) filter.documentType = documentType;
 
 		const documents = await AIDocumentModel.find(filter)
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 		const result = documents.map((doc) => ({
 			id: doc._id.toString(),
 			userId: doc.userId,
-			propertyId: doc.propertyId,
+			propertyIds: doc.propertyIds ?? [],
 			fileUrl: doc.fileUrl,
 			fileName: doc.fileName,
 			fileSize: doc.fileSize,

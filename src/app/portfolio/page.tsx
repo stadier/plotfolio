@@ -7,14 +7,16 @@ import PortfolioHealthWidget from "@/components/dashboard/PortfolioHealthWidget"
 import PropertySlideshowWidget from "@/components/dashboard/PropertySlideshowWidget";
 import RecentDocumentsWidget from "@/components/dashboard/RecentDocumentsWidget";
 import StatusDistributionWidget from "@/components/dashboard/StatusDistributionWidget";
+import ValueTrendWidget from "@/components/dashboard/ValueTrendWidget";
 import AppShell from "@/components/layout/AppShell";
 import { usePortfolio } from "@/components/PortfolioContext";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties, useOwnerBookings } from "@/hooks/usePropertyQueries";
+import { PropertyAPI } from "@/lib/api";
 import { formatCurrencyCompact } from "@/lib/utils";
 import { Building2, FileText, Loader2, MapPin, Wallet } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // ── Stat card used only in this dashboard ─────────────────────────────────────
 
@@ -59,6 +61,15 @@ export default function DashboardV2Page() {
 	);
 	const { data: bookings = [] } = useOwnerBookings(user?.id);
 
+	// Fetch AI document count
+	const [aiDocCount, setAiDocCount] = useState(0);
+	useEffect(() => {
+		if (!user?.id) return;
+		PropertyAPI.listDocuments({ userId: user.id }).then((docs) =>
+			setAiDocCount(docs.length),
+		);
+	}, [user?.id]);
+
 	if (authLoading || !user) {
 		return (
 			<AppShell>
@@ -74,10 +85,8 @@ export default function DashboardV2Page() {
 		0,
 	);
 	const totalArea = properties.reduce((s, p) => s + (p.area || 0), 0);
-	const docCount = properties.reduce(
-		(s, p) => s + (p.documents?.length ?? 0),
-		0,
-	);
+	const docCount =
+		properties.reduce((s, p) => s + (p.documents?.length ?? 0), 0) + aiDocCount;
 
 	const now = new Date();
 	const greeting =
@@ -192,23 +201,32 @@ export default function DashboardV2Page() {
 
 				{/* Constrained content area */}
 				{!loading && properties.length > 0 && (
-					<div className="sz-page pt-0 max-w-6xl">
-						{/* ── Dashboard overview chart + metrics ── */}
-						{/* <DashboardOverviewWidget properties={properties} /> */}
+					<div className="sz-page pt-0">
+						<div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_350px_350px] gap-4">
+							{/* ── Property billboard + value trend ── */}
+							<div className="min-w-0 lg:row-span-2 space-y-4">
+								<PropertySlideshowWidget
+									properties={properties}
+									onSelect={setSelectedId}
+								/>
+								<ValueTrendWidget properties={properties} />
+							</div>
 
-						{/* ── Property billboard ── */}
-						<PropertySlideshowWidget
-							properties={properties}
-							onSelect={setSelectedId}
-						/>
+							{/* ── First widget column ── */}
+							<div className="space-y-4">
+								<CalendarWidget properties={properties} bookings={bookings} />
+								<MiniMapWidget
+									properties={properties}
+									onSelect={setSelectedId}
+								/>
+							</div>
 
-						{/* ── Widget masonry ── */}
-						<div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4 mt-4">
-							<CalendarWidget properties={properties} bookings={bookings} />
-							<MiniMapWidget properties={properties} onSelect={setSelectedId} />
-							<PortfolioHealthWidget properties={properties} />
-							<RecentDocumentsWidget properties={properties} />
-							<StatusDistributionWidget properties={properties} />
+							{/* ── Second widget column (stacks below first on lg, beside on xl) ── */}
+							<div className="space-y-4">
+								<PortfolioHealthWidget properties={properties} />
+								<RecentDocumentsWidget properties={properties} />
+								<StatusDistributionWidget properties={properties} />
+							</div>
 						</div>
 					</div>
 				)}

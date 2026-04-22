@@ -437,6 +437,30 @@ body {
 	animation: slide-right 0.35s ease-out both;
 }
 
+/* Landing page slideshow */
+@keyframes kenburns {
+	0% {
+		transform: scale(1) translate(0%, 0%);
+	}
+	100% {
+		transform: scale(1.12) translate(-2%, -1%);
+	}
+}
+@keyframes kenburns-alt {
+	0% {
+		transform: scale(1.08) translate(-1%, 1%);
+	}
+	100% {
+		transform: scale(1) translate(1%, -1%);
+	}
+}
+.slide-kenburns {
+	animation: kenburns 9s ease-out forwards;
+}
+.slide-kenburns-alt {
+	animation: kenburns-alt 9s ease-in-out forwards;
+}
+
 /* Stagger delays for child elements */
 [data-animate] .stagger-1 {
 	animation-delay: 0.05s;

@@ -30,7 +30,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import MapPropertySidebar from "@/components/maps/MapPropertySidebar";
 import MapSearchControl from "@/components/maps/MapSearchControl";
-import PropertyCompactView from "@/components/property/PropertyCompactView";
+import PropertyFullView from "@/components/property/PropertyFullView";
 
 // Dynamically import unified map component to avoid SSR issues
 const PlotfolioMap = dynamic(() => import("@/components/maps/PlotfolioMap"), {
@@ -783,7 +783,7 @@ export default function Home() {
 
 					{/* Property Details Overlay */}
 					{selectedProperty && isPropertyCardVisible && (
-						<div className="absolute top-2 left-2 right-2 sm:right-auto sm:w-80 max-h-[calc(100%-1rem)] bg-glass backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-999 transition-all duration-300 flex flex-col">
+						<div className="absolute top-2 left-2 right-2 sm:right-auto sm:w-80 max-h-[calc(100%-1rem)] bg-card backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-999 transition-all duration-300 flex flex-col">
 							{/* Header with Controls */}
 							<div className="flex items-center justify-between p-4 pb-0 shrink-0">
 								<h2 className="text-lg font-semibold text-on-surface truncate flex-1 mr-3">
@@ -829,15 +829,14 @@ export default function Home() {
 								</div>
 							)}
 
-							{/* Expanded State - PropertyCompactView */}
+							{/* Expanded State - PropertyFullView */}
 							{isPropertyCardExpanded && (
-								<div className="overflow-y-auto p-4 pt-2">
-									<PropertyCompactView
+								<div className="overflow-y-auto p-0">
+									<PropertyFullView
 										property={selectedProperty}
-										layout="compact"
-										showGallery={false}
-										showOwner={false}
 										isOwner
+										singleColumn
+										hideHeader
 									/>
 								</div>
 							)}

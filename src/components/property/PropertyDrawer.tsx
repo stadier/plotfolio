@@ -88,7 +88,7 @@ export default function PropertyDrawer({
 			{/* Panel */}
 			<div
 				ref={panelRef}
-				className={`fixed right-0 top-[65px] h-[calc(100vh-65px)] bg-sidebar border-l border-border shadow-2xl z-40 flex flex-col
+				className={`fixed right-0 top-[65px] h-[calc(100vh-65px)] bg-card border-l border-border shadow-2xl z-40 flex flex-col
 					transition-transform duration-300 ease-in-out
 					w-full sm:w-[55vw] lg:w-[40vw]
 					${isOpen ? "translate-x-0" : "translate-x-full"}`}

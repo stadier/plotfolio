@@ -1,3 +1,4 @@
+import { toPlotWords } from "@/lib/plotwords";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -11,6 +12,24 @@ import {
 	SurveyData,
 } from "@/types/property";
 import mongoose, { Document, Schema } from "mongoose";
+
+const CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+function generateShortCode(length = 8): string {
+	let code = "";
+	for (let i = 0; i < length; i++) {
+		code += CHARS[Math.floor(Math.random() * CHARS.length)];
+	}
+	return code;
+}
+
+async function generateUniqueShortCode(): Promise<string> {
+	for (let attempt = 0; attempt < 10; attempt++) {
+		const code = generateShortCode();
+		const existing = await PropertyModel.findOne({ shortCode: code }).lean();
+		if (!existing) return code;
+	}
+	return generateShortCode(10); // fallback to longer code
+}
 
 // Property Owner Schema
 const PropertyOwnerSchema = new Schema<PropertyOwner>({
@@ -141,6 +160,8 @@ const PropertySchema = new Schema<Property & Document>(
 			lat: { type: Number, default: 0 },
 			lng: { type: Number, default: 0 },
 		},
+		plotWords: { type: String },
+		shortCode: { type: String, index: true },
 		area: { type: Number, default: 0 },
 		propertyType: {
 			type: String,
@@ -204,6 +225,13 @@ const PropertySchema = new Schema<Property & Document>(
 				signature: { type: String },
 			},
 		],
+		settings: {
+			showOwnershipHistory: { type: Boolean, default: false },
+			showPricing: { type: Boolean, default: true },
+			showContactInfo: { type: Boolean, default: true },
+			allowBookings: { type: Boolean, default: false },
+			showLocation: { type: Boolean, default: true },
+		},
 	},
 	{
 		timestamps: true,
@@ -247,6 +275,9 @@ function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
 	if (prop.coordinates) {
 		prop.coordinates.lat = prop.coordinates.lat || 0;
 		prop.coordinates.lng = prop.coordinates.lng || 0;
+		if (prop.coordinates.lat !== 0 || prop.coordinates.lng !== 0) {
+			prop.plotWords = toPlotWords(prop.coordinates.lat, prop.coordinates.lng);
+		}
 	}
 	if (prop.documents) {
 		prop.documents = prop.documents.map((doc: any) => {
@@ -289,6 +320,9 @@ export class PropertyService {
 	}
 
 	static async createProperty(property: Property): Promise<Property> {
+		if (!property.shortCode) {
+			property.shortCode = await generateUniqueShortCode();
+		}
 		const created = await PropertyModel.create(property);
 		const obj = created.toObject();
 		const { _id, __v, ...cleanProp } = obj as any;

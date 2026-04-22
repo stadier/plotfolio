@@ -41,7 +41,7 @@ import {
 	Upload,
 	X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -83,9 +83,15 @@ function formatDate(date: string | Date): string {
 function getFileKind(
 	mimeType: string,
 	fileName: string,
-): "image" | "pdf" | "document" {
+): "image" | "pdf" | "html" | "document" {
 	if (mimeType.startsWith("image/")) return "image";
 	if (mimeType === "application/pdf" || fileName.endsWith(".pdf")) return "pdf";
+	if (
+		mimeType === "text/html" ||
+		fileName.endsWith(".html") ||
+		fileName.endsWith(".htm")
+	)
+		return "html";
 	return "document";
 }
 
@@ -96,7 +102,7 @@ function DocumentThumbnail({
 	kind,
 }: {
 	doc: AIDocument;
-	kind: "image" | "pdf" | "document";
+	kind: "image" | "pdf" | "html" | "document";
 }) {
 	if (kind === "image") {
 		return (
@@ -133,6 +139,24 @@ function DocumentThumbnail({
 		);
 	}
 
+	if (kind === "html") {
+		return (
+			<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-card border-b border-border">
+				<div className="p-3 pt-4 flex flex-col gap-1.5">
+					<div className="h-2 w-1/3 rounded-full bg-blue-200" />
+					<div className="h-1.5 w-full rounded-full bg-slate-100" />
+					<div className="h-1.5 w-5/6 rounded-full bg-slate-100" />
+					<div className="h-1.5 w-2/3 rounded-full bg-slate-100" />
+					<div className="h-1.5 w-full rounded-full bg-slate-100" />
+				</div>
+				<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-orange-500/90 text-white text-badge font-bold px-1.5 py-0.5 rounded">
+					<FileText className="w-2.5 h-2.5" />
+					HTML
+				</span>
+			</div>
+		);
+	}
+
 	const ext = doc.fileName.split(".").pop()?.toUpperCase() ?? "FILE";
 	return (
 		<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-card border-b border-border">
@@ -152,14 +176,18 @@ function DocumentThumbnail({
 
 function AIDocumentCard({
 	doc,
-	propertyName,
+	propertyNames,
 	onPreview,
 	onDelete,
+	onLinkProperties,
+	properties,
 }: {
 	doc: AIDocument;
-	propertyName?: string;
+	propertyNames?: string[];
 	onPreview: () => void;
 	onDelete: () => void;
+	onLinkProperties: (propertyIds: string[]) => void;
+	properties: Property[];
 }) {
 	const kind = getFileKind(doc.mimeType, doc.fileName);
 
@@ -200,12 +228,52 @@ function AIDocumentCard({
 					<span className="text-outline">&middot;</span>
 					<span>{formatDate(doc.createdAt)}</span>
 				</div>
-				{propertyName && (
-					<div className="flex items-center gap-1 text-[11px] text-secondary truncate mt-0.5">
-						<Link2 className="w-3 h-3 shrink-0" />
-						<span className="truncate">{propertyName}</span>
-					</div>
-				)}
+				<div className="mt-0.5">
+					{propertyNames && propertyNames.length > 0 ? (
+						<div className="flex flex-wrap gap-1">
+							{propertyNames.map((name, i) => (
+								<span
+									key={i}
+									className="inline-flex items-center gap-0.5 text-badge text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-md"
+								>
+									<Link2 className="w-2.5 h-2.5 shrink-0" />
+									<span className="truncate max-w-[100px]">{name}</span>
+								</span>
+							))}
+						</div>
+					) : (
+						<span className="text-badge text-outline">
+							No properties linked
+						</span>
+					)}
+					<details className="mt-1 group/details">
+						<summary className="text-badge text-primary cursor-pointer select-none hover:underline">
+							Edit links
+						</summary>
+						<div className="mt-1 max-h-28 overflow-y-auto space-y-0.5">
+							{properties.map((p) => (
+								<label
+									key={p.id}
+									className="flex items-center gap-1.5 text-[11px] text-on-surface-variant cursor-pointer hover:text-on-surface py-0.5"
+								>
+									<input
+										type="checkbox"
+										checked={doc.propertyIds?.includes(p.id) ?? false}
+										onChange={(e) => {
+											const current = doc.propertyIds ?? [];
+											const next = e.target.checked
+												? [...current, p.id]
+												: current.filter((id) => id !== p.id);
+											onLinkProperties(next);
+										}}
+										className="rounded border-border text-primary focus:ring-primary/20 w-3 h-3"
+									/>
+									<span className="truncate">{p.name}</span>
+								</label>
+							))}
+						</div>
+					</details>
+				</div>
 				{doc.confidence != null && (
 					<div className="flex items-center gap-1 text-badge text-outline mt-0.5">
 						AI confidence: {(doc.confidence * 100).toFixed(0)}%
@@ -237,7 +305,7 @@ function UploadDocumentModal({
 	onUploaded: (doc: AIDocument) => void;
 }) {
 	const [file, setFile] = useState<File | null>(null);
-	const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+	const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
 	const [documentType, setDocumentType] = useState<AIDocumentType>(
 		AIDocumentType.OTHER,
 	);
@@ -251,7 +319,9 @@ function UploadDocumentModal({
 		setError(null);
 		try {
 			const result = await PropertyAPI.uploadDocument(file, userId, {
-				propertyId: selectedPropertyId || undefined,
+				propertyIds: selectedPropertyIds.length
+					? selectedPropertyIds
+					: undefined,
 				documentType,
 			});
 			if (!result) throw new Error("Upload failed");
@@ -358,26 +428,39 @@ function UploadDocumentModal({
 					</div>
 				</div>
 
-				{/* Associate with property */}
+				{/* Associate with properties */}
 				<div className="mb-5">
 					<label className="block text-xs font-medium text-on-surface-variant mb-1.5">
-						Associate with Property{" "}
+						Associate with Properties{" "}
 						<span className="text-outline">(optional)</span>
 					</label>
-					<div className="relative">
-						<select
-							value={selectedPropertyId}
-							onChange={(e) => setSelectedPropertyId(e.target.value)}
-							className="w-full appearance-none pl-3 pr-8 py-2 text-sm border border-border rounded-lg bg-card text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
-						>
-							<option value="">No property (standalone)</option>
-							{properties.map((p) => (
-								<option key={p.id} value={p.id}>
-									{p.name}
-								</option>
-							))}
-						</select>
-						<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
+					<div className="max-h-36 overflow-y-auto border border-border rounded-md bg-card p-2 space-y-1">
+						{properties.length === 0 ? (
+							<p className="text-xs text-outline py-1">
+								No properties available
+							</p>
+						) : (
+							properties.map((p) => (
+								<label
+									key={p.id}
+									className="flex items-center gap-2 text-sm text-on-surface cursor-pointer hover:bg-surface-container-high rounded px-1 py-0.5"
+								>
+									<input
+										type="checkbox"
+										checked={selectedPropertyIds.includes(p.id)}
+										onChange={(e) => {
+											setSelectedPropertyIds((prev) =>
+												e.target.checked
+													? [...prev, p.id]
+													: prev.filter((id) => id !== p.id),
+											);
+										}}
+										className="rounded border-border text-primary focus:ring-primary/20"
+									/>
+									<span className="truncate">{p.name}</span>
+								</label>
+							))
+						)}
 					</div>
 				</div>
 
@@ -419,6 +502,9 @@ function DocumentPreviewModal({
 	onClose: () => void;
 }) {
 	const kind = getFileKind(doc.mimeType, doc.fileName);
+	const viewUrl = `/api/documents/${doc.id}/view`;
+	const [exportOpen, setExportOpen] = useState(false);
+	const [htmlContent, setHtmlContent] = useState<string | null>(null);
 
 	useEffect(() => {
 		function handleKey(e: KeyboardEvent) {
@@ -427,6 +513,102 @@ function DocumentPreviewModal({
 		document.addEventListener("keydown", handleKey);
 		return () => document.removeEventListener("keydown", handleKey);
 	}, [onClose]);
+
+	// Preload HTML content for export when possible (can fail on cross-origin URLs).
+	useEffect(() => {
+		if (kind !== "html") return;
+		fetch(viewUrl)
+			.then((r) => r.text())
+			.then(setHtmlContent)
+			.catch(() => setHtmlContent(null));
+	}, [kind, viewUrl]);
+
+	async function readHtmlContent(): Promise<string | null> {
+		if (htmlContent) return htmlContent;
+		try {
+			return await fetch(viewUrl).then((r) => r.text());
+		} catch {
+			return null;
+		}
+	}
+
+	function stripBaseName(name: string) {
+		return name.replace(/\.[^.]+$/, "");
+	}
+
+	function downloadBlob(blob: Blob, filename: string) {
+		const url = URL.createObjectURL(blob);
+		const a = Object.assign(document.createElement("a"), {
+			href: url,
+			download: filename,
+		});
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(url);
+	}
+
+	async function exportAs(format: "txt" | "pdf" | "html") {
+		const base = stripBaseName(doc.fileName);
+
+		try {
+			if (format === "txt") {
+				// Extract text: use ocrText if available, else strip HTML tags, else just download
+				let text = doc.ocrText ?? "";
+				if (!text && htmlContent) {
+					const tmp = document.createElement("div");
+					tmp.innerHTML = htmlContent;
+					text = tmp.textContent ?? tmp.innerText ?? "";
+				}
+				if (!text) {
+					// Fetch original and strip (if accessible)
+					const raw = await readHtmlContent();
+					if (raw) {
+						const tmp = document.createElement("div");
+						tmp.innerHTML = raw;
+						text = tmp.textContent ?? tmp.innerText ?? raw;
+					}
+				}
+				if (!text) {
+					window.open(viewUrl, "_blank", "noopener,noreferrer");
+					setExportOpen(false);
+					return;
+				}
+				downloadBlob(new Blob([text], { type: "text/plain" }), `${base}.txt`);
+			} else if (format === "pdf") {
+				// Open a print-friendly window for browser PDF export
+				const content = await readHtmlContent();
+				if (!content) {
+					window.open(viewUrl, "_blank", "noopener,noreferrer");
+					setExportOpen(false);
+					return;
+				}
+				const w = window.open("", "_blank");
+				if (w) {
+					w.document.write(content);
+					w.document.close();
+					w.focus();
+					w.print();
+				}
+			} else if (format === "html") {
+				const content = await readHtmlContent();
+				if (!content) {
+					window.open(viewUrl, "_blank", "noopener,noreferrer");
+					setExportOpen(false);
+					return;
+				}
+				downloadBlob(
+					new Blob([content], { type: "text/html" }),
+					`${base}.html`,
+				);
+			}
+		} catch (error) {
+			console.error("[documents] export failed", error);
+			window.open(viewUrl, "_blank", "noopener,noreferrer");
+		} finally {
+			setExportOpen(false);
+		}
+	}
 
 	return (
 		<div
@@ -438,8 +620,8 @@ function DocumentPreviewModal({
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="flex items-center justify-between px-5 py-3 border-b border-border">
-					<div>
-						<h3 className="text-sm font-semibold text-on-surface">
+					<div className="min-w-0 flex-1">
+						<h3 className="text-sm font-semibold text-on-surface truncate">
 							{doc.fileName}
 						</h3>
 						<p className="text-xs text-outline">
@@ -448,25 +630,77 @@ function DocumentPreviewModal({
 							{formatDate(doc.createdAt)}
 						</p>
 					</div>
-					<button
-						onClick={onClose}
-						className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
-					>
-						<X className="w-5 h-5" />
-					</button>
+					<div className="flex items-center gap-1.5 shrink-0 ml-3">
+						{/* Export dropdown */}
+						<div className="relative">
+							<button
+								onClick={() => setExportOpen(!exportOpen)}
+								className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md text-on-surface-variant hover:bg-surface-container-high transition-colors border border-border"
+							>
+								<Download className="w-3.5 h-3.5" />
+								Export
+								<ChevronDown className="w-3 h-3" />
+							</button>
+							{exportOpen && (
+								<div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-10 min-w-[140px] py-1">
+									<a
+										href={viewUrl}
+										download={doc.fileName}
+										className="block px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+										onClick={() => setExportOpen(false)}
+									>
+										Original ({doc.fileName.split(".").pop()?.toUpperCase()})
+									</a>
+									<button
+										onClick={() => exportAs("txt")}
+										className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+									>
+										Plain Text (.txt)
+									</button>
+									<button
+										onClick={() => exportAs("pdf")}
+										className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+									>
+										PDF (.pdf)
+									</button>
+									{kind !== "html" && (
+										<button
+											onClick={() => exportAs("html")}
+											className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+										>
+											HTML (.html)
+										</button>
+									)}
+								</div>
+							)}
+						</div>
+						<button
+							onClick={onClose}
+							className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
+						>
+							<X className="w-5 h-5" />
+						</button>
+					</div>
 				</div>
 				<div className="flex-1 overflow-auto p-4">
 					{kind === "image" ? (
 						// eslint-disable-next-line @next/next/no-img-element
 						<img
-							src={doc.fileUrl}
+							src={viewUrl}
 							alt={doc.fileName}
 							className="max-w-full max-h-[70vh] mx-auto rounded-lg"
 						/>
 					) : kind === "pdf" ? (
 						<iframe
-							src={doc.fileUrl}
+							src={viewUrl}
 							className="w-full h-[70vh] rounded-lg border border-border"
+							title={doc.fileName}
+						/>
+					) : kind === "html" ? (
+						<iframe
+							src={viewUrl}
+							sandbox="allow-same-origin allow-popups allow-forms"
+							className="w-full h-[70vh] rounded-lg border border-border bg-white"
 							title={doc.fileName}
 						/>
 					) : (
@@ -476,7 +710,7 @@ function DocumentPreviewModal({
 								Preview not available for this file type.
 							</p>
 							<a
-								href={doc.fileUrl}
+								href={viewUrl}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="mt-3 text-sm text-primary hover:underline"
@@ -505,12 +739,17 @@ interface LetterheadSettings {
 function CreateDocumentModal({
 	onClose,
 	onCreated,
+	userId,
+	properties,
 }: {
 	onClose: () => void;
 	onCreated: () => void;
+	userId: string;
+	properties: Property[];
 }) {
 	const editorRef = useRef<HTMLDivElement>(null);
 	const [title, setTitle] = useState("");
+	const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
 	const [showLetterhead, setShowLetterhead] = useState(false);
 	const [letterhead, setLetterhead] = useState<LetterheadSettings>({
 		companyName: "",
@@ -629,12 +868,25 @@ ${signatureHtml}
 		);
 		setSaving(true);
 		try {
-			// We don't have a userId here, so the parent will handle the actual upload
 			const formData = new FormData();
 			formData.append("file", file);
-			// Upload through the raw fetch since we generate client-side
+			formData.append("userId", userId);
+			if (selectedPropertyIds.length)
+				formData.append("propertyIds", selectedPropertyIds.join(","));
+			formData.append("documentType", "other");
+			formData.append("skipIndexing", "true");
+			const res = await fetch("/api/documents/upload", {
+				method: "POST",
+				body: formData,
+			});
+			if (!res.ok) {
+				const err = await res.json();
+				throw new Error(err.error || "Upload failed");
+			}
 			onCreated();
 			onClose();
+		} catch (err) {
+			console.error("[CreateDocumentModal] save failed:", err);
 		} finally {
 			setSaving(false);
 		}
@@ -684,8 +936,42 @@ ${signatureHtml}
 									value={title}
 									onChange={(e) => setTitle(e.target.value)}
 									placeholder="e.g. Sale Agreement"
-									className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+									className="w-full px-3 py-2 text-sm border border-border rounded-md bg-card text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
 								/>
+							</div>
+
+							{/* Associate with properties */}
+							<div>
+								<label className="block text-xs font-medium text-on-surface-variant mb-1">
+									Attach to Properties{" "}
+									<span className="text-outline">(optional)</span>
+								</label>
+								<div className="max-h-28 overflow-y-auto border border-border rounded-md bg-card p-2 space-y-0.5">
+									{properties.length === 0 ? (
+										<p className="text-xs text-outline py-1">No properties</p>
+									) : (
+										properties.map((p) => (
+											<label
+												key={p.id}
+												className="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer hover:text-on-surface py-0.5"
+											>
+												<input
+													type="checkbox"
+													checked={selectedPropertyIds.includes(p.id)}
+													onChange={(e) => {
+														setSelectedPropertyIds((prev) =>
+															e.target.checked
+																? [...prev, p.id]
+																: prev.filter((id) => id !== p.id),
+														);
+													}}
+													className="rounded border-border text-primary focus:ring-primary/20 w-3 h-3"
+												/>
+												<span className="truncate">{p.name}</span>
+											</label>
+										))
+									)}
+								</div>
 							</div>
 
 							{/* Letterhead toggle */}
@@ -1102,8 +1388,9 @@ export default function DocumentsPage() {
 				(d) =>
 					d.fileName.toLowerCase().includes(q) ||
 					getDocTypeLabel(d.documentType).toLowerCase().includes(q) ||
-					(d.propertyId &&
-						propertyMap.get(d.propertyId)?.toLowerCase().includes(q)),
+					d.propertyIds?.some((pid) =>
+						propertyMap.get(pid)?.toLowerCase().includes(q),
+					),
 			);
 		}
 
@@ -1113,9 +1400,9 @@ export default function DocumentsPage() {
 
 		if (filterProperty) {
 			if (filterProperty === "__none__") {
-				list = list.filter((d) => !d.propertyId);
+				list = list.filter((d) => !d.propertyIds?.length);
 			} else {
-				list = list.filter((d) => d.propertyId === filterProperty);
+				list = list.filter((d) => d.propertyIds?.includes(filterProperty));
 			}
 		}
 
@@ -1165,7 +1452,7 @@ export default function DocumentsPage() {
 
 	// Summary stats
 	const totalSize = documents.reduce((sum, d) => sum + d.fileSize, 0);
-	const linkedCount = documents.filter((d) => d.propertyId).length;
+	const linkedCount = documents.filter((d) => d.propertyIds?.length).length;
 	const typeSet = new Set(documents.map((d) => d.documentType));
 
 	const summaryStats = [
@@ -1195,6 +1482,15 @@ export default function DocumentsPage() {
 		const ok = await PropertyAPI.deleteDocument(docId);
 		if (ok) {
 			setDocuments((prev) => prev.filter((d) => d.id !== docId));
+		}
+	}
+
+	async function handleLinkProperties(docId: string, propertyIds: string[]) {
+		const ok = await PropertyAPI.updateDocument(docId, { propertyIds });
+		if (ok) {
+			setDocuments((prev) =>
+				prev.map((d) => (d.id === docId ? { ...d, propertyIds } : d)),
+			);
 		}
 	}
 
@@ -1427,11 +1723,17 @@ export default function DocumentsPage() {
 							>
 								<AIDocumentCard
 									doc={doc}
-									propertyName={
-										doc.propertyId ? propertyMap.get(doc.propertyId) : undefined
+									propertyNames={
+										doc.propertyIds
+											?.map((pid) => propertyMap.get(pid))
+											.filter(Boolean) as string[] | undefined
 									}
 									onPreview={() => setPreviewDoc(doc)}
 									onDelete={() => handleDelete(doc.id)}
+									onLinkProperties={(pids) =>
+										handleLinkProperties(doc.id, pids)
+									}
+									properties={properties}
 								/>
 							</div>
 						))}
@@ -1473,10 +1775,21 @@ export default function DocumentsPage() {
 												{getDocTypeLabel(doc.documentType)}
 											</span>
 										</td>
-										<td className="px-4 py-3 text-on-surface-variant max-w-[200px] truncate">
-											{doc.propertyId
-												? (propertyMap.get(doc.propertyId) ?? "Unknown")
-												: "—"}
+										<td className="px-4 py-3 text-on-surface-variant max-w-[200px]">
+											{doc.propertyIds?.length ? (
+												<div className="flex flex-wrap gap-1">
+													{doc.propertyIds.map((pid) => (
+														<span
+															key={pid}
+															className="inline-block text-xs bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-md truncate max-w-[120px]"
+														>
+															{propertyMap.get(pid) ?? "Unknown"}
+														</span>
+													))}
+												</div>
+											) : (
+												"—"
+											)}
 										</td>
 										<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
 											{formatFileSize(doc.fileSize)}
@@ -1581,6 +1894,8 @@ export default function DocumentsPage() {
 				<CreateDocumentModal
 					onClose={() => setShowCreate(false)}
 					onCreated={fetchData}
+					userId={user.id}
+					properties={properties}
 				/>
 			)}
 

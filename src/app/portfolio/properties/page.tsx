@@ -10,8 +10,10 @@ import {
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
+import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { queryKeys, useMyProperties } from "@/hooks/usePropertyQueries";
+import { PropertyAPI } from "@/lib/api";
 import { formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import {
 	Property,
@@ -38,7 +40,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface PropertyPreviewConfig {
 	src: string;
@@ -284,55 +286,12 @@ function PropertyHero({ property }: { property: Property }) {
 	}
 
 	return (
-		<div className="relative mb-4 h-44 overflow-hidden rounded-lg border border-slate-200 bg-linear-to-br from-[#eef3ea] via-[#f7f4ec] to-[#dde7dd]">
-			<div className="absolute inset-0 opacity-70">
-				<svg
-					viewBox="0 0 400 220"
-					className="h-full w-full"
-					fill="none"
-					aria-hidden="true"
-				>
-					<rect x="24" y="24" width="140" height="74" rx="14" fill="#F9FBF7" />
-					<rect x="182" y="24" width="194" height="74" rx="14" fill="#DDE8D8" />
-					<rect x="24" y="118" width="164" height="78" rx="14" fill="#C7D9C5" />
-					<rect
-						x="206"
-						y="118"
-						width="170"
-						height="78"
-						rx="14"
-						fill="#E8DCC8"
-					/>
-					<path d="M0 108H400" stroke="#FFFFFF" strokeWidth="10" />
-					<path d="M168 0V220" stroke="#FFFFFF" strokeWidth="8" />
-					<path
-						d="M280 0V220"
-						stroke="#FFFFFF"
-						strokeWidth="6"
-						strokeDasharray="8 8"
-					/>
-					{built && (
-						<rect
-							x="224"
-							y="134"
-							width="56"
-							height="40"
-							rx="8"
-							fill="#637455"
-						/>
-					)}
-					{built && (
-						<rect
-							x="244"
-							y="116"
-							width="16"
-							height="18"
-							rx="4"
-							fill="#637455"
-						/>
-					)}
-				</svg>
-			</div>
+		<div className="relative mb-4 h-44 overflow-hidden rounded-lg border border-slate-200">
+			<PropertyPlaceholderSvg
+				seed={property.id || property.name}
+				hasBuilding={built}
+				className="absolute inset-0 opacity-70"
+			/>
 			<div className="absolute inset-0 bg-linear-to-t from-white/40 via-transparent to-transparent" />
 			<div className="absolute left-3 top-3 rounded-full bg-white/92 px-2.5 py-1 typo-badge font-semibold uppercase tracking-[0.16em] text-slate-700">
 				{built ? "Site with structure" : "Survey fallback"}
@@ -357,13 +316,15 @@ function PropertyCard({
 	onSelect,
 	sharedFrom,
 	canEdit = true,
+	aiDocCount = 0,
 }: {
 	property: Property;
 	onSelect: (id: string) => void;
 	sharedFrom?: string | null;
 	canEdit?: boolean;
+	aiDocCount?: number;
 }) {
-	const docCount = property.documents?.length ?? 0;
+	const docCount = (property.documents?.length ?? 0) + aiDocCount;
 	const hasWorth = property.currentValue != null;
 	const worthChange =
 		hasWorth && (property.purchasePrice ?? 0) > 0
@@ -556,6 +517,23 @@ export default function PropertiesPage() {
 	const [viewMode, setViewMode] = useState<"card" | "table">("card");
 	const animate = useAnimateOnce("properties");
 
+	// AI document counts per property
+	const [aiDocCounts, setAiDocCounts] = useState<Map<string, number>>(
+		new Map(),
+	);
+	useEffect(() => {
+		if (!user?.id) return;
+		PropertyAPI.listDocuments({ userId: user.id }).then((docs) => {
+			const counts = new Map<string, number>();
+			for (const doc of docs) {
+				for (const pid of doc.propertyIds ?? []) {
+					counts.set(pid, (counts.get(pid) ?? 0) + 1);
+				}
+			}
+			setAiDocCounts(counts);
+		});
+	}, [user?.id]);
+
 	// Filtered + sorted list
 	const filtered = useMemo(() => {
 		let list = properties;
@@ -631,10 +609,9 @@ export default function PropertiesPage() {
 		0,
 	);
 	const totalArea = properties.reduce((sum, p) => sum + (p.area ?? 0), 0);
-	const totalDocs = properties.reduce(
-		(sum, p) => sum + (p.documents?.length ?? 0),
-		0,
-	);
+	const totalDocs =
+		properties.reduce((sum, p) => sum + (p.documents?.length ?? 0), 0) +
+		Array.from(aiDocCounts.values()).reduce((a, b) => a + b, 0);
 
 	const summaryStats = [
 		{
@@ -876,6 +853,7 @@ export default function PropertiesPage() {
 									onSelect={setSelectedId}
 									sharedFrom={sharedPortfolioName}
 									canEdit={activePermissions.canEditProperties}
+									aiDocCount={aiDocCounts.get(property.id) ?? 0}
 								/>
 							</div>
 						))}
@@ -993,7 +971,8 @@ export default function PropertiesPage() {
 												{(property.quantity ?? 1) > 1 ? property.quantity : "—"}
 											</td>
 											<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
-												{property.documents?.length ?? 0}
+												{(property.documents?.length ?? 0) +
+													(aiDocCounts.get(property.id) ?? 0)}
 											</td>
 											<td className="px-4 py-3 text-center whitespace-nowrap">
 												{activePermissions.canEditProperties && (

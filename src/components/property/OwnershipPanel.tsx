@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/AuthContext";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import UserAvatar from "@/components/ui/UserAvatar";
 import UserLookupField, {
 	type LookedUpUser,
@@ -102,7 +103,7 @@ function TransferCard({
 	};
 
 	return (
-		<div className="border border-border rounded-xl bg-card p-4 max-w-lg space-y-3">
+		<div className="border border-border rounded-xl bg-card p-4 w-full max-w-none space-y-3">
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex items-center gap-2 min-w-0">
 					<UserAvatar
@@ -160,7 +161,7 @@ function TransferCard({
 							type="button"
 							disabled={loading}
 							onClick={() => handleAction("cancel")}
-							className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
+							className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
 						>
 							<X className="w-3.5 h-3.5" /> Cancel
 						</button>
@@ -173,7 +174,7 @@ function TransferCard({
 										type="button"
 										disabled={loading}
 										onClick={() => handleAction("accept")}
-										className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+										className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
 									>
 										<Check className="w-3.5 h-3.5" /> Accept
 									</button>
@@ -181,7 +182,7 @@ function TransferCard({
 										type="button"
 										disabled={loading}
 										onClick={() => setResponding(true)}
-										className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+										className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
 									>
 										<X className="w-3.5 h-3.5" /> Reject
 									</button>
@@ -192,21 +193,21 @@ function TransferCard({
 										value={msg}
 										onChange={(e) => setMsg(e.target.value)}
 										placeholder="Reason for rejection (optional)"
-										className="w-full px-3 py-1.5 rounded-lg border border-border bg-card text-on-surface text-xs"
+										className="w-full px-3 py-1.5 rounded-md border border-border bg-card text-on-surface text-xs"
 									/>
 									<div className="flex gap-2">
 										<button
 											type="button"
 											disabled={loading}
 											onClick={() => handleAction("reject")}
-											className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+											className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
 										>
 											Confirm Reject
 										</button>
 										<button
 											type="button"
 											onClick={() => setResponding(false)}
-											className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
+											className="px-3 py-1.5 rounded-md text-xs font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
 										>
 											Back
 										</button>
@@ -323,20 +324,20 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 					<Send className="w-4 h-4" /> Transfer Ownership
 				</h3>
 				{isOwner && !hasPending && (
-					<button
+					<PrimaryButton
 						type="button"
 						onClick={() => setShowForm(!showForm)}
-						className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-white hover:opacity-90 transition-opacity"
+						className="px-4 gap-1 normal-case tracking-normal"
 					>
 						<Plus className="w-3.5 h-3.5" /> New Transfer
-					</button>
+					</PrimaryButton>
 				)}
 			</div>
 
 			{showForm && (
 				<form
 					onSubmit={handleSubmit}
-					className="border border-border rounded-xl bg-card p-4 max-w-lg space-y-3"
+					className="border border-border rounded-xl bg-card p-4 w-full max-w-none space-y-3"
 				>
 					<p className="text-xs text-on-surface-variant">
 						Transfer ownership of <strong>{property.name}</strong> to another
@@ -370,7 +371,7 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 								required={lookupStatus !== "found"}
 								value={form.toName}
 								onChange={(e) => setForm({ ...form, toName: e.target.value })}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="Jane Doe"
 								readOnly={lookupStatus === "found"}
 							/>
@@ -383,7 +384,7 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 								type="email"
 								value={form.toEmail}
 								onChange={(e) => setForm({ ...form, toEmail: e.target.value })}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="jane@example.com"
 								readOnly={lookupStatus === "found"}
 							/>
@@ -401,7 +402,7 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 								onChange={(e) =>
 									setForm({ ...form, transferDate: e.target.value })
 								}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 							/>
 						</label>
 						<label className="block">
@@ -414,7 +415,7 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 								step="any"
 								value={form.price}
 								onChange={(e) => setForm({ ...form, price: e.target.value })}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="0"
 							/>
 						</label>
@@ -428,7 +429,7 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 							value={form.message}
 							onChange={(e) => setForm({ ...form, message: e.target.value })}
 							rows={2}
-							className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm resize-none"
+							className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm resize-none"
 							placeholder="Note to recipient…"
 						/>
 					</label>
@@ -436,18 +437,18 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 					{error && <p className="text-xs text-red-600">{error}</p>}
 
 					<div className="flex gap-2">
-						<button
+						<PrimaryButton
 							type="submit"
 							disabled={submitting}
-							className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+							className="px-4 py-2 gap-1 text-sm normal-case tracking-normal"
 						>
 							<Send className="w-4 h-4" />
 							{submitting ? "Sending…" : "Initiate Transfer"}
-						</button>
+						</PrimaryButton>
 						<button
 							type="button"
 							onClick={() => setShowForm(false)}
-							className="px-4 py-2 rounded-lg text-sm font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
+							className="px-4 py-2 rounded-md text-sm font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
 						>
 							Cancel
 						</button>
@@ -524,7 +525,7 @@ function RecordCard({
 				/>
 			</div>
 
-			<div className="border border-border rounded-xl bg-card p-4 max-w-lg space-y-2">
+			<div className="border border-border rounded-xl bg-card p-4 w-full max-w-none space-y-2">
 				<div className="flex items-center justify-between gap-2">
 					<div className="flex items-center gap-2 min-w-0">
 						{record.ownerAvatar ? (
@@ -692,20 +693,20 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 					<Clock className="w-4 h-4" /> Ownership History
 				</h3>
 				{isOwner && (
-					<button
+					<PrimaryButton
 						type="button"
 						onClick={() => setShowForm(!showForm)}
-						className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-white hover:opacity-90 transition-opacity"
+						className="px-4 gap-1 normal-case tracking-normal"
 					>
 						<Plus className="w-3.5 h-3.5" /> Add Past Owner
-					</button>
+					</PrimaryButton>
 				)}
 			</div>
 
 			{showForm && (
 				<form
 					onSubmit={handleSubmit}
-					className="border border-border rounded-xl bg-card p-4 max-w-lg space-y-3"
+					className="border border-border rounded-xl bg-card p-4 w-full max-w-none space-y-3"
 				>
 					<p className="text-xs text-on-surface-variant">
 						Record a previous owner of this property (before your ownership or
@@ -723,7 +724,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 								onChange={(e) =>
 									setForm({ ...form, ownerName: e.target.value })
 								}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="Previous owner name"
 							/>
 						</label>
@@ -737,7 +738,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 								onChange={(e) =>
 									setForm({ ...form, ownerEmail: e.target.value })
 								}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="email@example.com"
 							/>
 						</label>
@@ -753,7 +754,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 								onChange={(e) =>
 									setForm({ ...form, ownerType: e.target.value })
 								}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 							>
 								<option value="individual">Individual</option>
 								<option value="company">Company</option>
@@ -774,7 +775,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 										acquisitionMethod: e.target.value,
 									})
 								}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 							>
 								<option value="purchase">Purchase</option>
 								<option value="inheritance">Inheritance</option>
@@ -798,7 +799,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 								onChange={(e) =>
 									setForm({ ...form, acquiredDate: e.target.value })
 								}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 							/>
 						</label>
 						<label className="block">
@@ -814,7 +815,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 										transferredDate: e.target.value,
 									})
 								}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 							/>
 						</label>
 						<label className="block">
@@ -827,7 +828,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 								step="any"
 								value={form.price}
 								onChange={(e) => setForm({ ...form, price: e.target.value })}
-								className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm"
+								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="0"
 							/>
 						</label>
@@ -841,7 +842,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 							value={form.notes}
 							onChange={(e) => setForm({ ...form, notes: e.target.value })}
 							rows={2}
-							className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-card text-on-surface text-sm resize-none"
+							className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm resize-none"
 							placeholder="Any relevant context…"
 						/>
 					</label>
@@ -849,18 +850,18 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 					{error && <p className="text-xs text-red-600">{error}</p>}
 
 					<div className="flex gap-2">
-						<button
+						<PrimaryButton
 							type="submit"
 							disabled={submitting}
-							className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+							className="px-4 py-2 gap-1 text-sm normal-case tracking-normal"
 						>
 							<Plus className="w-4 h-4" />
 							{submitting ? "Saving…" : "Add Record"}
-						</button>
+						</PrimaryButton>
 						<button
 							type="button"
 							onClick={() => setShowForm(false)}
-							className="px-4 py-2 rounded-lg text-sm font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
+							className="px-4 py-2 rounded-md text-sm font-medium border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
 						>
 							Cancel
 						</button>
@@ -899,11 +900,38 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
    Combined wrapper (used in PropertyFullView)
    ═══════════════════════════════════════════════════════════════ */
 
-export default function OwnershipPanel({ property }: { property: Property }) {
+export default function OwnershipPanel({
+	property,
+	showHeader = true,
+}: {
+	property: Property;
+	showHeader?: boolean;
+}) {
+	const { user } = useAuth();
 	const [expanded, setExpanded] = useState(true);
 
+	const isOwner = user?.id === property.owner?.id;
+	const historyVisible =
+		isOwner || (property.settings?.showOwnershipHistory ?? false);
+
+	const content = (
+		<div className="space-y-8 w-full max-w-full">
+			{isOwner && <TransferOwnershipPanel property={property} />}
+			{historyVisible && <OwnershipHistoryPanel property={property} />}
+			{!isOwner && !historyVisible && (
+				<p className="text-xs text-outline">
+					Ownership information is not publicly visible for this property.
+				</p>
+			)}
+		</div>
+	);
+
+	if (!showHeader) {
+		return content;
+	}
+
 	return (
-		<div className="space-y-4 max-w-xl">
+		<div className="space-y-4 w-full max-w-full">
 			<button
 				type="button"
 				onClick={() => setExpanded(!expanded)}
@@ -917,12 +945,7 @@ export default function OwnershipPanel({ property }: { property: Property }) {
 				)}
 			</button>
 
-			{expanded && (
-				<div className="space-y-8">
-					<TransferOwnershipPanel property={property} />
-					<OwnershipHistoryPanel property={property} />
-				</div>
-			)}
+			{expanded && content}
 		</div>
 	);
 }

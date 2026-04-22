@@ -1,5 +1,6 @@
 "use client";
 
+import { toPlotWords } from "@/lib/plotwords";
 import { Property } from "@/types/property";
 import {
 	Check,
@@ -8,19 +9,24 @@ import {
 	Link2,
 	Mail,
 	MessageCircle,
+	Sparkles,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ShareModalProps {
-	property: Pick<Property, "id" | "name" | "address" | "propertyType">;
+	property: Pick<
+		Property,
+		"id" | "name" | "address" | "propertyType" | "coordinates" | "shortCode"
+	>;
 	open: boolean;
 	onClose: () => void;
 }
 
-function getShareUrl(propertyId: string) {
+function getShareUrl(propertyId: string, shortCode?: string) {
 	if (typeof window === "undefined") return "";
-	return `${window.location.origin}/marketplace/${propertyId}`;
+	const path = shortCode ? `/${shortCode}` : `/property/${propertyId}`;
+	return `${window.location.origin}${path}`;
 }
 
 const SOCIAL_CHANNELS = [
@@ -56,9 +62,16 @@ export default function ShareModal({
 	onClose,
 }: ShareModalProps) {
 	const [copied, setCopied] = useState(false);
+	const [pwCopied, setPwCopied] = useState(false);
 	const dialogRef = useRef<HTMLDialogElement>(null);
-	const shareUrl = getShareUrl(property.id);
+	const shareUrl = getShareUrl(property.id, property.shortCode);
 	const shareText = `${property.name} — ${property.address}`;
+	const hasCoords =
+		property.coordinates &&
+		(property.coordinates.lat !== 0 || property.coordinates.lng !== 0);
+	const plotWordsCode = hasCoords
+		? toPlotWords(property.coordinates.lat, property.coordinates.lng)
+		: null;
 
 	useEffect(() => {
 		const dialog = dialogRef.current;
@@ -71,7 +84,10 @@ export default function ShareModal({
 	}, [open]);
 
 	useEffect(() => {
-		if (!open) setCopied(false);
+		if (!open) {
+			setCopied(false);
+			setPwCopied(false);
+		}
 	}, [open]);
 
 	const handleCopy = useCallback(async () => {
@@ -146,6 +162,41 @@ export default function ShareModal({
 						{property.address}
 					</p>
 				</div>
+
+				{/* PlotWords code */}
+				{plotWordsCode && (
+					<div className="flex items-center gap-2">
+						<div className="flex-1 flex items-center gap-2 bg-surface-container-low dark:bg-surface-container rounded-lg px-3 py-2 border border-outline-variant/30">
+							<Sparkles className="w-4 h-4 text-primary shrink-0" />
+							<span className="text-xs font-mono font-semibold text-primary truncate flex-1">
+								{plotWordsCode}
+							</span>
+						</div>
+						<button
+							type="button"
+							onClick={() => {
+								navigator.clipboard.writeText(plotWordsCode);
+								setPwCopied(true);
+								setTimeout(() => setPwCopied(false), 2000);
+							}}
+							className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+								pwCopied
+									? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+									: "bg-primary text-on-primary hover:bg-primary/90"
+							}`}
+						>
+							{pwCopied ? (
+								<span className="flex items-center gap-1">
+									<Check className="w-3.5 h-3.5" /> Copied
+								</span>
+							) : (
+								<span className="flex items-center gap-1">
+									<Copy className="w-3.5 h-3.5" /> Copy
+								</span>
+							)}
+						</button>
+					</div>
+				)}
 
 				{/* Copy link */}
 				<div className="flex items-center gap-2">

@@ -10,7 +10,7 @@ import mongoose, {
 interface IAIDocument extends MongooseDocument {
 	_id: Types.ObjectId;
 	userId: string;
-	propertyId?: string;
+	propertyIds: string[];
 	fileUrl: string;
 	fileName: string;
 	fileSize: number;
@@ -27,7 +27,7 @@ interface IAIDocument extends MongooseDocument {
 const AIDocumentSchema = new Schema<IAIDocument>(
 	{
 		userId: { type: String, required: true, index: true },
-		propertyId: { type: String, index: true },
+		propertyIds: { type: [String], default: [], index: true },
 		fileUrl: { type: String, required: true },
 		fileName: { type: String, required: true },
 		fileSize: { type: Number, required: true },
@@ -57,7 +57,7 @@ const AIDocumentSchema = new Schema<IAIDocument>(
 );
 
 AIDocumentSchema.index({ userId: 1, documentType: 1 });
-AIDocumentSchema.index({ propertyId: 1 });
+AIDocumentSchema.index({ propertyIds: 1 });
 
 /* ── Document Chunk (for vector search) ──────────────── */
 

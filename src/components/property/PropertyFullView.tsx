@@ -1,18 +1,22 @@
 "use client";
 
 import BookingModal from "@/components/property/BookingModal";
+import LinkedDocumentsSection from "@/components/property/LinkedDocumentsSection";
 import MediaLightbox from "@/components/property/MediaLightbox";
 import OwnershipPanel from "@/components/property/OwnershipPanel";
+import PropertySettingsPanel from "@/components/property/PropertySettingsPanel";
 import { DocumentsGrid } from "@/components/property/propertyDisplayHelpers";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { countryFlag } from "@/lib/locale";
+import { toPlotWords } from "@/lib/plotwords";
 import { formatCurrency, getPropertyMedia } from "@/lib/utils";
 import {
 	DocumentAccessRequest,
 	MediaType,
 	Property,
 	PropertyMedia,
+	PropertySettings,
 } from "@/types/property";
 import {
 	Bath,
@@ -23,6 +27,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	ChevronUp,
+	Expand,
 	Fence,
 	Home,
 	ImagePlus,
@@ -39,6 +44,7 @@ import {
 	Star,
 	Tag,
 	TreePine,
+	X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -566,7 +572,7 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 				{items.map((item) => (
 					<div
 						key={item.label}
-						className={`flex items-center justify-between text-sm ${item.bold ? "bg-surface-container-high rounded-lg px-3 py-2" : ""}`}
+						className={`flex items-center justify-between text-sm ${item.bold ? "bg-surface-container-high rounded-md px-3 py-2" : ""}`}
 					>
 						<span className="text-on-surface-variant">{item.label}</span>
 						<span
@@ -771,6 +777,47 @@ function DocumentsSection({
 	);
 }
 
+function MobileAccordionSection({
+	title,
+	open,
+	onToggle,
+	children,
+	className,
+	contentClassName = "p-4",
+	rightAction,
+}: {
+	title: string;
+	open: boolean;
+	onToggle: () => void;
+	children: React.ReactNode;
+	className?: string;
+	contentClassName?: string;
+	rightAction?: React.ReactNode;
+}) {
+	return (
+		<div
+			className={`border border-border rounded-none overflow-hidden ${className ?? ""}`}
+		>
+			<div className="w-full flex items-center justify-between px-4 py-3 bg-background text-on-surface font-semibold text-sm">
+				<button type="button" onClick={onToggle} className="flex-1 text-left">
+					{title}
+				</button>
+				<div className="flex items-center gap-3">
+					{rightAction}
+					<button type="button" onClick={onToggle} className="shrink-0">
+						{open ? (
+							<ChevronUp className="w-4 h-4" />
+						) : (
+							<ChevronDown className="w-4 h-4" />
+						)}
+					</button>
+				</div>
+			</div>
+			{open && <div className={contentClassName}>{children}</div>}
+		</div>
+	);
+}
+
 /* ─── Main Component ─────────────────────────────────────────── */
 
 export interface PropertyFullViewProps {
@@ -817,9 +864,20 @@ export default function PropertyFullView({
 	]
 		.filter(Boolean)
 		.join(", ");
+	const detailsInitiallyOpen = !singleColumn;
 
-	const [mediaOpen, setMediaOpen] = useState(false);
-	const [docsOpen, setDocsOpen] = useState(false);
+	const [mediaOpen, setMediaOpen] = useState(detailsInitiallyOpen);
+	const [docsOpen, setDocsOpen] = useState(detailsInitiallyOpen);
+	const [linkedDocsOpen, setLinkedDocsOpen] = useState(detailsInitiallyOpen);
+	const [overviewOpen, setOverviewOpen] = useState(detailsInitiallyOpen);
+	const [mapOpen, setMapOpen] = useState(detailsInitiallyOpen);
+	const [ownershipOpen, setOwnershipOpen] = useState(detailsInitiallyOpen);
+	const [marketOpen, setMarketOpen] = useState(detailsInitiallyOpen);
+	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [propertySettings, setPropertySettings] = useState<PropertySettings>(
+		property.settings ?? {},
+	);
+	const [mapModalOpen, setMapModalOpen] = useState(false);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const [userSeals, setUserSeals] = useState<any[]>([]);
 
@@ -847,6 +905,18 @@ export default function PropertyFullView({
 	const leftCol = singleColumn ? "hidden" : "hidden lg:block w-full lg:w-3/5";
 	const rightCol = singleColumn ? "w-full" : "w-full lg:w-2/5 lg:border-l";
 	const mobileOnly = singleColumn ? "" : "lg:hidden";
+	const desktopOnly = singleColumn ? "hidden" : "hidden lg:block";
+	const allDetailsOpen =
+		overviewOpen && ownershipOpen && marketOpen && (!hasCoordinates || mapOpen);
+
+	const setDetailSectionsOpen = (open: boolean) => {
+		setOverviewOpen(open);
+		setOwnershipOpen(open);
+		setMarketOpen(open);
+		if (hasCoordinates) {
+			setMapOpen(open);
+		}
+	};
 
 	return (
 		<div className={`flex flex-col ${twoCol} h-full ${className}`}>
@@ -880,165 +950,487 @@ export default function PropertyFullView({
 							viewer={viewer}
 							isOwner={isOwner}
 						/>
+
+						{/* Linked AI Documents */}
+						{viewer?.id && (
+							<LinkedDocumentsSection
+								propertyId={property.id}
+								userId={viewer.id}
+								isOwner={isOwner}
+							/>
+						)}
 					</>
 				)}
 			</div>
 
 			{/* ─── Single column (mobile) / Right column (desktop) ── */}
 			<div
-				className={`${rightCol} overflow-y-auto p-4 space-y-6 border-border`}
+				className={`${rightCol} overflow-y-auto p-0 space-y-0 border-border`}
 			>
 				{/* Expandable Media section (mobile only) */}
 				{mediaItems.length > 0 && (
-					<div
-						className={`${mobileOnly} border border-border rounded-xl overflow-hidden`}
+					<MobileAccordionSection
+						title={`Media (${mediaItems.length})`}
+						open={mediaOpen}
+						onToggle={() => setMediaOpen(!mediaOpen)}
+						className={mobileOnly}
+						contentClassName="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2"
 					>
-						<button
-							type="button"
-							onClick={() => setMediaOpen(!mediaOpen)}
-							className="w-full flex items-center justify-between px-4 py-3 bg-card text-on-surface font-semibold text-sm"
-						>
-							<span>Media ({mediaItems.length})</span>
-							{mediaOpen ? (
-								<ChevronUp className="w-4 h-4" />
-							) : (
-								<ChevronDown className="w-4 h-4" />
-							)}
-						</button>
-						{mediaOpen && (
-							<div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-								{mediaItems.map((item, idx) => (
-									<div key={idx} className="rounded-lg overflow-hidden">
-										{item.type === MediaType.VIDEO ? (
-											<div className="relative">
-												<video
-													src={item.url}
-													className="w-full h-auto rounded-lg"
-													muted
-													preload="metadata"
-												/>
-												<div className="absolute inset-0 flex items-center justify-center">
-													<div className="bg-black/50 rounded-full p-2">
-														<Play className="w-5 h-5 text-white fill-white" />
-													</div>
-												</div>
+						{mediaItems.map((item, idx) => (
+							<div key={idx} className="rounded-lg overflow-hidden">
+								{item.type === MediaType.VIDEO ? (
+									<div className="relative">
+										<video
+											src={item.url}
+											className="w-full h-auto rounded-lg"
+											muted
+											preload="metadata"
+										/>
+										<div className="absolute inset-0 flex items-center justify-center">
+											<div className="bg-black/50 rounded-full p-2">
+												<Play className="w-5 h-5 text-white fill-white" />
 											</div>
-										) : item.type === MediaType.AUDIO ? (
-											<div className="h-24 bg-linear-to-br from-violet-600 to-indigo-800 rounded-lg flex flex-col items-center justify-center text-white">
-												<Mic className="w-6 h-6" />
-												<span className="text-xs mt-1">
-													{item.caption ?? "Audio"}
-												</span>
-											</div>
-										) : (
-											/* eslint-disable-next-line @next/next/no-img-element */
-											<img
-												src={item.url}
-												alt={`${property.name} ${idx + 1}`}
-												className="w-full h-auto rounded-lg"
-												loading="lazy"
-											/>
-										)}
+										</div>
 									</div>
-								))}
+								) : item.type === MediaType.AUDIO ? (
+									<div className="h-24 bg-linear-to-br from-violet-600 to-indigo-800 rounded-lg flex flex-col items-center justify-center text-white">
+										<Mic className="w-6 h-6" />
+										<span className="text-xs mt-1">
+											{item.caption ?? "Audio"}
+										</span>
+									</div>
+								) : (
+									/* eslint-disable-next-line @next/next/no-img-element */
+									<img
+										src={item.url}
+										alt={`${property.name} ${idx + 1}`}
+										className="w-full h-auto rounded-lg"
+										loading="lazy"
+									/>
+								)}
 							</div>
-						)}
-					</div>
+						))}
+					</MobileAccordionSection>
 				)}
 
 				{/* Expandable Documents section (mobile only) */}
 				{(property.documents?.length ?? 0) > 0 && (
-					<div
-						className={`${mobileOnly} border border-border rounded-xl overflow-hidden`}
+					<MobileAccordionSection
+						title={`Documents (${property.documents?.length})`}
+						open={docsOpen}
+						onToggle={() => setDocsOpen(!docsOpen)}
+						className={mobileOnly}
+						contentClassName="p-3"
 					>
+						<DocumentsSection
+							property={property}
+							accessRequests={accessRequests}
+							onAccessRequested={onAccessRequested}
+							viewer={viewer}
+							isOwner={isOwner}
+						/>
+					</MobileAccordionSection>
+				)}
+
+				{/* Linked AI Documents (mobile) */}
+				{viewer?.id && (
+					<MobileAccordionSection
+						title="Linked AI Documents"
+						open={linkedDocsOpen}
+						onToggle={() => setLinkedDocsOpen(!linkedDocsOpen)}
+						className={mobileOnly}
+					>
+						<LinkedDocumentsSection
+							propertyId={property.id}
+							userId={viewer.id}
+							isOwner={isOwner}
+						/>
+					</MobileAccordionSection>
+				)}
+
+				{/* Overview (mobile accordion) */}
+				<MobileAccordionSection
+					title="Overview"
+					open={overviewOpen}
+					onToggle={() => setOverviewOpen(!overviewOpen)}
+					className={mobileOnly}
+					rightAction={
 						<button
 							type="button"
-							onClick={() => setDocsOpen(!docsOpen)}
-							className="w-full flex items-center justify-between px-4 py-3 bg-card text-on-surface font-semibold text-sm"
+							onClick={(e) => {
+								e.stopPropagation();
+								setDetailSectionsOpen(!allDetailsOpen);
+							}}
+							className="text-xs text-on-surface-variant hover:text-primary transition-colors"
 						>
-							<span>Documents ({property.documents?.length})</span>
-							{docsOpen ? (
-								<ChevronUp className="w-4 h-4" />
-							) : (
-								<ChevronDown className="w-4 h-4" />
-							)}
+							{allDetailsOpen ? "Collapse All" : "Expand All"}
 						</button>
-						{docsOpen && (
-							<div className="p-3">
-								<DocumentsSection
-									property={property}
-									accessRequests={accessRequests}
-									onAccessRequested={onAccessRequested}
-									viewer={viewer}
-									isOwner={isOwner}
-								/>
+					}
+				>
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 text-sm text-on-surface-variant">
+							<MapPin className="w-4 h-4 shrink-0" />
+							<span>{locationText || "Location not specified"}</span>
+							{property.country && (
+								<span className="text-base">
+									{countryFlag(property.country)}
+								</span>
+							)}
+						</div>
+
+						{hasCoordinates && (
+							<div className="flex items-center gap-2 text-sm">
+								<Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+								<span className="font-mono text-primary font-semibold tracking-wide">
+									{toPlotWords(
+										property.coordinates.lat,
+										property.coordinates.lng,
+									)}
+								</span>
+								<button
+									type="button"
+									className="text-outline hover:text-on-surface transition-colors"
+									title="Copy PlotWords code"
+									onClick={() => {
+										navigator.clipboard.writeText(
+											toPlotWords(
+												property.coordinates.lat,
+												property.coordinates.lng,
+											),
+										);
+									}}
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										className="w-3.5 h-3.5"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
+										<rect x="9" y="9" width="13" height="13" rx="2" />
+										<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+									</svg>
+								</button>
+							</div>
+						)}
+
+						{!hideHeader && <TitleRow property={property} actions={actions} />}
+						{property.description && (
+							<DescriptionBlock text={property.description} />
+						)}
+						<PropertyDetails property={property} />
+
+						{!hideHeader && (
+							<div className="text-xs text-outline space-y-1 px-1">
+								{property.createdAt && (
+									<p>
+										Listed:{" "}
+										<span className="text-on-surface font-medium">
+											{formatDate(property.createdAt)}
+										</span>
+									</p>
+								)}
+								{property.status && (
+									<p>
+										Status:{" "}
+										<span
+											className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+										>
+											{property.status.replace(/_/g, " ").toUpperCase()}
+										</span>
+									</p>
+								)}
 							</div>
 						)}
 					</div>
+				</MobileAccordionSection>
+
+				{/* Map (mobile accordion) */}
+				{hasCoordinates && (
+					<MobileAccordionSection
+						title="Location"
+						open={mapOpen}
+						onToggle={() => setMapOpen(!mapOpen)}
+						className={mobileOnly}
+						contentClassName="p-0"
+						rightAction={
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setMapModalOpen(true);
+								}}
+								className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary transition-colors"
+							>
+								<Expand className="w-3.5 h-3.5" />
+								Expand
+							</button>
+						}
+					>
+						<PropertyMiniMap
+							lat={property.coordinates.lat}
+							lng={property.coordinates.lng}
+							propertyName={property.name}
+							showHeader={false}
+							frameless
+							showCoordinates={false}
+							expanded
+						/>
+					</MobileAccordionSection>
 				)}
 
-				{/* Location bar */}
-				<div className="flex items-center gap-2 text-sm text-on-surface-variant">
-					<MapPin className="w-4 h-4 shrink-0" />
-					<span>{locationText || "Location not specified"}</span>
-					{property.country && (
-						<span className="text-base">{countryFlag(property.country)}</span>
+				{/* Ownership transfers & history (mobile accordion) */}
+				<MobileAccordionSection
+					title="Ownership & Transfers"
+					open={ownershipOpen}
+					onToggle={() => setOwnershipOpen(!ownershipOpen)}
+					className={mobileOnly}
+				>
+					<OwnershipPanel property={property} showHeader={false} />
+				</MobileAccordionSection>
+
+				{/* Property Settings (owner only, mobile) */}
+				{isOwner && (
+					<MobileAccordionSection
+						title="Property Settings"
+						open={settingsOpen}
+						onToggle={() => setSettingsOpen(!settingsOpen)}
+						className={mobileOnly}
+					>
+						<PropertySettingsPanel
+							property={{ ...property, settings: propertySettings }}
+							onSettingsChanged={setPropertySettings}
+						/>
+					</MobileAccordionSection>
+				)}
+
+				{/* Owner / Price / Schedule (mobile accordion) */}
+				<MobileAccordionSection
+					title="Pricing & Contacts"
+					open={marketOpen}
+					onToggle={() => setMarketOpen(!marketOpen)}
+					className={mobileOnly}
+				>
+					<MasonryGrid minColWidth={250} gap={16}>
+						{!isOwner && <OwnerCard property={property} />}
+						<PriceBreakdownCard property={property} />
+						{!isOwner && <ScheduleViewingCard property={property} />}
+					</MasonryGrid>
+				</MobileAccordionSection>
+
+				<div className={desktopOnly}>
+					<MobileAccordionSection
+						title="Overview"
+						open={overviewOpen}
+						onToggle={() => setOverviewOpen(!overviewOpen)}
+						rightAction={
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setDetailSectionsOpen(!allDetailsOpen);
+								}}
+								className="text-xs text-on-surface-variant hover:text-primary transition-colors"
+							>
+								{allDetailsOpen ? "Collapse All" : "Expand All"}
+							</button>
+						}
+					>
+						<div className="space-y-6">
+							<div className="flex items-center gap-2 text-sm text-on-surface-variant">
+								<MapPin className="w-4 h-4 shrink-0" />
+								<span>{locationText || "Location not specified"}</span>
+								{property.country && (
+									<span className="text-base">
+										{countryFlag(property.country)}
+									</span>
+								)}
+							</div>
+
+							{hasCoordinates && (
+								<div className="flex items-center gap-2 text-sm">
+									<Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+									<span className="font-mono text-primary font-semibold tracking-wide">
+										{toPlotWords(
+											property.coordinates.lat,
+											property.coordinates.lng,
+										)}
+									</span>
+									<button
+										type="button"
+										className="text-outline hover:text-on-surface transition-colors"
+										title="Copy PlotWords code"
+										onClick={() => {
+											navigator.clipboard.writeText(
+												toPlotWords(
+													property.coordinates.lat,
+													property.coordinates.lng,
+												),
+											);
+										}}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											className="w-3.5 h-3.5"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+										>
+											<rect x="9" y="9" width="13" height="13" rx="2" />
+											<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+										</svg>
+									</button>
+								</div>
+							)}
+
+							{!hideHeader && (
+								<TitleRow property={property} actions={actions} />
+							)}
+							{property.description && (
+								<DescriptionBlock text={property.description} />
+							)}
+							<PropertyDetails property={property} />
+
+							{!hideHeader && (
+								<div className="text-xs text-outline space-y-1 px-1">
+									{property.createdAt && (
+										<p>
+											Listed:{" "}
+											<span className="text-on-surface font-medium">
+												{formatDate(property.createdAt)}
+											</span>
+										</p>
+									)}
+									{property.status && (
+										<p>
+											Status:{" "}
+											<span
+												className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+											>
+												{property.status.replace(/_/g, " ").toUpperCase()}
+											</span>
+										</p>
+									)}
+								</div>
+							)}
+						</div>
+					</MobileAccordionSection>
+
+					{hasCoordinates && (
+						<MobileAccordionSection
+							title="Location"
+							open={mapOpen}
+							onToggle={() => setMapOpen(!mapOpen)}
+							contentClassName="p-0"
+							rightAction={
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										setMapModalOpen(true);
+									}}
+									className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary transition-colors"
+								>
+									<Expand className="w-3.5 h-3.5" />
+									Expand
+								</button>
+							}
+						>
+							<PropertyMiniMap
+								lat={property.coordinates.lat}
+								lng={property.coordinates.lng}
+								propertyName={property.name}
+								showHeader={false}
+								frameless
+								showCoordinates={false}
+								expanded
+							/>
+						</MobileAccordionSection>
 					)}
+
+					<MobileAccordionSection
+						title="Ownership & Transfers"
+						open={ownershipOpen}
+						onToggle={() => setOwnershipOpen(!ownershipOpen)}
+					>
+						<OwnershipPanel property={property} showHeader={false} />
+					</MobileAccordionSection>
+
+					{/* Property Settings (owner only, desktop) */}
+					{isOwner && (
+						<MobileAccordionSection
+							title="Property Settings"
+							open={settingsOpen}
+							onToggle={() => setSettingsOpen(!settingsOpen)}
+						>
+							<PropertySettingsPanel
+								property={{ ...property, settings: propertySettings }}
+								onSettingsChanged={setPropertySettings}
+							/>
+						</MobileAccordionSection>
+					)}
+
+					<MobileAccordionSection
+						title="Pricing & Contacts"
+						open={marketOpen}
+						onToggle={() => setMarketOpen(!marketOpen)}
+					>
+						<MasonryGrid minColWidth={250} gap={16}>
+							{!isOwner && <OwnerCard property={property} />}
+							<PriceBreakdownCard property={property} />
+							{!isOwner && <ScheduleViewingCard property={property} />}
+						</MasonryGrid>
+					</MobileAccordionSection>
 				</div>
 
-				{/* Title row */}
-				{!hideHeader && <TitleRow property={property} actions={actions} />}
-
-				{/* Description */}
-				{property.description && (
-					<DescriptionBlock text={property.description} />
-				)}
-
-				{/* Property Details */}
-				<PropertyDetails property={property} />
-
-				{/* Listing meta */}
-				{!hideHeader && (
-					<div className="text-xs text-outline space-y-1 px-1">
-						{property.createdAt && (
-							<p>
-								Listed:{" "}
-								<span className="text-on-surface font-medium">
-									{formatDate(property.createdAt)}
-								</span>
-							</p>
-						)}
-						{property.status && (
-							<p>
-								Status:{" "}
-								<span
-									className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+				{mapModalOpen && hasCoordinates && (
+					<div
+						className="fixed inset-x-0 bottom-0 top-16 z-50 bg-black/65 p-4 sm:p-6"
+						onClick={() => setMapModalOpen(false)}
+					>
+						<div
+							className="mx-auto flex h-full max-w-7xl w-full flex-col overflow-hidden rounded-2xl bg-card border border-border shadow-2xl"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
+								<div>
+									<p className="text-sm font-semibold text-on-surface">
+										Location Map
+									</p>
+									<p className="text-xs text-on-surface-variant">
+										{property.name}
+									</p>
+								</div>
+								<button
+									type="button"
+									onClick={() => setMapModalOpen(false)}
+									className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-border text-on-surface-variant hover:bg-surface-container-high transition-colors"
+									aria-label="Close map modal"
 								>
-									{property.status.replace(/_/g, " ").toUpperCase()}
-								</span>
-							</p>
-						)}
+									<X className="w-4 h-4" />
+								</button>
+							</div>
+							<div className="flex-1 min-h-0">
+								<PropertyMiniMap
+									lat={property.coordinates.lat}
+									lng={property.coordinates.lng}
+									propertyName={property.name}
+									showHeader={false}
+									frameless
+									showCoordinates={false}
+									expanded
+									expandedHeightClassName="h-[calc(100vh-8rem)]"
+								/>
+							</div>
+						</div>
 					</div>
 				)}
-
-				{/* Map */}
-				{hasCoordinates && (
-					<PropertyMiniMap
-						lat={property.coordinates.lat}
-						lng={property.coordinates.lng}
-						propertyName={property.name}
-					/>
-				)}
-
-				{/* Ownership transfers & history */}
-				<OwnershipPanel property={property} />
-
-				{/* Owner / Price / Schedule — masonry grid */}
-				<MasonryGrid minColWidth={250} gap={16}>
-					{!isOwner && <OwnerCard property={property} />}
-					<PriceBreakdownCard property={property} />
-					{!isOwner && <ScheduleViewingCard property={property} />}
-				</MasonryGrid>
 			</div>
 		</div>
 	);

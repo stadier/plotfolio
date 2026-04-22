@@ -39,7 +39,13 @@ export async function POST(req: NextRequest) {
 		const formData = await req.formData();
 		const file = formData.get("file") as File | null;
 		const userId = formData.get("userId") as string | null;
-		const propertyId = (formData.get("propertyId") as string) || undefined;
+		const propertyIdsRaw = formData.get("propertyIds") as string | null;
+		const propertyIds: string[] = propertyIdsRaw
+			? propertyIdsRaw
+					.split(",")
+					.map((s) => s.trim())
+					.filter(Boolean)
+			: [];
 		const documentTypeHint =
 			(formData.get("documentType") as string) || undefined;
 		const skipIndexing = formData.get("skipIndexing") === "true";
@@ -65,6 +71,7 @@ export async function POST(req: NextRequest) {
 			"image/webp",
 			"image/tiff",
 			"image/bmp",
+			"text/html",
 		];
 		if (!allowedTypes.includes(file.type)) {
 			return NextResponse.json(
@@ -91,11 +98,20 @@ export async function POST(req: NextRequest) {
 		const fileUrl = `https://${B2_BUCKET}.s3.us-east-005.backblazeb2.com/${key}`;
 
 		// 2. OCR text extraction (cached on the document)
+		//    Skip OCR for HTML documents — text is already known
 		let ocrText = "";
-		try {
-			ocrText = await extractText(buffer, file.type, file.name);
-		} catch (err) {
-			console.error("[document-upload] OCR failed:", err);
+		if (file.type === "text/html") {
+			ocrText = buffer
+				.toString("utf-8")
+				.replace(/<[^>]*>/g, " ")
+				.replace(/\s+/g, " ")
+				.trim();
+		} else {
+			try {
+				ocrText = await extractText(buffer, file.type, file.name);
+			} catch (err) {
+				console.error("[document-upload] OCR failed:", err);
+			}
 		}
 
 		// 3. LLM structured data extraction
@@ -120,7 +136,7 @@ export async function POST(req: NextRequest) {
 		// 4. Create document record
 		const doc = await AIDocumentModel.create({
 			userId,
-			propertyId,
+			propertyIds,
 			fileUrl,
 			fileName: file.name,
 			fileSize: file.size,
@@ -170,7 +186,7 @@ export async function POST(req: NextRequest) {
 			document: {
 				id: documentId,
 				userId: doc.userId,
-				propertyId: doc.propertyId,
+				propertyIds: doc.propertyIds,
 				fileUrl: doc.fileUrl,
 				fileName: doc.fileName,
 				fileSize: doc.fileSize,

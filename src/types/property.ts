@@ -31,6 +31,8 @@ export interface Property {
 		lat: number;
 		lng: number;
 	};
+	plotWords?: string; // Three-word location code (e.g. "calm.brook.shine")
+	shortCode?: string; // Short shareable code (e.g. "a1b2c3d4") for public URLs like /a1b2c3d4
 	area: number; // in square feet or acres
 	propertyType: PropertyType;
 	purchaseDate: Date;
@@ -66,9 +68,24 @@ export interface Property {
 	boughtFrom?: string; // Seller / previous owner name
 	witnesses?: { name: string; signature: string }[]; // Witnesses with drawn signatures
 	signatures?: { name: string; signature: string }[]; // Signatories with drawn signatures
+	// Property-level settings (owner-configurable)
+	settings?: PropertySettings;
 	// Timestamps from Mongoose
 	createdAt?: string;
 	updatedAt?: string;
+}
+
+export interface PropertySettings {
+	/** Show ownership history timeline to public visitors (default: false) */
+	showOwnershipHistory?: boolean;
+	/** Show purchase price / current value to public visitors (default: true) */
+	showPricing?: boolean;
+	/** Show owner contact info (email/phone) to public visitors (default: true) */
+	showContactInfo?: boolean;
+	/** Allow visitors to request a viewing / book an appointment (default: false) */
+	allowBookings?: boolean;
+	/** Show exact map coordinates/location to public visitors (default: true) */
+	showLocation?: boolean;
 }
 
 export interface PropertyOwner {

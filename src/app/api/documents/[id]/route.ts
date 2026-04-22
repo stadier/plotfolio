@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 			document: {
 				id: doc._id.toString(),
 				userId: doc.userId,
-				propertyId: doc.propertyId,
+				propertyIds: doc.propertyIds ?? [],
 				fileUrl: doc.fileUrl,
 				fileName: doc.fileName,
 				fileSize: doc.fileSize,
@@ -149,7 +149,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 		}
 
 		// Update metadata fields
-		if (body.propertyId !== undefined) doc.propertyId = body.propertyId;
+		if (body.propertyIds !== undefined) doc.propertyIds = body.propertyIds;
 		if (body.documentType !== undefined) doc.documentType = body.documentType;
 		await doc.save();
 

@@ -44,7 +44,7 @@ export enum AIDocumentType {
 export interface AIDocument {
 	id: string;
 	userId: string;
-	propertyId?: string;
+	propertyIds?: string[];
 	fileUrl: string;
 	fileName: string;
 	fileSize: number;
@@ -77,14 +77,14 @@ export interface DocumentImage {
 export interface DocumentUploadRequest {
 	file: File;
 	userId: string;
-	propertyId?: string;
+	propertyIds?: string[];
 	documentType?: AIDocumentType;
 }
 
 export interface DocumentQueryRequest {
 	query: string;
 	userId?: string;
-	propertyId?: string;
+	propertyIds?: string[];
 	limit?: number;
 }
 

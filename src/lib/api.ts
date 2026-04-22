@@ -283,7 +283,7 @@ export class PropertyAPI {
 		file: File,
 		userId: string,
 		options?: {
-			propertyId?: string;
+			propertyIds?: string[];
 			documentType?: AIDocumentType;
 			skipIndexing?: boolean;
 		},
@@ -292,8 +292,8 @@ export class PropertyAPI {
 			const formData = new FormData();
 			formData.append("file", file);
 			formData.append("userId", userId);
-			if (options?.propertyId)
-				formData.append("propertyId", options.propertyId);
+			if (options?.propertyIds?.length)
+				formData.append("propertyIds", options.propertyIds.join(","));
 			if (options?.documentType)
 				formData.append("documentType", options.documentType);
 			if (options?.skipIndexing) formData.append("skipIndexing", "true");
@@ -307,6 +307,23 @@ export class PropertyAPI {
 		} catch (error) {
 			console.error("Error uploading document:", error);
 			return null;
+		}
+	}
+
+	static async updateDocument(
+		id: string,
+		updates: { propertyIds?: string[]; documentType?: string },
+	): Promise<boolean> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(updates),
+			});
+			return response.ok;
+		} catch (error) {
+			console.error("Error updating document:", error);
+			return false;
 		}
 	}
 

@@ -153,6 +153,7 @@ export default function Sidebar({
 	const [switcherOpen, setSwitcherOpen] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [switcherSearch, setSwitcherSearch] = useState("");
+	const [avatarHover, setAvatarHover] = useState(false);
 	const switcherRef = useRef<HTMLDivElement>(null);
 
 	const handleDeletePortfolio = async (id: string) => {
@@ -261,9 +262,15 @@ export default function Sidebar({
 								src={activePortfolio.avatar}
 								alt=""
 								className="w-6 h-6 rounded-md object-cover shrink-0"
+								onMouseEnter={() => setAvatarHover(true)}
+								onMouseLeave={() => setAvatarHover(false)}
 							/>
 						) : (
-							<span className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+							<span
+								className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0"
+								onMouseEnter={() => setAvatarHover(true)}
+								onMouseLeave={() => setAvatarHover(false)}
+							>
 								{(activePortfolio?.name ?? "P").charAt(0).toUpperCase()}
 							</span>
 						)}
@@ -285,6 +292,26 @@ export default function Sidebar({
 							/>
 						)}
 					</button>
+
+					{/* Hover preview card */}
+					{!switcherOpen && avatarHover && (
+						<div className="pointer-events-none absolute z-50 left-full ml-3 top-0 flex flex-col items-center gap-4 bg-card border border-border rounded-md shadow-2xl p-4 whitespace-nowrap min-w-100">
+							{activePortfolio?.avatar ? (
+								<img
+									src={activePortfolio.avatar}
+									alt=""
+									className="w-full h-36 rounded-md object-cover shrink-0"
+								/>
+							) : (
+								<span className="w-36 h-36 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-5xl font-bold shrink-0">
+									{(activePortfolio?.name ?? "P").charAt(0).toUpperCase()}
+								</span>
+							)}
+							<span className="text-lg font-semibold text-on-surface">
+								{activePortfolio?.name ?? "Portfolio"}
+							</span>
+						</div>
+					)}
 
 					{switcherOpen && (
 						<div className="absolute z-50 left-full ml-3 top-0 w-56 bg-card border border-border rounded-md shadow-2xl overflow-hidden">

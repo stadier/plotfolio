@@ -182,7 +182,7 @@ export default function MiniMapWidget({
 			</div>
 
 			{/* SVG mini map — bleeds to left, right, bottom */}
-			<div className="bg-slate-50 dark:bg-surface-container overflow-hidden">
+			<div className="bg-slate-50 dark:bg-surface-container overflow-hidden pt-2">
 				<svg
 					key={slideKey}
 					viewBox={`0 0 ${mapW} ${mapH}`}

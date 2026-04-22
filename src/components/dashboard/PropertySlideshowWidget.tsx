@@ -1,9 +1,9 @@
 "use client";
 
-import { CARD_GRADIENTS } from "@/components/dashboard/helpers";
+import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
 import { formatCurrencyFull } from "@/lib/utils";
-import { MediaType, Property } from "@/types/property";
-import { ChevronLeft, ChevronRight, ImageIcon, MapPin } from "lucide-react";
+import { MediaType, Property, PropertyType } from "@/types/property";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -20,6 +20,19 @@ function getPropertyImage(p: Property): string | null {
 	if (fromMedia) return fromMedia.url;
 	if (p.images && p.images.length > 0) return p.images[0];
 	return null;
+}
+
+function hasBuilding(p: Property): boolean {
+	if (
+		p.propertyType === PropertyType.COMMERCIAL ||
+		p.propertyType === PropertyType.INDUSTRIAL ||
+		p.propertyType === PropertyType.MIXED_USE
+	)
+		return true;
+	const text = `${p.description ?? ""} ${p.zoning ?? ""}`.toLowerCase();
+	return /(building|duplex|bungalow|warehouse|office|factory|apartment|shop|plaza|mall|house)/.test(
+		text,
+	);
 }
 
 export default function PropertySlideshowWidget({
@@ -62,7 +75,6 @@ export default function PropertySlideshowWidget({
 	if (slides.length === 0) return null;
 
 	const current = slides[activeIdx];
-	const gradient = CARD_GRADIENTS[activeIdx % CARD_GRADIENTS.length];
 	const worth = current.currentValue || current.purchasePrice || 0;
 	const imageUrl = getPropertyImage(current);
 	const slideClass =
@@ -74,9 +86,9 @@ export default function PropertySlideshowWidget({
 			<div
 				key={slideKey}
 				onClick={() => onSelect(current.id)}
-				className={`relative h-72 md:h-80 lg:h-96 cursor-pointer ${!imageUrl ? gradient : ""} ${slideClass}`}
+				className={`relative h-72 md:h-80 lg:h-96 cursor-pointer ${slideClass}`}
 			>
-				{/* Actual property image or gradient fallback */}
+				{/* Actual property image or land-parcel placeholder */}
 				{imageUrl ? (
 					<Image
 						src={imageUrl}
@@ -86,9 +98,11 @@ export default function PropertySlideshowWidget({
 						sizes="(max-width: 768px) 100vw, 60vw"
 					/>
 				) : (
-					<div className="absolute inset-0 flex items-center justify-center opacity-[0.06]">
-						<ImageIcon className="w-40 h-40 text-white" />
-					</div>
+					<PropertyPlaceholderSvg
+						seed={current.id || current.name}
+						hasBuilding={hasBuilding(current)}
+						className="absolute inset-0"
+					/>
 				)}
 
 				{/* Nav controls */}

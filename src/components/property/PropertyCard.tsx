@@ -1,5 +1,6 @@
 "use client";
 
+import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
 import UserAvatar from "@/components/ui/UserAvatar";
 import {
 	cn,
@@ -251,9 +252,18 @@ export default function PropertyCard({
 						)}
 					</>
 				) : (
-					<div className="w-full h-full flex items-center justify-center bg-linear-to-br from-gray-100 dark:from-surface-container to-gray-200 dark:to-surface-container-high">
-						<Square className="w-16 h-16 text-gray-400 dark:text-on-surface-variant" />
-					</div>
+					<PropertyPlaceholderSvg
+						seed={property.id || property.name}
+						hasBuilding={
+							property.propertyType === PropertyType.COMMERCIAL ||
+							property.propertyType === PropertyType.INDUSTRIAL ||
+							property.propertyType === PropertyType.MIXED_USE ||
+							/(building|duplex|bungalow|warehouse|office|factory|apartment|shop|plaza|mall|house)/.test(
+								`${property.description ?? ""} ${property.zoning ?? ""}`.toLowerCase(),
+							)
+						}
+						className="w-full h-full"
+					/>
 				)}
 
 				{/* Status indicator — small pill at top-right */}
