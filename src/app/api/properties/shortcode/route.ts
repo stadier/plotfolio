@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
 		await connectDB();
 
 		const property = await PropertyModel.findOne({ shortCode: code })
-			.select("id shortCode name address coordinates propertyType status")
+			.select("_id shortCode name address coordinates propertyType status")
 			.lean();
 
-		if (!property || typeof property.id !== "string") {
+		if (!property || !("_id" in property)) {
 			return NextResponse.json(
 				{ error: "Property not found" },
 				{ status: 404 },
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 		}
 
 		return NextResponse.json({
-			id: property.id,
+			id: String(property._id),
 			shortCode: property.shortCode,
 			name: property.name,
 			address: property.address,
