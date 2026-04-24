@@ -24,9 +24,12 @@ function getPropertyImage(p: Property): string | null {
 
 function hasBuilding(p: Property): boolean {
 	if (
-		p.propertyType === PropertyType.COMMERCIAL ||
-		p.propertyType === PropertyType.INDUSTRIAL ||
-		p.propertyType === PropertyType.MIXED_USE
+		p.propertyType === PropertyType.HOUSE ||
+		p.propertyType === PropertyType.BUILDING ||
+		p.propertyType === PropertyType.APARTMENT ||
+		p.propertyType === PropertyType.OFFICE ||
+		p.propertyType === PropertyType.RETAIL ||
+		p.propertyType === PropertyType.WAREHOUSE
 	)
 		return true;
 	const text = `${p.description ?? ""} ${p.zoning ?? ""}`.toLowerCase();

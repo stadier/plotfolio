@@ -195,7 +195,7 @@ export default function ShortCodePropertyPage({
 					{/* Logo */}
 					<Link href="/" className="flex items-center gap-2 shrink-0">
 						<Image
-							src="/plotfolio-logo.svg"
+							src="/plotfolio-logo-l.png"
 							alt="Plotfolio"
 							width={26}
 							height={26}

@@ -74,6 +74,7 @@ const MEASUREMENT_UNITS = [
 ] as const;
 
 const CURRENCY_OPTIONS = [
+	{ value: "", label: "Property's own currency (default)" },
 	{ value: "USD", label: "USD — US Dollar" },
 	{ value: "EUR", label: "EUR — Euro" },
 	{ value: "GBP", label: "GBP — British Pound" },
@@ -84,7 +85,27 @@ const CURRENCY_OPTIONS = [
 	{ value: "CAD", label: "CAD — Canadian Dollar" },
 	{ value: "JPY", label: "JPY — Japanese Yen" },
 	{ value: "BRL", label: "BRL — Brazilian Real" },
-] as const;
+	{ value: "CNY", label: "CNY — Chinese Yuan" },
+	{ value: "SGD", label: "SGD — Singapore Dollar" },
+	{ value: "MXN", label: "MXN — Mexican Peso" },
+	{ value: "AED", label: "AED — UAE Dirham" },
+	{ value: "SAR", label: "SAR — Saudi Riyal" },
+	{ value: "KES", label: "KES — Kenyan Shilling" },
+	{ value: "GHS", label: "GHS — Ghanaian Cedi" },
+	{ value: "EGP", label: "EGP — Egyptian Pound" },
+	{ value: "TRY", label: "TRY — Turkish Lira" },
+	{ value: "PKR", label: "PKR — Pakistani Rupee" },
+	{ value: "IDR", label: "IDR — Indonesian Rupiah" },
+	{ value: "MYR", label: "MYR — Malaysian Ringgit" },
+	{ value: "THB", label: "THB — Thai Baht" },
+	{ value: "PHP", label: "PHP — Philippine Peso" },
+	{ value: "SEK", label: "SEK — Swedish Krona" },
+	{ value: "NOK", label: "NOK — Norwegian Krone" },
+	{ value: "DKK", label: "DKK — Danish Krone" },
+	{ value: "CHF", label: "CHF — Swiss Franc" },
+	{ value: "NZD", label: "NZD — New Zealand Dollar" },
+	{ value: "QAR", label: "QAR — Qatari Riyal" },
+];
 
 /* ─── Input helper ────────────────────────────────────────────── */
 
@@ -439,17 +460,18 @@ function ProfileSection() {
 			>
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 					<SettingsSelect
-						label="Default currency"
-						value={
-							typeof window !== "undefined"
-								? (localStorage.getItem("plotfolio-currency") ?? "USD")
-								: "USD"
-						}
-						onChange={(v) => {
-							localStorage.setItem("plotfolio-currency", v);
+						label="Display currency"
+						value={user?.displayCurrency ?? ""}
+						onChange={async (v) => {
+							await fetch("/api/settings/currency", {
+								method: "PUT",
+								headers: { "Content-Type": "application/json" },
+								body: JSON.stringify({ currency: v || null }),
+							});
+							await refresh();
 						}}
 						options={CURRENCY_OPTIONS}
-						note="Used for displaying property values."
+						note="All prices will be converted to this currency using live exchange rates."
 					/>
 					<SettingsSelect
 						label="Measurement units"

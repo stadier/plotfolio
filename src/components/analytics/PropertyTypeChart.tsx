@@ -11,21 +11,27 @@ import {
 } from "recharts";
 
 const TYPE_COLORS: Record<string, string> = {
-	[PropertyType.RESIDENTIAL]: "#60a5fa",
-	[PropertyType.COMMERCIAL]: "#f472b6",
-	[PropertyType.INDUSTRIAL]: "#fbbf24",
-	[PropertyType.AGRICULTURAL]: "#34d399",
-	[PropertyType.VACANT_LAND]: "#a78bfa",
-	[PropertyType.MIXED_USE]: "#fb923c",
+	[PropertyType.LAND]: "#94a3b8",
+	[PropertyType.HOUSE]: "#60a5fa",
+	[PropertyType.APARTMENT]: "#f472b6",
+	[PropertyType.BUILDING]: "#a78bfa",
+	[PropertyType.OFFICE]: "#38bdf8",
+	[PropertyType.RETAIL]: "#fbbf24",
+	[PropertyType.WAREHOUSE]: "#f87171",
+	[PropertyType.FARM]: "#86efac",
+	[PropertyType.OTHER]: "#cbd5e1",
 };
 
 const TYPE_LABELS: Record<string, string> = {
-	[PropertyType.RESIDENTIAL]: "Residential",
-	[PropertyType.COMMERCIAL]: "Commercial",
-	[PropertyType.INDUSTRIAL]: "Industrial",
-	[PropertyType.AGRICULTURAL]: "Agricultural",
-	[PropertyType.VACANT_LAND]: "Vacant Land",
-	[PropertyType.MIXED_USE]: "Mixed Use",
+	[PropertyType.LAND]: "Land",
+	[PropertyType.HOUSE]: "House",
+	[PropertyType.APARTMENT]: "Apartment",
+	[PropertyType.BUILDING]: "Building",
+	[PropertyType.OFFICE]: "Office",
+	[PropertyType.RETAIL]: "Retail",
+	[PropertyType.WAREHOUSE]: "Warehouse",
+	[PropertyType.FARM]: "Farm",
+	[PropertyType.OTHER]: "Other",
 };
 
 interface PropertyTypeChartProps {

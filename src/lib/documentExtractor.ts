@@ -1,4 +1,4 @@
-import { PropertyStatus, PropertyType } from "@/types/property";
+import { PropertyStatus, PropertyType, ZoningType } from "@/types/property";
 
 export interface ExtractedFields {
 	name?: string;
@@ -6,7 +6,7 @@ export interface ExtractedFields {
 	description?: string;
 	propertyType?: PropertyType;
 	area?: string;
-	zoning?: string;
+	zoning?: ZoningType;
 	taxId?: string;
 	lat?: string;
 	lng?: string;
@@ -333,22 +333,46 @@ export function matchTextToFields(text: string): ExtractedFields {
 	]);
 
 	// ── Zoning / land use ──
-	fields.zoning = first([
+	const zoningRaw = first([
 		/(?:zoning|zone|land\s*use)\s*[:.]?\s*([A-Za-z0-9\- ]{2,25})/i,
 	]);
+	if (zoningRaw) {
+		const zl = zoningRaw.toLowerCase();
+		if (/commercial/.test(zl)) fields.zoning = ZoningType.COMMERCIAL;
+		else if (/industrial/.test(zl)) fields.zoning = ZoningType.INDUSTRIAL;
+		else if (/agricultur/.test(zl)) fields.zoning = ZoningType.AGRICULTURAL;
+		else if (/mixed/.test(zl)) fields.zoning = ZoningType.MIXED_USE;
+		else if (/residential/.test(zl)) fields.zoning = ZoningType.RESIDENTIAL;
+		else fields.zoning = ZoningType.UNSPECIFIED;
+	}
+	// Infer zoning from document text when not explicitly stated
+	if (!fields.zoning) {
+		if (/commercial/.test(tLower)) fields.zoning = ZoningType.COMMERCIAL;
+		else if (/industrial/.test(tLower)) fields.zoning = ZoningType.INDUSTRIAL;
+		else if (/agricultur|farm/.test(tLower))
+			fields.zoning = ZoningType.AGRICULTURAL;
+		else if (/mixed[\s-]*use/.test(tLower))
+			fields.zoning = ZoningType.MIXED_USE;
+	}
 
-	// ── Property type ──
-	if (/commercial/.test(tLower)) fields.propertyType = PropertyType.COMMERCIAL;
-	else if (/industrial/.test(tLower))
-		fields.propertyType = PropertyType.INDUSTRIAL;
-	else if (/agricultur|farm/.test(tLower))
-		fields.propertyType = PropertyType.AGRICULTURAL;
-	else if (/vacant\s*land|undeveloped|bare\s*land/.test(tLower))
-		fields.propertyType = PropertyType.VACANT_LAND;
-	else if (/mixed[\s-]*use/.test(tLower))
-		fields.propertyType = PropertyType.MIXED_USE;
-	else if (/residential|dwelling|house/.test(tLower))
-		fields.propertyType = PropertyType.RESIDENTIAL;
+	// ── Property type (physical) ──
+	if (/\bapartment|\bflat\b|\bcondo/.test(tLower))
+		fields.propertyType = PropertyType.APARTMENT;
+	else if (/\bwarehouse|\bstorage\s+facilit/.test(tLower))
+		fields.propertyType = PropertyType.WAREHOUSE;
+	else if (/\boffice/.test(tLower)) fields.propertyType = PropertyType.OFFICE;
+	else if (/\bretail|\bshop|\bstore\b/.test(tLower))
+		fields.propertyType = PropertyType.RETAIL;
+	else if (/\bfarm|\branch\b|\borchard/.test(tLower))
+		fields.propertyType = PropertyType.FARM;
+	else if (/\bbuilding|\bblock\s+of\s+flats|\bplaza|\bmall/.test(tLower))
+		fields.propertyType = PropertyType.BUILDING;
+	else if (/\bhouse|\bdwelling|\bvilla|\bbungalow|\btownhouse/.test(tLower))
+		fields.propertyType = PropertyType.HOUSE;
+	else if (
+		/vacant\s*land|undeveloped|bare\s*land|\bplot\b|\bparcel\b/.test(tLower)
+	)
+		fields.propertyType = PropertyType.LAND;
 
 	// ── Witnesses ──
 	fields.witnesses = first([

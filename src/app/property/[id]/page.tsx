@@ -148,7 +148,7 @@ export default function PublicPropertyPage({
 					{/* Logo */}
 					<Link href="/" className="flex items-center gap-2 shrink-0">
 						<Image
-							src="/plotfolio-logo.svg"
+							src="/plotfolio-logo-l.png"
 							alt="Plotfolio"
 							width={26}
 							height={26}
@@ -202,7 +202,7 @@ export default function PublicPropertyPage({
 					{/* Login */}
 					<Link
 						href="/login"
-						className="shrink-0 inline-flex items-center px-4 py-2.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-colors"
+						className="shrink-0 inline-flex items-center px-4 py-2.5 rounded-sm bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-colors"
 					>
 						Log in
 					</Link>

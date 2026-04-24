@@ -136,9 +136,9 @@ export default function ShareModal({
 			ref={dialogRef}
 			onClose={onClose}
 			onClick={handleBackdropClick}
-			className="backdrop:bg-black/40 bg-transparent p-0 m-auto max-w-sm w-full rounded-2xl outline-none"
+			className="backdrop:bg-black/40 bg-transparent p-0 m-auto max-w-sm w-full rounded-sm outline-none"
 		>
-			<div className="bg-card rounded-2xl border border-outline-variant/30 shadow-xl p-5 space-y-4 max-w-sm w-full">
+			<div className="bg-card rounded-sm border border-outline-variant/30 shadow-xl p-5 space-y-4 max-w-sm w-full">
 				{/* Header */}
 				<div className="flex items-center justify-between">
 					<h2 className="text-base font-semibold text-on-surface font-headline">
@@ -154,7 +154,7 @@ export default function ShareModal({
 				</div>
 
 				{/* Property preview */}
-				<div className="bg-surface-container-low dark:bg-surface-container rounded-xl p-3">
+				<div className="bg-surface-container-low dark:bg-surface-container rounded-sm p-3">
 					<p className="text-sm font-medium text-on-surface truncate">
 						{property.name}
 					</p>
@@ -166,7 +166,7 @@ export default function ShareModal({
 				{/* PlotWords code */}
 				{plotWordsCode && (
 					<div className="flex items-center gap-2">
-						<div className="flex-1 flex items-center gap-2 bg-surface-container-low dark:bg-surface-container rounded-lg px-3 py-2 border border-outline-variant/30">
+						<div className="flex-1 flex items-center gap-2 bg-surface-container-low dark:bg-surface-container rounded-sm px-3 py-2 border border-outline-variant/30">
 							<Sparkles className="w-4 h-4 text-primary shrink-0" />
 							<span className="text-xs font-mono font-semibold text-primary truncate flex-1">
 								{plotWordsCode}
@@ -179,7 +179,7 @@ export default function ShareModal({
 								setPwCopied(true);
 								setTimeout(() => setPwCopied(false), 2000);
 							}}
-							className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+							className={`shrink-0 px-3 py-2 rounded-sm text-xs font-medium transition-colors ${
 								pwCopied
 									? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
 									: "bg-primary text-on-primary hover:bg-primary/90"
@@ -200,7 +200,7 @@ export default function ShareModal({
 
 				{/* Copy link */}
 				<div className="flex items-center gap-2">
-					<div className="flex-1 flex items-center gap-2 bg-surface-container-low dark:bg-surface-container rounded-lg px-3 py-2 border border-outline-variant/30">
+					<div className="flex-1 flex items-center gap-2 bg-surface-container-low dark:bg-surface-container rounded-sm px-3 py-2 border border-outline-variant/30">
 						<Link2 className="w-4 h-4 text-on-surface-variant shrink-0" />
 						<span className="text-xs text-on-surface-variant truncate flex-1">
 							{shareUrl}
@@ -209,7 +209,7 @@ export default function ShareModal({
 					<button
 						type="button"
 						onClick={handleCopy}
-						className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+						className={`shrink-0 px-3 py-2 rounded-sm text-xs font-medium transition-colors ${
 							copied
 								? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
 								: "bg-primary text-on-primary hover:bg-primary/90"
@@ -239,7 +239,7 @@ export default function ShareModal({
 								href={ch.href(shareUrl, shareText)}
 								target="_blank"
 								rel="noopener noreferrer"
-								className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors ${ch.color}`}
+								className={`flex items-center gap-1.5 px-3 py-2 rounded-sm text-white text-xs font-medium transition-colors ${ch.color}`}
 							>
 								<ch.icon className="w-4 h-4" />
 								{ch.label}
@@ -253,7 +253,7 @@ export default function ShareModal({
 					<button
 						type="button"
 						onClick={handleNativeShare}
-						className="w-full py-2.5 rounded-lg border border-outline-variant/40 text-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors"
+						className="w-full py-2.5 rounded-sm border border-outline-variant/40 text-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors"
 					>
 						More sharing options…
 					</button>

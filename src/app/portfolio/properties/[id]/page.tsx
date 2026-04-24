@@ -6,7 +6,7 @@ import ShareModal from "@/components/property/ShareModal";
 import StatusToggle from "@/components/property/StatusToggle";
 import BackButton from "@/components/ui/BackButton";
 import { useProperty, useUpdateProperty } from "@/hooks/usePropertyQueries";
-import { FileText, Pencil, Share2 } from "lucide-react";
+import { FileText, Handshake, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 
@@ -92,6 +92,13 @@ export default function PropertyDetailPage({
 					isOwner
 					actions={
 						<>
+							<Link
+								href={`/portfolio/properties/${id}/sell`}
+								className="p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors"
+								title="Initiate sale"
+							>
+								<Handshake className="w-5 h-5 text-on-surface-variant" />
+							</Link>
 							<Link
 								href={`/portfolio/properties/${id}/edit`}
 								className="p-2 rounded-full border border-outline-variant/40 hover:bg-surface-container-high transition-colors"

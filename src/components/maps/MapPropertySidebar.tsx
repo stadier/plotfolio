@@ -37,18 +37,22 @@ function getStatusDot(status: PropertyStatus): string {
 
 function getPropertyTypeLabel(type: PropertyType): string {
 	switch (type) {
-		case PropertyType.RESIDENTIAL:
-			return "Residential";
-		case PropertyType.COMMERCIAL:
-			return "Commercial";
-		case PropertyType.INDUSTRIAL:
-			return "Industrial";
-		case PropertyType.AGRICULTURAL:
-			return "Agricultural";
-		case PropertyType.VACANT_LAND:
-			return "Vacant Land";
-		case PropertyType.MIXED_USE:
-			return "Mixed Use";
+		case PropertyType.LAND:
+			return "Land";
+		case PropertyType.HOUSE:
+			return "House";
+		case PropertyType.APARTMENT:
+			return "Apartment";
+		case PropertyType.BUILDING:
+			return "Building";
+		case PropertyType.OFFICE:
+			return "Office";
+		case PropertyType.RETAIL:
+			return "Retail";
+		case PropertyType.WAREHOUSE:
+			return "Warehouse";
+		case PropertyType.FARM:
+			return "Farm";
 		default:
 			return type;
 	}

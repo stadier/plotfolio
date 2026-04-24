@@ -20,11 +20,12 @@ export default function PriceVsAreaScatter({
 	properties,
 }: PriceVsAreaScatterProps) {
 	const data = properties
-		.filter((p) => p.area && p.purchasePrice)
+		.filter((p) => p.area && (p.soldPrice || p.purchasePrice))
 		.map((p) => ({
 			area: p.area,
-			price: p.purchasePrice,
+			price: p.soldPrice || p.currentValue || p.purchasePrice,
 			name: p.name,
+			isSold: !!p.soldPrice,
 		}));
 
 	if (data.length === 0) {

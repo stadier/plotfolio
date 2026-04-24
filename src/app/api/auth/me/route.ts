@@ -91,6 +91,9 @@ export async function GET() {
 				salesCount: (user as any).salesCount,
 				followerCount: (user as any).followerCount,
 				allowBookings: (user as any).allowBookings,
+				displayCurrency: (user as any).displayCurrency,
+				isAdmin: !!(user as any).isAdmin,
+				verificationStatus: (user as any).verificationStatus,
 			},
 			portfolios,
 		});

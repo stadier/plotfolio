@@ -42,6 +42,7 @@ export default function PortfolioValueChart({
 		(s, p) => s + (p.currentValue || p.purchasePrice || 0),
 		0,
 	);
+	const totalRealized = properties.reduce((s, p) => s + (p.soldPrice || 0), 0);
 
 	const data = months.map((month, i) => {
 		const progress = i / 11;
@@ -49,11 +50,15 @@ export default function PortfolioValueChart({
 		const purchased = totalPurchase + jitter * 0.5;
 		const current =
 			totalPurchase + (totalCurrent - totalPurchase) * progress + jitter;
-		return {
+		const entry: Record<string, number | string> = {
 			month,
 			purchased: Math.round(purchased),
 			current: Math.round(Math.max(current, purchased * 0.95)),
 		};
+		if (totalRealized > 0) {
+			entry.realized = Math.round(totalRealized + jitter * 0.3);
+		}
+		return entry;
 	});
 
 	return (
@@ -67,6 +72,10 @@ export default function PortfolioValueChart({
 					<linearGradient id="gradPurchased" x1="0" y1="0" x2="0" y2="1">
 						<stop offset="0%" stopColor="#f472b6" stopOpacity={0.2} />
 						<stop offset="100%" stopColor="#f472b6" stopOpacity={0} />
+					</linearGradient>
+					<linearGradient id="gradRealized" x1="0" y1="0" x2="0" y2="1">
+						<stop offset="0%" stopColor="#34d399" stopOpacity={0.3} />
+						<stop offset="100%" stopColor="#34d399" stopOpacity={0} />
 					</linearGradient>
 				</defs>
 				<CartesianGrid
@@ -130,6 +139,19 @@ export default function PortfolioValueChart({
 					dot={false}
 					activeDot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
 				/>
+				{totalRealized > 0 && (
+					<Area
+						type="monotone"
+						dataKey="realized"
+						name="Realized / Sold"
+						stroke="#34d399"
+						strokeWidth={3}
+						strokeDasharray="6 3"
+						fill="url(#gradRealized)"
+						dot={false}
+						activeDot={{ r: 5, strokeWidth: 2, fill: "#fff" }}
+					/>
+				)}
 			</AreaChart>
 		</ResponsiveContainer>
 	);

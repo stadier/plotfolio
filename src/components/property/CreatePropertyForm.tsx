@@ -9,28 +9,31 @@ import WitnessTagInput, {
 } from "@/components/ui/WitnessTagInput";
 import { queryKeys } from "@/hooks/usePropertyQueries";
 import { extractFieldsFromDocument } from "@/lib/documentExtractor";
+import { getPropertyMedia } from "@/lib/utils";
 import {
 	DocumentType,
+	MediaType,
 	Property,
 	PropertyCondition,
 	PropertyDocument,
 	PropertyStatus,
 	PropertyType,
+	ZoningType,
 } from "@/types/property";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, MapPin, Save, Upload } from "lucide-react";
+import { Camera, FileText, Loader2, MapPin, Save } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import DocumentSidebar from "./DocumentSidebar";
+import DocumentSidebar, { isMediaFile } from "./DocumentSidebar";
 
 function generatePropertyName(): string {
 	const now = new Date();
 	const month = now.toLocaleString("en-US", { month: "short" }).toUpperCase();
 	const year = now.getFullYear().toString().slice(-2);
 	const seq = Math.random().toString(36).slice(2, 6).toUpperCase();
-	return `PLT-${month}${year}-${seq}`;
+	return `PLOT-${month}${year}-${seq}`;
 }
 
 const MapLocationPicker = dynamic(
@@ -70,12 +73,24 @@ function inferDocumentType(file: File): DocumentType {
 }
 
 const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
-	[PropertyType.RESIDENTIAL]: "Residential",
-	[PropertyType.COMMERCIAL]: "Commercial",
-	[PropertyType.INDUSTRIAL]: "Industrial",
-	[PropertyType.AGRICULTURAL]: "Agricultural",
-	[PropertyType.VACANT_LAND]: "Vacant Land",
-	[PropertyType.MIXED_USE]: "Mixed Use",
+	[PropertyType.LAND]: "Land",
+	[PropertyType.HOUSE]: "House",
+	[PropertyType.APARTMENT]: "Apartment",
+	[PropertyType.BUILDING]: "Building",
+	[PropertyType.OFFICE]: "Office",
+	[PropertyType.RETAIL]: "Retail",
+	[PropertyType.WAREHOUSE]: "Warehouse",
+	[PropertyType.FARM]: "Farm",
+	[PropertyType.OTHER]: "Other",
+};
+
+const ZONING_LABELS: Record<ZoningType, string> = {
+	[ZoningType.RESIDENTIAL]: "Residential",
+	[ZoningType.COMMERCIAL]: "Commercial",
+	[ZoningType.INDUSTRIAL]: "Industrial",
+	[ZoningType.AGRICULTURAL]: "Agricultural",
+	[ZoningType.MIXED_USE]: "Mixed Use",
+	[ZoningType.UNSPECIFIED]: "Unspecified",
 };
 
 const STATUS_LABELS: Record<PropertyStatus, string> = {
@@ -335,10 +350,12 @@ function FormSection({
 function Field({
 	label,
 	required,
+	hint,
 	children,
 }: {
 	label: string;
 	required?: boolean;
+	hint?: string;
 	children: React.ReactNode;
 }) {
 	return (
@@ -347,6 +364,7 @@ function Field({
 				{label}
 				{required && <span className="text-error ml-0.5">*</span>}
 			</span>
+			{hint && <span className="text-xs text-outline -mt-1">{hint}</span>}
 			{children}
 		</label>
 	);
@@ -389,12 +407,14 @@ export default function CreatePropertyForm({
 
 	/* property details */
 	const [propertyType, setPropertyType] = useState<PropertyType>(
-		initialProperty?.propertyType || PropertyType.MIXED_USE,
+		initialProperty?.propertyType || PropertyType.LAND,
 	);
 	const [area, setArea] = useState(
 		initialProperty?.area ? String(initialProperty.area) : "",
 	);
-	const [zoning, setZoning] = useState(initialProperty?.zoning || "");
+	const [zoning, setZoning] = useState<ZoningType | "">(
+		initialProperty?.zoning || "",
+	);
 	const [taxId, setTaxId] = useState(initialProperty?.taxId || "");
 	const [status, setStatus] = useState<PropertyStatus>(
 		initialProperty?.status || PropertyStatus.OWNED,
@@ -436,6 +456,13 @@ export default function CreatePropertyForm({
 		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		return parts.join(".");
 	});
+	const [listingPrice, setListingPrice] = useState(() => {
+		if (!initialProperty?.listingPrice) return "";
+		const raw = String(initialProperty.listingPrice);
+		const parts = raw.split(".");
+		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		return parts.join(".");
+	});
 	const [currentValue, setCurrentValue] = useState(() => {
 		if (!initialProperty?.currentValue) return "";
 		const raw = String(initialProperty.currentValue);
@@ -443,6 +470,18 @@ export default function CreatePropertyForm({
 		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		return parts.join(".");
 	});
+	const [soldPrice, setSoldPrice] = useState(() => {
+		if (!initialProperty?.soldPrice) return "";
+		const raw = String(initialProperty.soldPrice);
+		const parts = raw.split(".");
+		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		return parts.join(".");
+	});
+	const [soldDate, setSoldDate] = useState(
+		initialProperty?.soldDate
+			? new Date(initialProperty.soldDate).toISOString().split("T")[0]
+			: "",
+	);
 
 	/* transaction */
 	const [boughtFrom, setBoughtFrom] = useState(
@@ -469,6 +508,23 @@ export default function CreatePropertyForm({
 		"individual" | "company" | "trust"
 	>(initialProperty?.owner?.type || "individual");
 
+	/* owner mode: portfolio_owner | self | custom */
+	type OwnerMode = "portfolio_owner" | "self" | "custom";
+	const [ownerMode, setOwnerMode] = useState<OwnerMode>(
+		isEdit ? "custom" : "portfolio_owner",
+	);
+	type OwnerUserInfo = {
+		id: string;
+		name: string;
+		username: string;
+		displayName: string;
+		email: string;
+		avatar?: string;
+		type: "individual" | "company" | "trust";
+	};
+	const [portfolioOwnerUser, setPortfolioOwnerUser] =
+		useState<OwnerUserInfo | null>(null);
+
 	/* map picker */
 	const [mapPickerOpen, setMapPickerOpen] = useState(false);
 
@@ -486,16 +542,66 @@ export default function CreatePropertyForm({
 	const [extracting, setExtracting] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	/* media upload state */
+	const [uploadedMedia, setUploadedMedia] = useState<File[]>([]);
+	const [removedMediaUrls, setRemovedMediaUrls] = useState<string[]>([]);
+	const mediaInputRef = useRef<HTMLInputElement>(null);
+
+	/* existing media (edit mode) */
+	const [existingMedia, setExistingMedia] = useState(() =>
+		initialProperty ? getPropertyMedia(initialProperty) : [],
+	);
+
+	// Fetch portfolio owner info when current user is a team member (not the portfolio owner)
+	useEffect(() => {
+		if (isEdit || !activePortfolio || !user) return;
+		if (user.id === activePortfolio.createdBy) return;
+		fetch(`/api/portfolios/${activePortfolio.id}/members`)
+			.then((r) => r.json())
+			.then((data: unknown) => {
+				const members = Array.isArray(data) ? data : [];
+				const ownerMember = members.find(
+					(m: any) => m.userId === activePortfolio.createdBy,
+				);
+				if (ownerMember?.user) {
+					setPortfolioOwnerUser({
+						id: ownerMember.user.id,
+						name: ownerMember.user.name,
+						username: ownerMember.user.username,
+						displayName: ownerMember.user.displayName,
+						email: ownerMember.user.email,
+						avatar: ownerMember.user.avatar,
+						type: "individual",
+					});
+				}
+			})
+			.catch(() => {});
+	}, [isEdit, activePortfolio, user]);
+
 	const handleDocumentUpload = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const files = e.target.files;
 			if (!files || files.length === 0) return;
-
-			setUploadedFiles((prev) => [...prev, ...Array.from(files)]);
-			setSidebarOpen(true);
-
-			// Reset so the same files can be re-selected
+			const docFiles = Array.from(files).filter((f) => !isMediaFile(f));
+			if (docFiles.length > 0) {
+				setUploadedFiles((prev) => [...prev, ...docFiles]);
+				setSidebarOpen(true);
+			}
 			if (fileInputRef.current) fileInputRef.current.value = "";
+		},
+		[],
+	);
+
+	const handleMediaUpload = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			const files = e.target.files;
+			if (!files || files.length === 0) return;
+			const mediaFiles = Array.from(files).filter(isMediaFile);
+			if (mediaFiles.length > 0) {
+				setUploadedMedia((prev) => [...prev, ...mediaFiles]);
+				setSidebarOpen(true);
+			}
+			if (mediaInputRef.current) mediaInputRef.current.value = "";
 		},
 		[],
 	);
@@ -513,7 +619,7 @@ export default function CreatePropertyForm({
 			if (fields.description) setDescription(fields.description ?? "");
 			if (fields.propertyType) setPropertyType(fields.propertyType);
 			if (fields.area) setArea(fields.area);
-			if (fields.zoning) setZoning(fields.zoning ?? "");
+			if (fields.zoning) setZoning(fields.zoning);
 			if (fields.taxId) setTaxId(fields.taxId ?? "");
 			if (fields.status) setStatus(fields.status);
 			if (fields.lat) setLat(fields.lat);
@@ -579,7 +685,10 @@ export default function CreatePropertyForm({
 			lng,
 			purchaseDate,
 			purchasePrice,
+			listingPrice,
 			currentValue,
+			soldPrice,
+			soldDate,
 			boughtFrom,
 			witnesses.length > 0 ? "yes" : "",
 			signatures.length > 0 ? "yes" : "",
@@ -619,13 +728,20 @@ export default function CreatePropertyForm({
 				purchasePrice: purchasePrice
 					? parseFloat(purchasePrice.replace(/,/g, ""))
 					: undefined,
+				listingPrice: listingPrice
+					? parseFloat(listingPrice.replace(/,/g, ""))
+					: undefined,
 				currentValue: currentValue
 					? parseFloat(currentValue.replace(/,/g, ""))
 					: undefined,
+				soldPrice: soldPrice
+					? parseFloat(soldPrice.replace(/,/g, ""))
+					: undefined,
+				soldDate: soldDate ? new Date(soldDate) : undefined,
 				status,
 				conditions: conditions.length > 0 ? conditions : undefined,
 				quantity: quantity ? Math.max(1, parseInt(quantity, 10)) : 1,
-				zoning: zoning.trim() || undefined,
+				zoning: zoning || undefined,
 				taxId: taxId.trim() || undefined,
 				state: propertyState.trim() || undefined,
 				city: city.trim() || undefined,
@@ -634,18 +750,26 @@ export default function CreatePropertyForm({
 				witnesses: witnesses.length > 0 ? witnesses : undefined,
 				signatures: signatures.length > 0 ? signatures : undefined,
 				owner: (() => {
-					if (user) {
+					if (user && ownerMode !== "custom") {
+						const isTeamMember = user.id !== activePortfolio?.createdBy;
+						const ownerUser: OwnerUserInfo =
+							ownerMode === "portfolio_owner" &&
+							isTeamMember &&
+							portfolioOwnerUser
+								? portfolioOwnerUser
+								: user;
 						return {
-							id: user.id,
-							name: user.name,
-							username: user.username,
-							displayName: user.displayName,
-							email: user.email,
-							avatar: user.avatar,
-							phone: user.phone || ownerPhone.trim() || undefined,
-							type: user.type,
+							id: ownerUser.id,
+							name: ownerUser.name,
+							username: ownerUser.username,
+							displayName: ownerUser.displayName,
+							email: ownerUser.email,
+							avatar: ownerUser.avatar,
+							phone: (ownerUser as any).phone || ownerPhone.trim() || undefined,
+							type: ownerUser.type,
 						};
 					}
+					// custom / unauthenticated: use manual fields
 					const fullName =
 						ownerName.trim() ||
 						`PROP-${Date.now().toString(36).slice(-4).toUpperCase()}`;
@@ -701,6 +825,30 @@ export default function CreatePropertyForm({
 				});
 			}
 
+			// Delete removed existing media
+			for (const url of removedMediaUrls) {
+				await fetch(
+					`/api/properties/${id}/media?url=${encodeURIComponent(url)}`,
+					{ method: "DELETE" },
+				);
+			}
+
+			// Upload new media files
+			for (const file of uploadedMedia) {
+				let mediaType: MediaType = MediaType.IMAGE;
+				if (file.type.startsWith("video/")) mediaType = MediaType.VIDEO;
+				else if (file.type.startsWith("audio/")) mediaType = MediaType.AUDIO;
+
+				const formData = new FormData();
+				formData.append("file", file);
+				formData.append("type", mediaType);
+
+				await fetch(`/api/properties/${id}/media`, {
+					method: "POST",
+					body: formData,
+				});
+			}
+
 			// Invalidate property queries so lists update immediately
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.all,
@@ -720,6 +868,10 @@ export default function CreatePropertyForm({
 		setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
 	}, []);
 
+	const handleRemoveMediaFile = useCallback((index: number) => {
+		setUploadedMedia((prev) => prev.filter((_, i) => i !== index));
+	}, []);
+
 	return (
 		<div
 			className={`flex flex-col h-screen ${isEdit ? "px-4 sm:px-8 py-6" : ""}`}
@@ -729,40 +881,70 @@ export default function CreatePropertyForm({
 				className="flex flex-col justify-between flex-1 min-w-0"
 			>
 				<div>
-					{/* ── Document Upload Banner ──────────────── */}
-					<div className="mb-5">
+					{/* ── Upload Zones (Media + Documents) ────── */}
+					<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+						{/* Media zone */}
+						<label
+							htmlFor="media-upload"
+							className="flex items-center gap-3 p-4 rounded-xl border border-dashed cursor-pointer transition-colors border-border bg-card hover:border-primary/40"
+						>
+							<input
+								ref={mediaInputRef}
+								id="media-upload"
+								type="file"
+								accept="image/*,video/*,audio/*"
+								multiple
+								className="hidden"
+								onChange={handleMediaUpload}
+							/>
+							<div className="shrink-0 w-9 h-9 rounded-lg bg-blue-500 flex items-center justify-center">
+								<Camera className="w-4 h-4 text-white" />
+							</div>
+							<div className="flex-1 min-w-0">
+								<p className="font-headline text-sm font-bold text-on-surface">
+									Photos &amp; Media
+								</p>
+								<p className="text-xs text-on-surface-variant mt-0.5 font-body">
+									Images, videos, audio recordings
+								</p>
+							</div>
+							{uploadedMedia.length > 0 && (
+								<span className="shrink-0 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+									{uploadedMedia.length + existingMedia.length}
+								</span>
+							)}
+						</label>
+
+						{/* Documents zone */}
 						<label
 							htmlFor="doc-upload"
-							className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-xl border border-dashed cursor-pointer transition-colors border-border bg-card hover:border-primary/40"
+							className="flex items-center gap-3 p-4 rounded-xl border border-dashed cursor-pointer transition-colors border-border bg-card hover:border-primary/40"
 						>
 							<input
 								ref={fileInputRef}
 								id="doc-upload"
 								type="file"
-								accept="image/*,.pdf,.txt"
+								accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 								multiple
 								className="hidden"
 								onChange={handleDocumentUpload}
 							/>
-
-							<div className="shrink-0 w-10 h-10 rounded-lg signature-gradient flex items-center justify-center">
-								<Upload className="w-4.5 h-4.5 text-white" />
+							<div className="shrink-0 w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center">
+								<FileText className="w-4 h-4 text-white" />
 							</div>
-
-							<div className="text-center sm:text-left flex-1">
+							<div className="flex-1 min-w-0">
 								<p className="font-headline text-sm font-bold text-on-surface">
-									Upload documents for this property
+									Documents
 								</p>
 								<p className="text-xs text-on-surface-variant mt-0.5 font-body">
-									Survey plans, title deeds, contracts, permits — PDF, image, or
-									text. Select multiple.
+									Surveys, deeds, permits, contracts
 								</p>
 							</div>
-
-							<span className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary font-label">
-								<Upload className="w-3.5 h-3.5" />
-								Upload
-							</span>
+							{(uploadedFiles.length > 0 || existingDocs.length > 0) && (
+								<span className="shrink-0 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+									{uploadedFiles.length + existingDocs.length}
+								</span>
+							)}
 						</label>
 					</div>
 
@@ -853,12 +1035,20 @@ export default function CreatePropertyForm({
 											/>
 										</Field>
 										<Field label="Zoning">
-											<input
-												className={inputCls}
-												placeholder="e.g. R-2 Residential"
+											<select
+												className={selectCls}
 												value={zoning}
-												onChange={(e) => setZoning(e.target.value)}
-											/>
+												onChange={(e) =>
+													setZoning(e.target.value as ZoningType | "")
+												}
+											>
+												<option value="">— Not set —</option>
+												{Object.entries(ZONING_LABELS).map(([val, label]) => (
+													<option key={val} value={val}>
+														{label}
+													</option>
+												))}
+											</select>
 										</Field>
 										<Field label="Tax ID">
 											<input
@@ -1050,6 +1240,28 @@ export default function CreatePropertyForm({
 												}}
 											/>
 										</Field>
+
+										<Field
+											label="Listing Price"
+											hint="Asking price when listed for sale or rent"
+										>
+											<input
+												type="text"
+												inputMode="numeric"
+												className={inputCls}
+												placeholder="e.g. 70,000,000"
+												value={listingPrice}
+												onChange={(e) => {
+													const raw = e.target.value.replace(/[^0-9.]/g, "");
+													const parts = raw.split(".");
+													parts[0] = parts[0].replace(
+														/\B(?=(\d{3})+(?!\d))/g,
+														",",
+													);
+													setListingPrice(parts.join("."));
+												}}
+											/>
+										</Field>
 									</div>
 								</FormSection>
 
@@ -1064,6 +1276,39 @@ export default function CreatePropertyForm({
 												onChange={(e) => setBoughtFrom(e.target.value)}
 											/>
 										</Field>
+
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+											<Field
+												label="Sold / Transacted Price"
+												hint="What it actually sold or leased for — the true market value"
+											>
+												<input
+													type="text"
+													inputMode="numeric"
+													className={inputCls}
+													placeholder="e.g. 68,500,000"
+													value={soldPrice}
+													onChange={(e) => {
+														const raw = e.target.value.replace(/[^0-9.]/g, "");
+														const parts = raw.split(".");
+														parts[0] = parts[0].replace(
+															/\B(?=(\d{3})+(?!\d))/g,
+															",",
+														);
+														setSoldPrice(parts.join("."));
+													}}
+												/>
+											</Field>
+
+											<Field label="Sale / Transaction Date">
+												<input
+													type="date"
+													className={inputCls}
+													value={soldDate}
+													onChange={(e) => setSoldDate(e.target.value)}
+												/>
+											</Field>
+										</div>
 
 										<Field label="Witnesses">
 											<WitnessTagInput
@@ -1084,74 +1329,153 @@ export default function CreatePropertyForm({
 
 								{/* ── Owner ───────────────────────────────── */}
 								<FormSection title="Owner Information">
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-										<Field label="Full Name">
-											<input
-												className={inputCls}
-												placeholder="Property owner name"
-												value={ownerName}
-												onChange={(e) => setOwnerName(e.target.value)}
-											/>
-										</Field>
-
-										<Field label="Email">
-											<input
-												type="email"
-												className={inputCls}
-												placeholder="owner@email.com"
-												value={ownerEmail}
-												onChange={(e) => setOwnerEmail(e.target.value)}
-											/>
-										</Field>
-
-										<Field label="Phone">
-											<input
-												type="tel"
-												className={inputCls}
-												placeholder="+1 ..."
-												value={ownerPhone}
-												onChange={(e) => setOwnerPhone(e.target.value)}
-											/>
-										</Field>
-
-										<Field label="Owner Type">
-											<select
-												className={selectCls}
-												value={ownerType}
-												onChange={(e) =>
-													setOwnerType(
-														e.target.value as
-															| "individual"
-															| "company"
-															| "trust",
-													)
-												}
-											>
-												{OWNER_TYPES.map((t) => (
-													<option key={t.value} value={t.value}>
-														{t.label}
+									{/* Selector — only in create mode when authenticated */}
+									{!isEdit && user && (
+										<div className="mb-4">
+											<Field label="Who owns this property?">
+												<select
+													className={selectCls}
+													value={ownerMode}
+													onChange={(e) =>
+														setOwnerMode(e.target.value as OwnerMode)
+													}
+												>
+													<option value="portfolio_owner">
+														{user.id === activePortfolio?.createdBy
+															? `Me — ${user.displayName || user.name} (Portfolio Owner)`
+															: portfolioOwnerUser
+																? `Portfolio Owner — ${portfolioOwnerUser.displayName || portfolioOwnerUser.name}`
+																: "Portfolio Owner"}
 													</option>
-												))}
-											</select>
-										</Field>
-									</div>
+													{user.id !== activePortfolio?.createdBy && (
+														<option value="self">
+															Myself — {user.displayName || user.name}
+														</option>
+													)}
+													<option value="custom">Other / Custom</option>
+												</select>
+											</Field>
+											{/* Read-only resolved owner preview */}
+											{ownerMode !== "custom" &&
+												(() => {
+													const isTeamMember =
+														user.id !== activePortfolio?.createdBy;
+													const preview: OwnerUserInfo | null =
+														ownerMode === "portfolio_owner" && isTeamMember
+															? portfolioOwnerUser
+															: user;
+													if (!preview) return null;
+													return (
+														<div className="mt-3 flex items-center gap-3 rounded-md border border-border bg-surface-container px-3 py-2.5">
+															{preview.avatar ? (
+																<img
+																	src={preview.avatar}
+																	alt={preview.displayName}
+																	className="w-7 h-7 rounded-full object-cover shrink-0"
+																/>
+															) : (
+																<div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+																	{(preview.displayName || preview.name)
+																		.charAt(0)
+																		.toUpperCase()}
+																</div>
+															)}
+															<div className="min-w-0">
+																<p className="text-sm font-medium text-on-surface truncate">
+																	{preview.displayName || preview.name}
+																</p>
+																<p className="text-xs text-outline truncate">
+																	{preview.email}
+																</p>
+															</div>
+														</div>
+													);
+												})()}
+										</div>
+									)}
+									{/* Manual fields — shown in custom mode, edit mode, or when unauthenticated */}
+									{(ownerMode === "custom" || isEdit || !user) && (
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+											<Field label="Full Name">
+												<input
+													className={inputCls}
+													placeholder="Property owner name"
+													value={ownerName}
+													onChange={(e) => setOwnerName(e.target.value)}
+												/>
+											</Field>
+
+											<Field label="Email">
+												<input
+													type="email"
+													className={inputCls}
+													placeholder="owner@email.com"
+													value={ownerEmail}
+													onChange={(e) => setOwnerEmail(e.target.value)}
+												/>
+											</Field>
+
+											<Field label="Phone">
+												<input
+													type="tel"
+													className={inputCls}
+													placeholder="+1 ..."
+													value={ownerPhone}
+													onChange={(e) => setOwnerPhone(e.target.value)}
+												/>
+											</Field>
+
+											<Field label="Owner Type">
+												<select
+													className={selectCls}
+													value={ownerType}
+													onChange={(e) =>
+														setOwnerType(
+															e.target.value as
+																| "individual"
+																| "company"
+																| "trust",
+														)
+													}
+												>
+													{OWNER_TYPES.map((t) => (
+														<option key={t.value} value={t.value}>
+															{t.label}
+														</option>
+													))}
+												</select>
+											</Field>
+										</div>
+									)}
 								</FormSection>
 							</MasonryGrid>
 						</div>
 
-						{/* Document sidebar — inline next to masonry grid */}
-						{(uploadedFiles.length > 0 || existingDocs.length > 0) &&
+						{/* Sidebar — media + documents tabs */}
+						{(uploadedFiles.length > 0 ||
+							existingDocs.length > 0 ||
+							uploadedMedia.length > 0 ||
+							existingMedia.length > 0) &&
 							sidebarOpen && (
 								<DocumentSidebar
 									files={uploadedFiles}
+									mediaFiles={uploadedMedia}
 									existingDocs={existingDocs}
+									existingMedia={existingMedia}
 									propertyId={initialProperty?.id}
 									onRemoveFile={handleRemoveFile}
+									onRemoveMediaFile={handleRemoveMediaFile}
 									onRemoveExistingDoc={(docId) => {
 										setExistingDocs((prev) =>
 											prev.filter((d) => d.id !== docId),
 										);
 										setRemovedDocIds((prev) => [...prev, docId]);
+									}}
+									onRemoveExistingMedia={(url) => {
+										setExistingMedia((prev) =>
+											prev.filter((m) => m.url !== url),
+										);
+										setRemovedMediaUrls((prev) => [...prev, url]);
 									}}
 									onClose={() => setSidebarOpen(false)}
 									onExtract={handleExtractFromFile}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/components/AuthContext";
 import MediaLightbox from "@/components/property/MediaLightbox";
 import {
 	DocumentsGrid,
@@ -8,6 +9,7 @@ import {
 	getStatusColor,
 } from "@/components/property/propertyDisplayHelpers";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { ChatAPI } from "@/lib/api";
 import { getPropertyMedia } from "@/lib/utils";
 import {
 	DocumentAccessRequest,
@@ -20,34 +22,166 @@ import {
 	BedDouble,
 	Calendar,
 	Car,
+	Check,
+	Loader2,
 	Mail,
 	MapPin,
+	MessageSquare,
 	Mic,
 	Phone,
 	Play,
+	Plus,
 	Ruler,
 	Sparkles,
 	Tag,
+	Upload,
 	Wallet,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const PropertyMiniMap = dynamic(
 	() => import("@/components/maps/PropertyMiniMap"),
 	{ ssr: false },
 );
 
+/* ─── Media Upload Button ─────────────────────────────────────── */
+
+function MediaUploadButton({
+	propertyId,
+	onUploaded,
+}: {
+	propertyId: string;
+	onUploaded?: () => void;
+}) {
+	const [uploading, setUploading] = useState(false);
+	const [uploadDone, setUploadDone] = useState(false);
+	const [uploadError, setUploadError] = useState<string | null>(null);
+	const [failedFile, setFailedFile] = useState<File | null>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	function detectType(file: File): "image" | "video" | "audio" {
+		if (file.type.startsWith("video/")) return "video";
+		if (file.type.startsWith("audio/")) return "audio";
+		return "image";
+	}
+
+	async function uploadFile(file: File) {
+		setUploading(true);
+		setUploadError(null);
+		try {
+			const formData = new FormData();
+			formData.append("file", file);
+			formData.append("type", detectType(file));
+			const res = await fetch(`/api/properties/${propertyId}/media`, {
+				method: "POST",
+				body: formData,
+			});
+			if (!res.ok) {
+				const err = await res.json();
+				throw new Error(err.error ?? "Upload failed");
+			}
+			onUploaded?.();
+			setUploadDone(true);
+			setFailedFile(null);
+		} catch (err) {
+			setUploadError(err instanceof Error ? err.message : "Upload failed");
+			setFailedFile(file);
+		} finally {
+			setUploading(false);
+			if (inputRef.current) inputRef.current.value = "";
+		}
+	}
+
+	return (
+		<div className="w-32 h-32 shrink-0 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 hover:bg-surface-container-high transition-colors">
+			{uploadDone ? (
+				<>
+					<Check className="w-5 h-5 text-green-500" />
+					<span className="text-badge text-green-500 font-medium mt-1">
+						Uploaded
+					</span>
+					<button
+						onClick={() => setUploadDone(false)}
+						className="flex items-center gap-1 text-badge font-medium text-primary hover:underline mt-1"
+					>
+						<Plus className="w-3.5 h-3.5" />
+						Add another
+					</button>
+				</>
+			) : failedFile && uploadError ? (
+				<div className="flex flex-col items-center gap-1.5 px-2 w-full">
+					<Upload className="w-5 h-5 text-red-400" />
+					<p className="text-[9px] text-red-500 text-center leading-tight">
+						{uploadError}
+					</p>
+					<button
+						onClick={() => uploadFile(failedFile)}
+						disabled={uploading}
+						className="flex items-center gap-1 text-badge font-medium text-primary hover:underline"
+					>
+						<Upload className="w-3 h-3" />
+						{uploading ? "Retrying…" : "Retry"}
+					</button>
+					<button
+						onClick={() => {
+							setFailedFile(null);
+							setUploadError(null);
+						}}
+						className="text-[9px] text-outline hover:text-on-surface-variant"
+					>
+						Dismiss
+					</button>
+				</div>
+			) : (
+				<label className="flex flex-col items-center justify-center cursor-pointer w-full h-full">
+					{uploading ? (
+						<>
+							<Upload className="w-5 h-5 text-outline animate-pulse" />
+							<span className="text-badge text-outline mt-1">Uploading…</span>
+						</>
+					) : (
+						<>
+							<Plus className="w-5 h-5 text-outline" />
+							<span className="text-badge text-outline mt-1">Add</span>
+						</>
+					)}
+					<input
+						ref={inputRef}
+						type="file"
+						accept="image/*,video/*,audio/*"
+						multiple
+						className="hidden"
+						disabled={uploading}
+						onChange={(e) => {
+							const files = e.target.files;
+							if (!files) return;
+							Array.from(files).forEach((f) => uploadFile(f));
+						}}
+					/>
+				</label>
+			)}
+		</div>
+	);
+}
+
 /* ─── Media Gallery ──────────────────────────────────────────── */
 
 function MediaGallery({
 	media,
 	name,
+	propertyId,
+	isOwner,
+	onMediaUploaded,
 }: {
 	media: PropertyMedia[];
 	name: string;
+	propertyId?: string;
+	isOwner?: boolean;
+	onMediaUploaded?: () => void;
 }) {
 	const [lightbox, setLightbox] = useState<number | null>(null);
 	const [loadedSet, setLoadedSet] = useState<Set<number>>(new Set());
@@ -158,6 +292,10 @@ function MediaGallery({
 	);
 
 	function renderLayout() {
+		if (count === 0) {
+			return null;
+		}
+
 		if (count === 1) {
 			return (
 				<div className="h-[340px]">
@@ -218,6 +356,15 @@ function MediaGallery({
 		<>
 			{renderLayout()}
 
+			{isOwner && propertyId && (
+				<div className="flex justify-end mt-2">
+					<MediaUploadButton
+						propertyId={propertyId}
+						onUploaded={onMediaUploaded}
+					/>
+				</div>
+			)}
+
 			{lightbox !== null && (
 				<MediaLightbox
 					media={media}
@@ -272,6 +419,46 @@ function DetailRow({
 }
 
 /* ─── Owner / Agent Sidebar Card ─────────────────────────────── */
+
+function MessageOwnerButton({ property }: { property: Property }) {
+	const { user } = useAuth();
+	const router = useRouter();
+	const [loading, setLoading] = useState(false);
+
+	if (!user || !property.owner?.id || user.id === property.owner.id)
+		return null;
+
+	const handleMessage = async () => {
+		setLoading(true);
+		const { chat, error } = await ChatAPI.startChat({
+			recipientId: property.owner!.id,
+			propertyId: property.id,
+			propertyTitle: property.name,
+			propertyImage: property.media?.[0]?.url,
+		});
+		setLoading(false);
+		if (chat) {
+			router.push(`/portfolio/chat/${chat.id}`);
+		} else if (error) {
+			alert(error);
+		}
+	};
+
+	return (
+		<button
+			onClick={handleMessage}
+			disabled={loading}
+			className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+		>
+			{loading ? (
+				<Loader2 className="w-4 h-4 animate-spin" />
+			) : (
+				<MessageSquare className="w-4 h-4" />
+			)}
+			Message Owner
+		</button>
+	);
+}
 
 function OwnerSidebarCard({ property }: { property: Property }) {
 	return (
@@ -330,6 +517,7 @@ function OwnerSidebarCard({ property }: { property: Property }) {
 			>
 				Register Interest
 			</Link>
+			<MessageOwnerButton property={property} />
 		</div>
 	);
 }
@@ -600,7 +788,7 @@ function DocumentsSection({
 				</span>
 			</div>
 			{!isOwner && (
-				<div className="text-xs text-on-surface-variant bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-lg px-3 py-2">
+				<div className="text-xs text-on-surface-variant bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-sm px-3 py-2">
 					Some documents may require owner approval before you can view them.
 				</div>
 			)}
@@ -668,8 +856,13 @@ export default function PropertyCompactView({
 	return (
 		<div className={`space-y-6 ${className}`}>
 			{/* Media Gallery */}
-			{shouldShowGallery && mediaItems.length > 0 && (
-				<MediaGallery media={mediaItems} name={property.name} />
+			{shouldShowGallery && (mediaItems.length > 0 || isOwner) && (
+				<MediaGallery
+					media={mediaItems}
+					name={property.name}
+					propertyId={property.id}
+					isOwner={isOwner}
+				/>
 			)}
 
 			{/* Two-column layout for full, stacked for compact */}

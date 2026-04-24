@@ -1,4 +1,5 @@
 import { ProviderSettings } from "@/types/providers";
+import { VerificationMethod, VerificationStatus } from "@/types/sale";
 import {
 	LetterheadConfig,
 	SealConfig,
@@ -23,10 +24,21 @@ export interface IUser {
 	salesCount: number;
 	followerCount: number;
 	allowBookings: boolean;
+	displayCurrency?: string;
 	providerSettings?: Partial<ProviderSettings>;
 	seals?: UserSealDoc[];
 	defaultWatermark?: WatermarkConfig;
 	letterhead?: LetterheadConfig;
+	/** Platform admin — can access /admin backoffice */
+	isAdmin?: boolean;
+	/** User verification status (for trust/badging on sales) */
+	verificationStatus?: VerificationStatus;
+	verifiedAt?: string;
+	verificationMethod?: VerificationMethod;
+	verificationDocumentUrl?: string;
+	verificationDocumentType?: string;
+	verificationNotes?: string;
+	verificationRejectionReason?: string;
 }
 
 export interface UserSealDoc {
@@ -59,6 +71,7 @@ const UserSchema = new Schema<IUser & Document>(
 		salesCount: { type: Number, default: 0 },
 		followerCount: { type: Number, default: 0 },
 		allowBookings: { type: Boolean, default: false },
+		displayCurrency: { type: String },
 		providerSettings: {
 			type: {
 				mapRenderer: String,
@@ -127,6 +140,21 @@ const UserSchema = new Schema<IUser & Document>(
 				showFooter: { type: Boolean, default: true },
 			},
 		},
+		isAdmin: { type: Boolean, default: false },
+		verificationStatus: {
+			type: String,
+			enum: Object.values(VerificationStatus),
+			default: VerificationStatus.UNVERIFIED,
+		},
+		verifiedAt: String,
+		verificationMethod: {
+			type: String,
+			enum: Object.values(VerificationMethod),
+		},
+		verificationDocumentUrl: String,
+		verificationDocumentType: String,
+		verificationNotes: String,
+		verificationRejectionReason: String,
 	},
 	{ timestamps: true },
 );

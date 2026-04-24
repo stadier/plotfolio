@@ -588,12 +588,6 @@ export function DocumentsGrid({
 				/>
 			)}
 			<div className="flex flex-wrap gap-3 items-start">
-				{isOwner && (
-					<DocumentUploadButton
-						propertyId={propertyId}
-						onUploaded={onUploaded}
-					/>
-				)}
 				{documents.map((doc) => (
 					<DocumentCard
 						key={doc.id}
@@ -612,6 +606,12 @@ export function DocumentsGrid({
 						onAccessRequested={onAccessRequested}
 					/>
 				))}
+				{isOwner && (
+					<DocumentUploadButton
+						propertyId={propertyId}
+						onUploaded={onUploaded}
+					/>
+				)}
 			</div>
 		</>
 	);

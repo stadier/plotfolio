@@ -10,6 +10,7 @@ import {
 	PropertyType,
 	PropertyVisibility,
 	SurveyData,
+	ZoningType,
 } from "@/types/property";
 import mongoose, { Document, Schema } from "mongoose";
 
@@ -169,7 +170,10 @@ const PropertySchema = new Schema<Property & Document>(
 		},
 		purchaseDate: { type: Date },
 		purchasePrice: { type: Number, default: 0 },
+		listingPrice: { type: Number },
 		currentValue: { type: Number, default: 0 },
+		soldPrice: { type: Number },
+		soldDate: { type: Date },
 		documents: [PropertyDocumentSchema],
 		status: {
 			type: String,
@@ -189,7 +193,7 @@ const PropertySchema = new Schema<Property & Document>(
 				caption: { type: String },
 			},
 		],
-		zoning: { type: String },
+		zoning: { type: String, enum: [...Object.values(ZoningType), null] },
 		taxId: { type: String },
 		owner: { type: PropertyOwnerSchema },
 		portfolioId: { type: String, index: true },

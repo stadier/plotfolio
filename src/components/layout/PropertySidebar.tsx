@@ -59,7 +59,7 @@ export default function PropertySidebar({
 							{Object.values(PropertyStatus).map((status) => (
 								<button
 									key={status}
-									className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
+									className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
 										status,
 									)}`}
 								>
@@ -112,7 +112,7 @@ export default function PropertySidebar({
 										</p>
 										<div className="flex items-center mt-2 space-x-2">
 											<span
-												className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
+												className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
 													property.status,
 												)}`}
 											>

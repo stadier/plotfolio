@@ -1,6 +1,6 @@
 ## Planned Features
 
-- [ ] **1. Bidding & Negotiations** — Allow users to bid on properties (negotiation or auction mode), real-time bid notifications, bid history and status tracking
+- [x] **1. Bidding & Negotiations** — Sales flow with private sale + auction modes, offer/counter/withdraw, bid placement with anti-sniping window extension, configurable verification gating, installment payment plans, contract signing → payment confirmation → stamping → automatic ownership transfer + history
 
 ---
 
@@ -12,6 +12,7 @@
 - [ ] **3. Input Validation & Sanitization** — Zod schema validation on POST/PUT routes, server-side coordinate/price/enum validation, XSS sanitization
 - [ ] **4. CSRF Protection** — CSRF token validation for state-changing API routes
 - [ ] **5. File Upload Security** — Server-side file type validation (magic bytes), stricter size limits, malware scanning
+- [ ] **5. Land Conflict Resolution** — 2 people registering land in the same geographical location
 
 ### Performance & Scalability
 
@@ -63,3 +64,21 @@
 - [x] **33. Subscription Tiers & Feature Gating** — Free/Pro/Business/Enterprise tiers with per-tier feature flags and resource limits, two-layer access control (subscription ceiling + role permissions), tier configs in shared types, `useSubscription` hook for client-side gating, `checkAccess`/`checkFeatureAccess`/`checkLimitAccess` for server-side enforcement
 - [x] **34. Payment Gateway Abstraction** — Switchable payment gateways via `PaymentGateway` interface, Stripe and Paystack implementations, factory function selectable by `PAYMENT_GATEWAY` env var or per-request override, webhook handlers for both gateways
 - [ ] **35. Billing UI** — Settings billing tab with current plan display, tier comparison cards, upgrade/downgrade flow, cancel/resume controls, payment method management, billing history
+
+### Sales & Marketplace (deferred)
+
+- [ ] **36. Real-time Auction Updates** — WebSocket / SSE channel for live bid feed, replace 8s polling on auction page
+- [ ] **37. Stripe Connect Onboarding** — Seller payout flows for platform-mediated sales (Stripe Connect Express + Paystack/Flutterwave splits)
+- [ ] **38. Installment Tracking** — Per-installment payment confirmation UI, automatic overdue detection, late fees + interest, buyer reminders
+- [ ] **39. Co-ownership** — Multi-party purchases, fractional ownership, joint signing flow, ownership share tracking on `OwnershipRecord`
+- [ ] **40. Full Dispute Resolution** — Evidence upload pipeline, admin arbitration workspace, hold-funds escrow, resolution outcomes (refund / split / release)
+- [ ] **41. Agent-Facilitated Sales** — UI for portfolio agents to draft and submit sales on behalf of owners, owner approval gate, fee-split between platform and agent
+- [ ] **42. Auction Bid Deposits** — Refundable deposit flow, deposit lock/release on bid placement / auction end
+- [ ] **43. Country Legal Library Expansion** — Add per-country notarization rules, witness requirements, stamp duty calculators beyond NG/GH/KE/ZA/US/UK/AE
+- [ ] **44. Verification ID OCR** — Auto-extract document fields from uploaded ID, face-match liveness check
+
+### WhatsApp Intake & Monetization
+
+- [ ] **45. WhatsApp Property Intake** — Dedicated Plotfolio WhatsApp number (Cloud API via Twilio/360dialog BSP) where agents forward listings (text, images, voice notes) and they land as draft properties in their portfolio. Pipeline: webhook → sender → portfolio routing → LLM extraction (price, location, type, bedrooms, status) reusing `documentExtractor.ts` patterns → image upload to B2 → Whisper voice-note transcription → geocode via `geocode.ts` → draft property in new "Inbox" view. Includes account linking via one-time code, `WhatsAppSubmission` model (raw payload + extracted fields + status: pending/converted/rejected), per-tier message caps to control BSP costs, drafts-by-default to mitigate AI extraction errors. Optional `#portfolio-name` hashtag for multi-portfolio routing.
+
+- [ ] **46. Monetization Strategy & Tiered Pricing** — Layer revenue streams to fund WhatsApp/AI infrastructure costs and shift platform from fully-free to sustainable. Streams: (a) **Agent Pro subscription** (~₦7.5k/mo) gating WhatsApp intake with capped messages, unlimited listings, featured slots, verified badge; (b) **Agency tier** (~₦30k/mo) adding team accounts, branded pages, CRM, broadcasts; (c) **Developer tier** (~₦150k+/mo) for estate developers with custom estate pages and payment plan tools; (d) **Featured/Spotlight/Boost listings** as add-ons across all tiers; (e) **Verified Agent / Verified Property badges** (one-time or annual); (f) **Lead-gen fees** (₦200–₦1k per qualified contact) monetizing intent regardless of off-platform closing; (g) **Document & legal services marketplace** (C of O verification, survey plans, contract drafting) with 15–30% referral cut leveraging `contractTemplates.ts` + `documentAI/`; (h) **Mortgage referral fees** from bank partners (₦20k–₦100k per closed mortgage); (i) **WhatsApp broadcast/CRM tools** letting agents push listings to saved buyer lists via Plotfolio's number; (j) **Transaction take-rate** (~1% capped or flat closing fee) for sales completed on-platform via escrow + `OwnershipTransfer` flow. Extend `Subscription.ts` with new tier metadata and feature flags; integrate with existing `payments/` abstraction.

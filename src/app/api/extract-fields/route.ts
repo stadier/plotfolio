@@ -11,9 +11,9 @@ Fields:
 - name: Property/plot name or identifier (e.g. "Plot 1234, Block A" or "123 Main Street")
 - address: Full location/address
 - description: Brief description of the property
-- propertyType: One of: RESIDENTIAL, COMMERCIAL, INDUSTRIAL, AGRICULTURAL, VACANT_LAND, MIXED_USE
+- propertyType: One of: land, house, apartment, building, office, retail, warehouse, farm, other
 - area: Area in square metres (number as string). Convert from hectares, acres, or sq ft if needed.
-- zoning: Zoning classification if mentioned
+- zoning: One of: residential, commercial, industrial, agricultural, mixed_use, unspecified
 - taxId: Any certificate number, registration number, file reference, or tax ID
 - lat: Latitude in decimal degrees (string)
 - lng: Longitude in decimal degrees (string)

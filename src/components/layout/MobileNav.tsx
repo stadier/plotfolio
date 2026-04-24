@@ -157,7 +157,7 @@ export default function MobileNav() {
 						<div className="flex items-center justify-between px-5 pt-4 pb-2">
 							<div className="flex items-center gap-2">
 								<Image
-									src="/plotfolio-logo.svg"
+									src="/plotfolio-logo-l.png"
 									alt="Plotfolio"
 									width={24}
 									height={24}

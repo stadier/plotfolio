@@ -95,10 +95,10 @@ export const stripeGateway: PaymentGateway = {
 			case "customer.subscription.created":
 			case "customer.subscription.updated": {
 				const sub = event.data.object as Stripe.Subscription;
-					const primaryItem = sub.items.data[0];
-					const periodStart = primaryItem?.current_period_start ?? sub.created;
-					const periodEnd =
-						primaryItem?.current_period_end ?? sub.cancel_at ?? sub.created;
+				const primaryItem = sub.items.data[0];
+				const periodStart = primaryItem?.current_period_start ?? sub.created;
+				const periodEnd =
+					primaryItem?.current_period_end ?? sub.cancel_at ?? sub.created;
 				return {
 					type:
 						event.type === "customer.subscription.created"
@@ -109,8 +109,8 @@ export const stripeGateway: PaymentGateway = {
 					tier:
 						(sub.metadata.tier as SubscriptionTier) ?? SubscriptionTier.FREE,
 					status: mapStripeStatus(sub.status),
-						currentPeriodStart: new Date(periodStart * 1000).toISOString(),
-						currentPeriodEnd: new Date(periodEnd * 1000).toISOString(),
+					currentPeriodStart: new Date(periodStart * 1000).toISOString(),
+					currentPeriodEnd: new Date(periodEnd * 1000).toISOString(),
 					cancelAtPeriodEnd: sub.cancel_at_period_end,
 				};
 			}
@@ -130,7 +130,7 @@ export const stripeGateway: PaymentGateway = {
 				const subscriptionId =
 					typeof invoice.parent?.subscription_details?.subscription === "string"
 						? invoice.parent.subscription_details.subscription
-						: invoice.parent?.subscription_details?.subscription?.id ?? "";
+						: (invoice.parent?.subscription_details?.subscription?.id ?? "");
 				return {
 					type: "payment.succeeded",
 					gatewayCustomerId: invoice.customer as string,
@@ -144,7 +144,7 @@ export const stripeGateway: PaymentGateway = {
 				const subscriptionId =
 					typeof invoice.parent?.subscription_details?.subscription === "string"
 						? invoice.parent.subscription_details.subscription
-						: invoice.parent?.subscription_details?.subscription?.id ?? "";
+						: (invoice.parent?.subscription_details?.subscription?.id ?? "");
 				return {
 					type: "payment.failed",
 					gatewayCustomerId: invoice.customer as string,

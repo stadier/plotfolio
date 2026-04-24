@@ -56,6 +56,7 @@ const PortfolioMemberSchema = new Schema<PortfolioMember & Document>(
 			canManageBookings: { type: Boolean },
 			canTransferProperties: { type: Boolean },
 			canInviteMembers: { type: Boolean },
+			canManageSales: { type: Boolean },
 		},
 		invitedBy: { type: String },
 		joinedAt: { type: String },

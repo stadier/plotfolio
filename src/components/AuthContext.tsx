@@ -24,6 +24,9 @@ export interface AuthUser {
 	salesCount?: number;
 	followerCount?: number;
 	allowBookings?: boolean;
+	displayCurrency?: string;
+	isAdmin?: boolean;
+	verificationStatus?: string;
 }
 
 interface AuthContextValue {

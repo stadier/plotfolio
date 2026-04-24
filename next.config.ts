@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
 	transpilePackages: ["react-map-gl", "mapbox-gl"],
 
 	images: {
+		localPatterns: [
+			{
+				pathname: "/api/media/view/**",
+			},
+			{
+				pathname: "/**",
+			},
+		],
 		remotePatterns: [
 			{
 				protocol: "https",
@@ -14,6 +22,10 @@ const nextConfig: NextConfig = {
 			{
 				protocol: "https",
 				hostname: "picsum.photos",
+			},
+			{
+				protocol: "https",
+				hostname: "*.backblazeb2.com",
 			},
 		],
 	},

@@ -181,7 +181,7 @@ export default function LoginPage() {
 				{/* Logo */}
 				<div className="flex flex-col items-center mb-8">
 					<Image
-						src="/plotfolio-logo.svg"
+						src="/plotfolio-logo-l.png"
 						alt="Plotfolio"
 						width={48}
 						height={48}

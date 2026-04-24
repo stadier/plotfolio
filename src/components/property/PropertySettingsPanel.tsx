@@ -147,7 +147,7 @@ export default function PropertySettingsPanel({
 	);
 
 	return (
-		<div className="space-y-1 max-w-lg">
+		<div className="space-y-1 w-full">
 			<p className="text-xs text-outline mb-3">
 				Control what visitors see on your public property listing.
 			</p>

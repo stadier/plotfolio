@@ -15,6 +15,7 @@ import {
 	HelpCircle,
 	LayoutDashboard,
 	MapPin,
+	MessageCircle,
 	MessageSquare,
 	Monitor,
 	Moon,
@@ -48,6 +49,7 @@ const portfolioNav: NavItem[] = [
 	{ name: "Map View", href: "/portfolio/map", icon: MapPin },
 	{ name: "Transfers", href: "/portfolio/transfers", icon: Send },
 	{ name: "Bookings", href: "/portfolio/bookings", icon: MessageSquare },
+	{ name: "Messages", href: "/portfolio/chat", icon: MessageCircle },
 	{ name: "Analytics", href: "/portfolio/analytics", icon: BarChart3 },
 	{ name: "Documents", href: "/portfolio/documents", icon: FileText },
 	{ name: "Team", href: "/portfolio/team", icon: Users },
@@ -221,13 +223,13 @@ export default function Sidebar({
 		>
 			{/* Logo */}
 			<div className="flex items-center px-4 gap-2 pt-4.5 pb-3">
-				<Link href="/" className="flex items-center gap-2">
+				<Link href="/portfolio" className="flex items-center gap-2">
 					<Image
-						src="/plotfolio-logo.svg"
+						src="/plotfolio-logo-l.png"
 						alt="Plotfolio"
 						width={28}
 						height={28}
-						className="w-7 h-7 shrink-0"
+						className="w-7 h-7 shrink-0 rounded-md object-cover"
 					/>
 					<span
 						data-sidebar-label

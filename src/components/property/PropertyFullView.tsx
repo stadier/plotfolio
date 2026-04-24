@@ -6,8 +6,10 @@ import MediaLightbox from "@/components/property/MediaLightbox";
 import OwnershipPanel from "@/components/property/OwnershipPanel";
 import PropertySettingsPanel from "@/components/property/PropertySettingsPanel";
 import { DocumentsGrid } from "@/components/property/propertyDisplayHelpers";
+import ActiveSalePanel from "@/components/sales/ActiveSalePanel";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { queryKeys, useUpdateProperty } from "@/hooks/usePropertyQueries";
 import { countryFlag } from "@/lib/locale";
 import { toPlotWords } from "@/lib/plotwords";
 import { formatCurrency, getPropertyMedia } from "@/lib/utils";
@@ -18,6 +20,7 @@ import {
 	PropertyMedia,
 	PropertySettings,
 } from "@/types/property";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	Bath,
 	BedDouble,
@@ -38,19 +41,33 @@ import {
 	Mic,
 	Phone,
 	Play,
+	Plus,
 	Ruler,
 	Shield,
 	Sparkles,
 	Star,
 	Tag,
 	TreePine,
+	Upload,
 	X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
+import {
+	Bar,
+	BarChart,
+	Cell,
+	RadialBar,
+	RadialBarChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { formatDate, getStatusColor } from "./PropertyDetailContent";
+import StatusToggle from "./StatusToggle";
 
 const PropertyMiniMap = dynamic(
 	() => import("@/components/maps/PropertyMiniMap"),
@@ -64,33 +81,90 @@ const DocumentGenerator = dynamic(
 
 /* ─── Media Gallery (masonry, natural aspect ratios) ─────────── */
 
+interface PendingMedia {
+	id: number;
+	file: File;
+	previewUrl: string;
+	status: "uploading" | "failed";
+	error?: string;
+}
+
 function MediaGallery({
 	media,
 	name,
 	isOwner,
-	onMediaUploaded,
+	propertyId,
 }: {
 	media: PropertyMedia[];
 	name: string;
 	isOwner?: boolean;
-	onMediaUploaded?: (files: File[]) => void;
+	propertyId?: string;
 }) {
+	const queryClient = useQueryClient();
 	const [lightbox, setLightbox] = useState<number | null>(null);
 	const [dragging, setDragging] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
+	const pendingIdRef = useRef(0);
+	const addInputRef = useRef<HTMLInputElement>(null);
 
-	const handleFiles = (files: FileList | null) => {
-		if (!files || !onMediaUploaded) return;
-		onMediaUploaded(Array.from(files));
-	};
+	function detectMediaType(file: File): "image" | "video" | "audio" {
+		if (file.type.startsWith("video/")) return "video";
+		if (file.type.startsWith("audio/")) return "audio";
+		return "image";
+	}
+
+	async function uploadSingle(id: number, file: File) {
+		if (!propertyId) return;
+		try {
+			const formData = new FormData();
+			formData.append("file", file);
+			formData.append("type", detectMediaType(file));
+			const res = await fetch(`/api/properties/${propertyId}/media`, {
+				method: "POST",
+				body: formData,
+			});
+			if (!res.ok) {
+				const err = await res.json();
+				throw new Error(err.error ?? "Upload failed");
+			}
+			setPendingMedia((prev) => prev.filter((p) => p.id !== id));
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.detail(propertyId),
+			});
+		} catch (err) {
+			const error = err instanceof Error ? err.message : "Upload failed";
+			setPendingMedia((prev) =>
+				prev.map((p) => (p.id === id ? { ...p, status: "failed", error } : p)),
+			);
+		}
+	}
+
+	function queueUploads(files: File[]) {
+		if (!propertyId) return;
+		const newPending: PendingMedia[] = files.map((file) => ({
+			id: ++pendingIdRef.current,
+			file,
+			previewUrl: file.type.startsWith("image/")
+				? URL.createObjectURL(file)
+				: "",
+			status: "uploading" as const,
+		}));
+		setPendingMedia((prev) => [...prev, ...newPending]);
+		if (addInputRef.current) addInputRef.current.value = "";
+		for (const item of newPending) {
+			uploadSingle(item.id, item.file);
+		}
+	}
 
 	const handleDrop = (e: React.DragEvent) => {
 		e.preventDefault();
 		setDragging(false);
-		handleFiles(e.dataTransfer.files);
+		if (e.dataTransfer.files.length)
+			queueUploads(Array.from(e.dataTransfer.files));
 	};
 
-	if (media.length === 0) {
+	/* show empty-state only when nothing is pending either */
+	if (media.length === 0 && pendingMedia.length === 0) {
 		if (isOwner) {
 			return (
 				<label
@@ -111,7 +185,9 @@ function MediaGallery({
 						accept="image/*,video/*,audio/*"
 						multiple
 						className="hidden"
-						onChange={(e) => handleFiles(e.target.files)}
+						onChange={(e) => {
+							if (e.target.files) queueUploads(Array.from(e.target.files));
+						}}
 					/>
 					<ImagePlus className="w-10 h-10 text-outline mb-3" />
 					<p className="text-sm font-medium text-on-surface-variant">
@@ -131,7 +207,7 @@ function MediaGallery({
 
 	return (
 		<>
-			{/* Natural-size media items, top-left aligned */}
+			{/* Media items + pending placeholders + add button, top-left aligned */}
 			<div className="flex flex-wrap items-start content-start gap-3">
 				{media.map((item, idx) => (
 					<button
@@ -180,6 +256,108 @@ function MediaGallery({
 						)}
 					</button>
 				))}
+
+				{/* Upload placeholders — one card per pending file */}
+				{pendingMedia.map((item) => (
+					<div
+						key={item.id}
+						className="relative w-32 h-32 shrink-0 rounded-xl overflow-hidden border border-border bg-surface-container"
+					>
+						{item.previewUrl ? (
+							/* eslint-disable-next-line @next/next/no-img-element */
+							<img
+								src={item.previewUrl}
+								alt={item.file.name}
+								className="w-full h-full object-cover opacity-60"
+							/>
+						) : item.file.type.startsWith("video/") ? (
+							<div className="w-full h-full flex items-center justify-center">
+								<Play className="w-8 h-8 text-outline" />
+							</div>
+						) : (
+							<div className="w-full h-full flex items-center justify-center">
+								<Mic className="w-8 h-8 text-outline" />
+							</div>
+						)}
+						<div className="absolute bottom-0 left-0 right-0 bg-card/90 backdrop-blur-sm px-2 py-1.5">
+							<p className="text-badge font-medium text-on-surface truncate leading-tight">
+								{item.file.name}
+							</p>
+							{item.status === "uploading" ? (
+								<div className="flex items-center gap-1.5 mt-1">
+									<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+										<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
+									</div>
+									<button
+										type="button"
+										onClick={() =>
+											setPendingMedia((prev) =>
+												prev.filter((p) => p.id !== item.id),
+											)
+										}
+										className="text-[9px] text-red-500 hover:text-red-600 font-medium shrink-0"
+									>
+										Cancel
+									</button>
+								</div>
+							) : (
+								<>
+									<p className="text-[9px] text-red-500 leading-tight mt-0.5 truncate">
+										{item.error}
+									</p>
+									<div className="flex items-center gap-2 mt-0.5">
+										<button
+											type="button"
+											onClick={() => {
+												setPendingMedia((prev) =>
+													prev.map((p) =>
+														p.id === item.id
+															? { ...p, status: "uploading", error: undefined }
+															: p,
+													),
+												);
+												uploadSingle(item.id, item.file);
+											}}
+											className="text-[9px] text-primary font-medium hover:underline flex items-center gap-0.5 shrink-0"
+										>
+											<Upload className="w-2.5 h-2.5" />
+											Retry
+										</button>
+										<button
+											type="button"
+											onClick={() =>
+												setPendingMedia((prev) =>
+													prev.filter((p) => p.id !== item.id),
+												)
+											}
+											className="text-[9px] text-outline hover:text-on-surface-variant shrink-0"
+										>
+											Dismiss
+										</button>
+									</div>
+								</>
+							)}
+						</div>
+					</div>
+				))}
+
+				{/* Add media button — always visible for owner */}
+				{isOwner && propertyId && (
+					<label className="w-32 h-32 shrink-0 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 hover:bg-surface-container-high transition-colors cursor-pointer">
+						<Plus className="w-5 h-5 text-outline" />
+						<span className="text-badge text-outline mt-1">Add</span>
+						<input
+							ref={addInputRef}
+							type="file"
+							accept="image/*,video/*,audio/*"
+							multiple
+							className="hidden"
+							onChange={(e) => {
+								if (e.target.files) queueUploads(Array.from(e.target.files));
+							}}
+						/>
+					</label>
+				)}
 			</div>
 
 			{/* Lightbox */}
@@ -206,7 +384,11 @@ function TitleRow({
 	property: Property;
 	actions?: React.ReactNode;
 }) {
-	const askingPrice = property.currentValue ?? property.purchasePrice ?? 0;
+	const askingPrice =
+		property.listingPrice ??
+		property.currentValue ??
+		property.purchasePrice ??
+		0;
 	return (
 		<div className="flex flex-wrap items-start justify-between gap-4">
 			{/* name */}
@@ -407,7 +589,7 @@ function OwnerCard({ property }: { property: Property }) {
 		: null;
 
 	return (
-		<div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+		<div className="bg-card border border-border rounded-md p-5 space-y-4">
 			{/* Top row: avatar + name + rating */}
 			<div className="flex items-start justify-between gap-2">
 				<div className="flex items-center gap-3 min-w-0">
@@ -448,7 +630,7 @@ function OwnerCard({ property }: { property: Property }) {
 						href={`https://wa.me/${owner.phone.replace(/[^0-9]/g, "")}`}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 border-green-500 text-green-600 hover:bg-green-50 transition-colors"
+						className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-sm text-sm font-semibold border-2 border-green-500 text-green-600 hover:bg-green-50 transition-colors"
 					>
 						<MessageCircle className="w-4 h-4" />
 						Whatsapp
@@ -457,7 +639,7 @@ function OwnerCard({ property }: { property: Property }) {
 				{owner?.phone && (
 					<a
 						href={`tel:${owner.phone}`}
-						className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold bg-on-surface text-card hover:opacity-90 transition-opacity"
+						className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-sm text-sm font-semibold bg-on-surface text-card hover:opacity-90 transition-opacity"
 					>
 						<Phone className="w-4 h-4" />
 						Call Owner
@@ -466,7 +648,7 @@ function OwnerCard({ property }: { property: Property }) {
 				{!owner?.phone && owner?.email && (
 					<a
 						href={`mailto:${owner.email}`}
-						className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold bg-primary text-on-primary hover:opacity-90 transition-opacity"
+						className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-sm text-sm font-semibold bg-primary text-on-primary hover:opacity-90 transition-opacity"
 					>
 						<Mail className="w-4 h-4" />
 						Email Owner
@@ -528,16 +710,37 @@ function InclusionsList({ property }: { property: Property }) {
 /* ─── Price Breakdown Card ───────────────────────────────────── */
 
 function PriceBreakdownCard({ property }: { property: Property }) {
-	const askingPrice = property.currentValue ?? property.purchasePrice ?? 0;
+	const askingPrice =
+		property.listingPrice ??
+		property.currentValue ??
+		property.purchasePrice ??
+		0;
 	const purchasePrice = property.purchasePrice ?? 0;
 
 	const items: { label: string; value: string; bold?: boolean }[] = [];
 
-	items.push({
-		label: "Asking Price",
-		value: formatCurrency(askingPrice, property.country),
-		bold: true,
-	});
+	if (property.soldPrice) {
+		items.push({
+			label: "Sold Price",
+			value: formatCurrency(property.soldPrice, property.country),
+			bold: true,
+		});
+	} else {
+		items.push({
+			label: property.listingPrice ? "Listing Price" : "Asking Price",
+			value: formatCurrency(askingPrice, property.country),
+			bold: true,
+		});
+	}
+
+	if (property.listingPrice && property.soldPrice) {
+		const spreadSign = property.soldPrice >= property.listingPrice ? "+" : "";
+		const spread = property.soldPrice - property.listingPrice;
+		items.push({
+			label: "vs Listing",
+			value: `${spreadSign}${formatCurrency(spread, property.country)}`,
+		});
+	}
 
 	if (
 		property.currentValue &&
@@ -545,14 +748,24 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 		property.currentValue !== property.purchasePrice
 	) {
 		items.push({
-			label: "Original Price",
+			label: "Estimated Value",
+			value: formatCurrency(property.currentValue, property.country),
+		});
+	}
+
+	if (purchasePrice && purchasePrice !== askingPrice) {
+		items.push({
+			label: "Purchase Price",
 			value: formatCurrency(purchasePrice, property.country),
 		});
-		const diff = property.currentValue - property.purchasePrice;
-		items.push({
-			label: diff >= 0 ? "Value Increase" : "Value Decrease",
-			value: formatCurrency(Math.abs(diff), property.country),
-		});
+		const ref = property.soldPrice ?? property.currentValue;
+		if (ref && ref !== purchasePrice) {
+			const diff = ref - purchasePrice;
+			items.push({
+				label: diff >= 0 ? "Gain" : "Loss",
+				value: formatCurrency(Math.abs(diff), property.country),
+			});
+		}
 	}
 
 	if ((property.quantity ?? 1) > 1) {
@@ -564,7 +777,7 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 	}
 
 	return (
-		<div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+		<div className="bg-card border border-border rounded-md p-5 space-y-3">
 			<h3 className="font-headline text-sm font-semibold text-on-surface">
 				Price Breakdown
 			</h3>
@@ -572,7 +785,7 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 				{items.map((item) => (
 					<div
 						key={item.label}
-						className={`flex items-center justify-between text-sm ${item.bold ? "bg-surface-container-high rounded-md px-3 py-2" : ""}`}
+						className={`flex items-center justify-between text-sm ${item.bold ? "bg-surface-container-high rounded-sm px-3 py-2" : ""}`}
 					>
 						<span className="text-on-surface-variant">{item.label}</span>
 						<span
@@ -591,6 +804,223 @@ function PriceBreakdownCard({ property }: { property: Property }) {
 					{formatCurrency(askingPrice, property.country)}
 				</span>
 			</div>
+		</div>
+	);
+}
+
+/* ─── Property Insights Chart ────────────────────────────────── */
+
+function PropertyInsightsChart({ property }: { property: Property }) {
+	const pricePoints: { label: string; value: number; color: string }[] = [];
+
+	if (property.purchasePrice) {
+		pricePoints.push({
+			label: "Purchase",
+			value: property.purchasePrice,
+			color: "#f472b6",
+		});
+	}
+	if (
+		property.currentValue &&
+		property.currentValue !== property.purchasePrice
+	) {
+		pricePoints.push({
+			label: "Est. Value",
+			value: property.currentValue,
+			color: "#60a5fa",
+		});
+	}
+	if (property.listingPrice) {
+		pricePoints.push({
+			label: "Listing",
+			value: property.listingPrice,
+			color: "#fbbf24",
+		});
+	}
+	if (property.soldPrice) {
+		pricePoints.push({
+			label: "Sold",
+			value: property.soldPrice,
+			color: "#34d399",
+		});
+	}
+
+	const hasPriceChart = pricePoints.length >= 2;
+
+	// ROI stat
+	const refPrice = property.soldPrice ?? property.currentValue;
+	const roiPct =
+		refPrice && property.purchasePrice
+			? ((refPrice - property.purchasePrice) / property.purchasePrice) * 100
+			: null;
+
+	// Price per sqm
+	const pricePerSqm =
+		(property.soldPrice ?? property.currentValue ?? property.purchasePrice) &&
+		property.area
+			? Math.round(
+					(property.soldPrice ??
+						property.currentValue ??
+						property.purchasePrice ??
+						0) / property.area,
+				)
+			: null;
+
+	// Document coverage
+	const docCount = property.documents?.length ?? 0;
+
+	// Radial gauge data for ROI (capped at ±200%)
+	const roiGaugeVal =
+		roiPct != null ? Math.max(-100, Math.min(200, roiPct)) : null;
+	const roiGaugeData =
+		roiGaugeVal != null
+			? [
+					{
+						value: Math.abs(roiGaugeVal),
+						fill: roiGaugeVal >= 0 ? "#34d399" : "#f87171",
+					},
+				]
+			: null;
+
+	if (!hasPriceChart && roiPct == null && pricePerSqm == null) return null;
+
+	const maxPrice = Math.max(...pricePoints.map((p) => p.value));
+
+	return (
+		<div className="space-y-5 max-w-xl">
+			{/* Price Journey Chart */}
+			{hasPriceChart && (
+				<div>
+					<p className="text-xs text-outline mb-3 uppercase tracking-wide font-label">
+						Price Journey
+					</p>
+					<ResponsiveContainer
+						width="100%"
+						height={pricePoints.length * 44 + 16}
+					>
+						<BarChart
+							layout="vertical"
+							data={pricePoints}
+							margin={{ left: 4, right: 24, top: 0, bottom: 0 }}
+						>
+							<XAxis type="number" hide domain={[0, maxPrice * 1.15]} />
+							<YAxis
+								type="category"
+								dataKey="label"
+								tick={{ fontSize: 11, fill: "var(--color-on-surface-variant)" }}
+								axisLine={false}
+								tickLine={false}
+								width={58}
+							/>
+							<Tooltip
+								cursor={{ fill: "var(--color-surface-container)" }}
+								contentStyle={{
+									background: "var(--color-card)",
+									border: "1px solid var(--color-border)",
+									borderRadius: 8,
+									fontSize: 12,
+								}}
+								formatter={(v: number) => [
+									formatCurrency(v, property.country),
+									"Value",
+								]}
+							/>
+							<Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={28}>
+								{pricePoints.map((entry, index) => (
+									<Cell key={index} fill={entry.color} />
+								))}
+							</Bar>
+						</BarChart>
+					</ResponsiveContainer>
+
+					{/* Legend dots */}
+					<div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+						{pricePoints.map((p) => (
+							<div key={p.label} className="flex items-center gap-1.5">
+								<span
+									className="w-2 h-2 rounded-full shrink-0"
+									style={{ background: p.color }}
+								/>
+								<span className="text-xs text-on-surface-variant">
+									{p.label}:{" "}
+									<span className="font-medium text-on-surface">
+										{formatCurrency(p.value, property.country)}
+									</span>
+								</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Stats row */}
+			{(roiPct != null || pricePerSqm != null || docCount > 0) && (
+				<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+					{/* ROI gauge */}
+					{roiGaugeData && roiPct != null && (
+						<div className="bg-surface-container rounded-xl p-3 flex flex-col items-center gap-1">
+							<ResponsiveContainer width="100%" height={72}>
+								<RadialBarChart
+									innerRadius="55%"
+									outerRadius="95%"
+									startAngle={180}
+									endAngle={0}
+									data={roiGaugeData}
+								>
+									<RadialBar
+										dataKey="value"
+										cornerRadius={4}
+										background={{ fill: "var(--color-surface-container-high)" }}
+									/>
+								</RadialBarChart>
+							</ResponsiveContainer>
+							<span
+								className={`text-sm font-bold font-headline ${roiPct >= 0 ? "text-emerald-500" : "text-red-400"}`}
+							>
+								{roiPct >= 0 ? "+" : ""}
+								{roiPct.toFixed(1)}%
+							</span>
+							<span className="text-xs text-outline">ROI</span>
+						</div>
+					)}
+
+					{/* Price per sqm */}
+					{pricePerSqm != null && (
+						<div className="bg-surface-container rounded-xl p-3 flex flex-col items-center justify-center gap-1 text-center">
+							<span className="text-lg font-headline font-bold text-on-surface">
+								{pricePerSqm >= 1000
+									? `${(pricePerSqm / 1000).toFixed(1)}K`
+									: pricePerSqm.toLocaleString()}
+							</span>
+							<span className="text-xs text-outline">/ m² price</span>
+						</div>
+					)}
+
+					{/* Document coverage */}
+					{docCount > 0 && (
+						<div className="bg-surface-container rounded-xl p-3 flex flex-col items-center justify-center gap-1 text-center">
+							<span className="text-lg font-headline font-bold text-on-surface">
+								{docCount}
+							</span>
+							<span className="text-xs text-outline">
+								{docCount === 1 ? "Document" : "Documents"}
+							</span>
+						</div>
+					)}
+
+					{/* Area stat if available */}
+					{property.area && (
+						<div className="bg-surface-container rounded-xl p-3 flex flex-col items-center justify-center gap-1 text-center">
+							<span className="text-lg font-headline font-bold text-on-surface">
+								{property.area >= 10000
+									? `${(property.area / 10000).toFixed(2)} ha`
+									: `${property.area.toLocaleString()} m²`}
+							</span>
+							<span className="text-xs text-outline">Area</span>
+						</div>
+					)}
+				</div>
+			)}
 		</div>
 	);
 }
@@ -648,7 +1078,7 @@ function ScheduleViewingCard({ property }: { property: Property }) {
 	};
 
 	return (
-		<div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+		<div className="bg-card border border-border rounded-md p-5 space-y-4">
 			<h3 className="font-headline text-sm font-semibold text-on-surface">
 				Schedule a Viewing
 			</h3>
@@ -697,7 +1127,7 @@ function ScheduleViewingCard({ property }: { property: Property }) {
 								type="button"
 								disabled={isPast}
 								onClick={() => selectDate(day)}
-								className={`py-1.5 rounded-md transition-colors ${
+								className={`py-1.5 rounded-sm transition-colors ${
 									isPast
 										? "text-outline/40 cursor-not-allowed"
 										: selected
@@ -756,7 +1186,7 @@ function DocumentsSection({
 				</span>
 			</div>
 			{!isOwner && (
-				<div className="text-xs text-on-surface-variant bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-lg px-3 py-2">
+				<div className="text-xs text-on-surface-variant bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-sm px-3 py-2">
 					Some documents may require owner approval before you can view them.
 				</div>
 			)}
@@ -796,7 +1226,7 @@ function MobileAccordionSection({
 }) {
 	return (
 		<div
-			className={`border border-border rounded-none overflow-hidden ${className ?? ""}`}
+			className={`border-r border-b border-border rounded-none overflow-hidden ${className ?? ""}`}
 		>
 			<div className="w-full flex items-center justify-between px-4 py-3 bg-background text-on-surface font-semibold text-sm">
 				<button type="button" onClick={onToggle} className="flex-1 text-left">
@@ -873,11 +1303,15 @@ export default function PropertyFullView({
 	const [mapOpen, setMapOpen] = useState(detailsInitiallyOpen);
 	const [ownershipOpen, setOwnershipOpen] = useState(detailsInitiallyOpen);
 	const [marketOpen, setMarketOpen] = useState(detailsInitiallyOpen);
+	const [insightsOpen, setInsightsOpen] = useState(detailsInitiallyOpen);
+	const [saleOpen, setSaleOpen] = useState(true);
+	const [hasSale, setHasSale] = useState(false);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [propertySettings, setPropertySettings] = useState<PropertySettings>(
 		property.settings ?? {},
 	);
 	const [mapModalOpen, setMapModalOpen] = useState(false);
+	const updateProperty = useUpdateProperty();
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const [userSeals, setUserSeals] = useState<any[]>([]);
 
@@ -907,12 +1341,17 @@ export default function PropertyFullView({
 	const mobileOnly = singleColumn ? "" : "lg:hidden";
 	const desktopOnly = singleColumn ? "hidden" : "hidden lg:block";
 	const allDetailsOpen =
-		overviewOpen && ownershipOpen && marketOpen && (!hasCoordinates || mapOpen);
+		overviewOpen &&
+		ownershipOpen &&
+		marketOpen &&
+		insightsOpen &&
+		(!hasCoordinates || mapOpen);
 
 	const setDetailSectionsOpen = (open: boolean) => {
 		setOverviewOpen(open);
 		setOwnershipOpen(open);
 		setMarketOpen(open);
+		setInsightsOpen(open);
 		if (hasCoordinates) {
 			setMapOpen(open);
 		}
@@ -940,6 +1379,7 @@ export default function PropertyFullView({
 							media={mediaItems}
 							name={property.name}
 							isOwner={isOwner}
+							propertyId={property.id}
 						/>
 
 						{/* Documents */}
@@ -967,6 +1407,31 @@ export default function PropertyFullView({
 			<div
 				className={`${rightCol} overflow-y-auto p-0 space-y-0 border-border`}
 			>
+				{/* Active sale (auction / open offers) — visible to everyone */}
+				{hasSale ? (
+					<MobileAccordionSection
+						title="Sale activity"
+						open={saleOpen}
+						onToggle={() => setSaleOpen(!saleOpen)}
+					>
+						<ActiveSalePanel
+							propertyId={property.id}
+							country={property.country}
+							isOwner={isOwner}
+							onSaleDetected={setHasSale}
+						/>
+					</MobileAccordionSection>
+				) : (
+					<div className="hidden">
+						<ActiveSalePanel
+							propertyId={property.id}
+							country={property.country}
+							isOwner={isOwner}
+							onSaleDetected={setHasSale}
+						/>
+					</div>
+				)}
+
 				{/* Expandable Media section (mobile only) */}
 				{mediaItems.length > 0 && (
 					<MobileAccordionSection
@@ -1126,7 +1591,7 @@ export default function PropertyFullView({
 						{!hideHeader && (
 							<div className="text-xs text-outline space-y-1 px-1">
 								{property.createdAt && (
-									<p>
+									<p className="mb-4">
 										Listed:{" "}
 										<span className="text-on-surface font-medium">
 											{formatDate(property.createdAt)}
@@ -1134,14 +1599,26 @@ export default function PropertyFullView({
 									</p>
 								)}
 								{property.status && (
-									<p>
-										Status:{" "}
-										<span
-											className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
-										>
-											{property.status.replace(/_/g, " ").toUpperCase()}
-										</span>
-									</p>
+									<div className="flex items-center gap-2">
+										{isOwner ? (
+											<StatusToggle
+												property={property}
+												onToggle={(newStatus) =>
+													updateProperty.mutate({
+														id: property.id,
+														updates: { status: newStatus },
+													})
+												}
+												isPending={updateProperty.isPending}
+											/>
+										) : (
+											<span
+												className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+											>
+												{property.status.replace(/_/g, " ").toUpperCase()}
+											</span>
+										)}
+									</div>
 								)}
 							</div>
 						)}
@@ -1177,7 +1654,7 @@ export default function PropertyFullView({
 							showHeader={false}
 							frameless
 							showCoordinates={false}
-							expanded
+							collapsedHeightClassName="h-80"
 						/>
 					</MobileAccordionSection>
 				)}
@@ -1204,6 +1681,18 @@ export default function PropertyFullView({
 							property={{ ...property, settings: propertySettings }}
 							onSettingsChanged={setPropertySettings}
 						/>
+					</MobileAccordionSection>
+				)}
+
+				{/* Property Insights (mobile accordion, owner only) */}
+				{isOwner && (
+					<MobileAccordionSection
+						title="Property Insights"
+						open={insightsOpen}
+						onToggle={() => setInsightsOpen(!insightsOpen)}
+						className={mobileOnly}
+					>
+						<PropertyInsightsChart property={property} />
 					</MobileAccordionSection>
 				)}
 
@@ -1300,7 +1789,7 @@ export default function PropertyFullView({
 							{!hideHeader && (
 								<div className="text-xs text-outline space-y-1 px-1">
 									{property.createdAt && (
-										<p>
+										<p className="mb-4">
 											Listed:{" "}
 											<span className="text-on-surface font-medium">
 												{formatDate(property.createdAt)}
@@ -1308,14 +1797,26 @@ export default function PropertyFullView({
 										</p>
 									)}
 									{property.status && (
-										<p>
-											Status:{" "}
-											<span
-												className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
-											>
-												{property.status.replace(/_/g, " ").toUpperCase()}
-											</span>
-										</p>
+										<div className="flex items-center gap-2">
+											{isOwner ? (
+												<StatusToggle
+													property={property}
+													onToggle={(newStatus) =>
+														updateProperty.mutate({
+															id: property.id,
+															updates: { status: newStatus },
+														})
+													}
+													isPending={updateProperty.isPending}
+												/>
+											) : (
+												<span
+													className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+												>
+													{property.status.replace(/_/g, " ").toUpperCase()}
+												</span>
+											)}
+										</div>
 									)}
 								</div>
 							)}
@@ -1349,7 +1850,7 @@ export default function PropertyFullView({
 								showHeader={false}
 								frameless
 								showCoordinates={false}
-								expanded
+								collapsedHeightClassName="h-80"
 							/>
 						</MobileAccordionSection>
 					)}
@@ -1373,6 +1874,16 @@ export default function PropertyFullView({
 								property={{ ...property, settings: propertySettings }}
 								onSettingsChanged={setPropertySettings}
 							/>
+						</MobileAccordionSection>
+					)}
+
+					{isOwner && (
+						<MobileAccordionSection
+							title="Property Insights"
+							open={insightsOpen}
+							onToggle={() => setInsightsOpen(!insightsOpen)}
+						>
+							<PropertyInsightsChart property={property} />
 						</MobileAccordionSection>
 					)}
 

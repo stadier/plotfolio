@@ -54,12 +54,15 @@ const statusColors = {
 };
 
 const typeColors = {
-	[PropertyType.RESIDENTIAL]: "bg-emerald-500",
-	[PropertyType.COMMERCIAL]: "bg-blue-500",
-	[PropertyType.INDUSTRIAL]: "bg-purple-500",
-	[PropertyType.AGRICULTURAL]: "bg-amber-500",
-	[PropertyType.VACANT_LAND]: "bg-gray-500",
-	[PropertyType.MIXED_USE]: "bg-red-500",
+	[PropertyType.LAND]: "bg-gray-500",
+	[PropertyType.HOUSE]: "bg-emerald-500",
+	[PropertyType.APARTMENT]: "bg-blue-500",
+	[PropertyType.BUILDING]: "bg-purple-500",
+	[PropertyType.OFFICE]: "bg-sky-500",
+	[PropertyType.RETAIL]: "bg-amber-500",
+	[PropertyType.WAREHOUSE]: "bg-red-500",
+	[PropertyType.FARM]: "bg-lime-500",
+	[PropertyType.OTHER]: "bg-slate-400",
 };
 
 const conditionColors: Partial<Record<PropertyCondition, string>> = {
@@ -255,9 +258,12 @@ export default function PropertyCard({
 					<PropertyPlaceholderSvg
 						seed={property.id || property.name}
 						hasBuilding={
-							property.propertyType === PropertyType.COMMERCIAL ||
-							property.propertyType === PropertyType.INDUSTRIAL ||
-							property.propertyType === PropertyType.MIXED_USE ||
+							property.propertyType === PropertyType.HOUSE ||
+							property.propertyType === PropertyType.BUILDING ||
+							property.propertyType === PropertyType.APARTMENT ||
+							property.propertyType === PropertyType.OFFICE ||
+							property.propertyType === PropertyType.RETAIL ||
+							property.propertyType === PropertyType.WAREHOUSE ||
 							/(building|duplex|bungalow|warehouse|office|factory|apartment|shop|plaza|mall|house)/.test(
 								`${property.description ?? ""} ${property.zoning ?? ""}`.toLowerCase(),
 							)

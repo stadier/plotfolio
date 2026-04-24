@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCurrency } from "@/lib/utils";
+import { useCurrencyConverter } from "@/hooks/useCurrencyConverter";
 import { Property } from "@/types/property";
 import { Maximize2, Pencil, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,7 @@ export default function PropertyDrawer({
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 	const panelRef = useRef<HTMLDivElement>(null);
+	const { format: formatPrice } = useCurrencyConverter();
 
 	// Fetch when a property is selected
 	useEffect(() => {
@@ -103,13 +104,16 @@ export default function PropertyDrawer({
 								</h1>
 								<div className="flex items-center gap-2 mt-1">
 									<span
-										className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+										className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
 									>
 										{property.status.replace(/_/g, " ")}
 									</span>
 									<span className="font-headline text-lg font-bold text-primary">
-										{formatCurrency(
-											property.currentValue ?? property.purchasePrice ?? 0,
+										{formatPrice(
+											property.listingPrice ??
+												property.currentValue ??
+												property.purchasePrice ??
+												0,
 											property.country,
 										)}
 									</span>

@@ -10,7 +10,7 @@ function generatePropertyName(): string {
 	const month = now.toLocaleString("en-US", { month: "short" }).toUpperCase();
 	const year = now.getFullYear().toString().slice(-2);
 	const seq = Math.random().toString(36).slice(2, 6).toUpperCase();
-	return `PLT-${month}${year}-${seq}`;
+	return `PLOT-${month}${year}-${seq}`;
 }
 
 export default function NewPropertyPage() {

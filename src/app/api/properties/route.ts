@@ -1,6 +1,13 @@
 import connectDB from "@/lib/mongoose";
 import { PropertyService } from "@/models/Property";
+import { BidModel, SaleModel } from "@/models/Sale";
+import { SaleStatus } from "@/types/sale";
 import { NextRequest, NextResponse } from "next/server";
+
+const TERMINAL_SALE_STATUSES: string[] = [
+	SaleStatus.COMPLETED,
+	SaleStatus.CANCELLED,
+];
 
 export async function GET(request: NextRequest) {
 	try {
@@ -9,6 +16,9 @@ export async function GET(request: NextRequest) {
 		const status = searchParams.get("status");
 		const ownerId = searchParams.get("ownerId");
 		const portfolioId = searchParams.get("portfolioId");
+		const include = (searchParams.get("include") ?? "")
+			.split(",")
+			.map((s) => s.trim());
 		let properties = await PropertyService.getAllProperties();
 		if (ownerId && portfolioId) {
 			// Own portfolio: match by portfolio OR by ownership (handles stale portfolioId)
@@ -26,6 +36,61 @@ export async function GET(request: NextRequest) {
 					return properties.filter((p) => statuses.includes(p.status));
 				})()
 			: properties;
+
+		if (include.includes("activeSale") && filtered.length > 0) {
+			const ids = filtered.map((p) => p.id);
+			const sales = await SaleModel.find({
+				propertyId: { $in: ids },
+				status: { $nin: TERMINAL_SALE_STATUSES },
+			})
+				.sort({ createdAt: -1 })
+				.lean<any[]>();
+			// Pick the most-recent non-terminal sale per property
+			const byProperty = new Map<string, any>();
+			for (const s of sales) {
+				if (!byProperty.has(s.propertyId)) {
+					const { _id, __v, ...rest } = s;
+					byProperty.set(s.propertyId, rest);
+				}
+			}
+			// For auction sales, attach lightweight bid stats
+			const auctionSaleIds = Array.from(byProperty.values())
+				.filter((s) => s.type === "auction")
+				.map((s) => s.id);
+			let bidStats: Record<
+				string,
+				{ count: number; topAmount?: number; topBidderName?: string }
+			> = {};
+			if (auctionSaleIds.length > 0) {
+				const bids = await BidModel.find({
+					saleId: { $in: auctionSaleIds },
+				}).lean<any[]>();
+				bidStats = bids.reduce(
+					(acc, b) => {
+						const cur = acc[b.saleId] ?? { count: 0 };
+						cur.count += 1;
+						if (cur.topAmount == null || b.amount > cur.topAmount) {
+							cur.topAmount = b.amount;
+							cur.topBidderName = b.bidderName;
+						}
+						acc[b.saleId] = cur;
+						return acc;
+					},
+					{} as typeof bidStats,
+				);
+			}
+			const enriched = filtered.map((p) => {
+				const sale = byProperty.get(p.id);
+				if (!sale) return p;
+				const stats = bidStats[sale.id];
+				return {
+					...p,
+					activeSale: stats ? { ...sale, bidStats: stats } : sale,
+				};
+			});
+			return NextResponse.json(enriched);
+		}
+
 		return NextResponse.json(filtered);
 	} catch (error) {
 		console.error("Error fetching properties:", error);

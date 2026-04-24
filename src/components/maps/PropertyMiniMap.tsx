@@ -1,6 +1,6 @@
 "use client";
 
-import { getDefaultTile } from "@/lib/mapTiles";
+import { getMapTiles } from "@/lib/mapTiles";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Expand } from "lucide-react";
@@ -18,6 +18,15 @@ L.Icon.Default.mergeOptions({
 	shadowUrl:
 		"https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
+
+type TileView = "standard" | "satellite" | "terrain" | "hybrid";
+
+const TILE_LABELS: Record<TileView, string> = {
+	standard: "Map",
+	satellite: "Satellite",
+	terrain: "Terrain",
+	hybrid: "Hybrid",
+};
 
 interface PropertyMiniMapProps {
 	lat: number;
@@ -56,7 +65,10 @@ export default function PropertyMiniMap({
 }: PropertyMiniMapProps) {
 	const mapRef = useRef<HTMLDivElement>(null);
 	const leafletMap = useRef<L.Map | null>(null);
+	const tileLayerRef = useRef<L.TileLayer | null>(null);
+	const overlayLayerRef = useRef<L.TileLayer | null>(null);
 	const [internalExpanded, setInternalExpanded] = useState(false);
+	const [tileView, setTileView] = useState<TileView>("standard");
 	const isExpanded = expanded ?? internalExpanded;
 
 	const setExpanded = (next: boolean) => {
@@ -66,30 +78,33 @@ export default function PropertyMiniMap({
 		}
 	};
 
+	// Initial map creation
 	useEffect(() => {
 		if (!mapRef.current) return;
 
-		// If map already exists, just update view
 		if (leafletMap.current) {
 			leafletMap.current.invalidateSize();
-			leafletMap.current.setView([lat, lng], isExpanded ? 16 : 14);
+			leafletMap.current.setView([lat, lng], isExpanded ? 16 : 15);
 			return;
 		}
 
+		const tiles = getMapTiles();
+		const tile = tiles.standard;
+
 		const map = L.map(mapRef.current, {
 			center: [lat, lng],
-			zoom: isExpanded ? 16 : 14,
+			zoom: isExpanded ? 16 : 17,
 			zoomControl: false,
 			attributionControl: false,
 			scrollWheelZoom: isExpanded,
 			dragging: isExpanded,
 		});
 
-		const tile = getDefaultTile();
-		L.tileLayer(tile.url, {
+		tileLayerRef.current = L.tileLayer(tile.url, {
 			attribution: tile.attribution,
 			maxZoom: tile.maxZoom,
 		}).addTo(map);
+
 		L.marker([lat, lng]).addTo(map).bindPopup(propertyName);
 
 		leafletMap.current = map;
@@ -97,10 +112,44 @@ export default function PropertyMiniMap({
 		return () => {
 			map.remove();
 			leafletMap.current = null;
+			tileLayerRef.current = null;
+			overlayLayerRef.current = null;
 		};
-		// Re-create when expanded changes to toggle interactivity
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [lat, lng, propertyName, isExpanded]);
+
+	// Swap tile layer when tileView changes
+	useEffect(() => {
+		const map = leafletMap.current;
+		if (!map) return;
+
+		const tiles = getMapTiles();
+		const config = tiles[tileView];
+
+		// Remove existing base layer
+		if (tileLayerRef.current) {
+			map.removeLayer(tileLayerRef.current);
+			tileLayerRef.current = null;
+		}
+		// Remove existing overlay
+		if (overlayLayerRef.current) {
+			map.removeLayer(overlayLayerRef.current);
+			overlayLayerRef.current = null;
+		}
+
+		tileLayerRef.current = L.tileLayer(config.url, {
+			attribution: config.attribution,
+			maxZoom: config.maxZoom,
+		}).addTo(map);
+
+		if ("overlay" in config && config.overlay) {
+			overlayLayerRef.current = L.tileLayer(config.overlay.url, {
+				attribution: config.overlay.attribution,
+				maxZoom: config.overlay.maxZoom,
+				opacity: config.overlay.opacity,
+			}).addTo(map);
+		}
+	}, [tileView]);
 
 	return (
 		<div className="w-full">
@@ -135,10 +184,29 @@ export default function PropertyMiniMap({
 						</div>
 					</div>
 				)}
-				<div
-					ref={mapRef}
-					className={`w-full transition-all duration-300 isolate ${isExpanded ? expandedHeightClassName : collapsedHeightClassName}`}
-				/>
+				<div className="relative">
+					<div
+						ref={mapRef}
+						className={`w-full transition-all duration-300 isolate ${isExpanded ? expandedHeightClassName : collapsedHeightClassName}`}
+					/>
+					{/* Floating tile view toggle */}
+					<div className="absolute bottom-2 left-2 z-1000 flex gap-1">
+						{(Object.keys(TILE_LABELS) as TileView[]).map((view) => (
+							<button
+								key={view}
+								type="button"
+								onClick={() => setTileView(view)}
+								className={`px-2 py-1 text-badge font-semibold rounded-sm shadow transition-all ${
+									tileView === view
+										? "bg-blue-600 text-white"
+										: "bg-white/90 text-slate-700 hover:bg-white"
+								}`}
+							>
+								{TILE_LABELS[view]}
+							</button>
+						))}
+					</div>
+				</div>
 				{showCoordinates && (
 					<div className="px-5 py-2 text-xs text-slate-500 dark:text-on-surface-variant">
 						{lat.toFixed(6)}, {lng.toFixed(6)}

@@ -1,5 +1,8 @@
 "use client";
 
+import { queryKeys } from "@/hooks/usePropertyQueries";
+import { useQueryClient } from "@tanstack/react-query";
+
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -8,15 +11,7 @@ import {
 	Property,
 	PropertyStatus,
 } from "@/types/property";
-import {
-	Check,
-	ChevronDown,
-	Eye,
-	FileText,
-	Plus,
-	Trash2,
-	Upload,
-} from "lucide-react";
+import { ChevronDown, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
 	DocumentAccessLevelPicker,
@@ -364,22 +359,116 @@ function DocumentCard({
 	);
 }
 
+// ----- Pending upload types and placeholder card -----
+
+interface PendingDoc {
+	id: number;
+	file: File;
+	type: DocumentType;
+	status: "uploading" | "failed";
+	error?: string;
+}
+
+function getFilePendingKind(file: File): "image" | "pdf" | "document" {
+	const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+	if (IMAGE_EXTENSIONS.has(ext)) return "image";
+	if (ext === "pdf") return "pdf";
+	return "document";
+}
+
+function LocalImageThumbnail({ file }: { file: File }) {
+	const [src] = useState(() => URL.createObjectURL(file));
+	return (
+		<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-surface-container">
+			{/* eslint-disable-next-line @next/next/no-img-element */}
+			<img
+				src={src}
+				alt={file.name}
+				className="w-full h-full object-cover opacity-60"
+			/>
+			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+				IMG
+			</span>
+		</div>
+	);
+}
+
+function DocUploadPlaceholder({
+	item,
+	onRetry,
+	onDismiss,
+}: {
+	item: PendingDoc;
+	onRetry: () => void;
+	onDismiss: () => void;
+}) {
+	const kind = getFilePendingKind(item.file);
+	const extLabel = item.file.name.split(".").pop()?.toUpperCase() ?? "FILE";
+	return (
+		<div className="w-32 shrink-0 rounded-xl overflow-hidden border border-border bg-card">
+			{kind === "image" ? (
+				<LocalImageThumbnail file={item.file} />
+			) : kind === "pdf" ? (
+				<RemotePdfThumbnail />
+			) : (
+				<RemoteGenericThumbnail extensionLabel={extLabel} />
+			)}
+			<div className="px-2.5 py-2">
+				<p className="text-[11px] font-medium text-on-surface truncate font-body leading-tight">
+					{item.file.name}
+				</p>
+				{item.status === "uploading" ? (
+					<div className="flex items-center gap-1.5 mt-1.5">
+						<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+							<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
+						</div>
+						<button
+							type="button"
+							onClick={onDismiss}
+							className="text-[9px] text-red-500 hover:text-red-600 font-medium shrink-0"
+						>
+							Cancel
+						</button>
+					</div>
+				) : (
+					<>
+						<p className="text-[9px] text-red-500 leading-tight mt-0.5 truncate">
+							{item.error}
+						</p>
+						<div className="flex items-center gap-2 mt-1">
+							<button
+								type="button"
+								onClick={onRetry}
+								className="text-[9px] text-primary font-medium hover:underline flex items-center gap-0.5 shrink-0"
+							>
+								<Upload className="w-2.5 h-2.5" />
+								Retry
+							</button>
+							<button
+								type="button"
+								onClick={onDismiss}
+								className="text-[9px] text-outline hover:text-on-surface-variant shrink-0"
+							>
+								Dismiss
+							</button>
+						</div>
+					</>
+				)}
+			</div>
+		</div>
+	);
+}
+
 // ----- Document upload button (with type picker) -----
 function DocumentUploadButton({
-	propertyId,
-	onUploaded,
+	onFilePicked,
 }: {
-	propertyId: string;
-	onUploaded: (doc: Property["documents"][0]) => void;
+	onFilePicked: (file: File, type: DocumentType) => void;
 }) {
 	const [selectedType, setSelectedType] = useState<DocumentType>(
 		DocumentType.OTHER,
 	);
 	const [typeOpen, setTypeOpen] = useState(false);
-	const [uploading, setUploading] = useState(false);
-	const [uploadDone, setUploadDone] = useState(false);
-	const [uploadError, setUploadError] = useState<string | null>(null);
-	const [failedFile, setFailedFile] = useState<File | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -396,58 +485,13 @@ function DocumentUploadButton({
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [typeOpen]);
 
-	async function uploadFile(file: File) {
-		setUploading(true);
-		setUploadError(null);
-		try {
-			const formData = new FormData();
-			formData.append("file", file);
-			formData.append("type", selectedType);
-			formData.append("name", file.name);
-			const res = await fetch(
-				`${API_BASE}/properties/${propertyId}/documents`,
-				{ method: "POST", body: formData },
-			);
-			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.error ?? "Upload failed");
-			}
-			const { document } = await res.json();
-			onUploaded(document);
-			setUploadDone(true);
-			setFailedFile(null);
-		} catch (err) {
-			setUploadError(err instanceof Error ? err.message : "Upload failed");
-			setFailedFile(file);
-		} finally {
-			setUploading(false);
-			if (inputRef.current) inputRef.current.value = "";
-		}
-	}
-
-	async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-		const file = e.target.files?.[0];
-		if (!file) return;
-		setFailedFile(null);
-		await uploadFile(file);
-	}
-
-	function handleRetry() {
-		if (failedFile) uploadFile(failedFile);
-	}
-
-	function handleDismiss() {
-		setFailedFile(null);
-		setUploadError(null);
-	}
-
 	return (
-		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 dark:bg-surface-container/50 hover:bg-surface-container-high dark:hover:bg-surface-container transition-colors">
+		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 hover:bg-surface-container-high transition-colors">
 			{/* Type selector */}
 			<div className="relative mt-3 px-2 w-full" ref={dropdownRef}>
 				<button
 					onClick={() => setTypeOpen(!typeOpen)}
-					className="w-full flex items-center justify-center gap-1 text-[10px] text-outline dark:text-on-surface-variant hover:text-on-surface-variant dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border"
+					className="w-full flex items-center justify-center gap-1 text-badge text-outline hover:text-on-surface-variant uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border"
 				>
 					<span className="truncate">{getDocumentTypeLabel(selectedType)}</span>
 					<ChevronDown className="w-3 h-3 shrink-0" />
@@ -461,7 +505,7 @@ function DocumentUploadButton({
 									setSelectedType(cat.type);
 									setTypeOpen(false);
 								}}
-								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container dark:hover:bg-surface-container ${selectedType === cat.type ? "font-semibold text-on-surface dark:text-on-surface" : "text-on-surface-variant dark:text-on-surface-variant"}`}
+								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container ${selectedType === cat.type ? "font-semibold text-on-surface" : "text-on-surface-variant"}`}
 							>
 								{cat.label}
 							</button>
@@ -469,74 +513,23 @@ function DocumentUploadButton({
 					</div>
 				)}
 			</div>
-			{/* Upload area */}
-			{uploadDone ? (
-				<div className="flex-1 flex flex-col items-center justify-center py-6 w-full gap-2">
-					<Check className="w-5 h-5 text-green-500" />
-					<span className="text-[10px] text-green-500 font-medium">
-						Uploaded
-					</span>
-					<button
-						onClick={() => setUploadDone(false)}
-						className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline mt-1"
-					>
-						<Plus className="w-3.5 h-3.5" />
-						Add another
-					</button>
-				</div>
-			) : failedFile && uploadError ? (
-				<div className="flex-1 flex flex-col items-center justify-center py-4 w-full gap-1.5 px-2">
-					<Upload className="w-5 h-5 text-red-400" />
-					<p
-						className="text-[10px] text-on-surface font-medium text-center truncate w-full"
-						title={failedFile.name}
-					>
-						{failedFile.name}
-					</p>
-					<p className="text-[9px] text-red-500 text-center leading-tight">
-						{uploadError}
-					</p>
-					<button
-						onClick={handleRetry}
-						disabled={uploading}
-						className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline mt-0.5"
-					>
-						<Upload className="w-3 h-3" />
-						{uploading ? "Retrying…" : "Retry"}
-					</button>
-					<button
-						onClick={handleDismiss}
-						className="text-[9px] text-outline hover:text-on-surface-variant"
-					>
-						Dismiss
-					</button>
-				</div>
-			) : (
-				<label className="flex-1 flex flex-col items-center justify-center cursor-pointer py-6 w-full">
-					{uploading ? (
-						<>
-							<Upload className="w-5 h-5 text-outline dark:text-on-surface-variant animate-pulse" />
-							<span className="text-[10px] text-outline dark:text-on-surface-variant mt-1">
-								Uploading…
-							</span>
-						</>
-					) : (
-						<>
-							<Plus className="w-5 h-5 text-outline dark:text-on-surface-variant" />
-							<span className="text-[10px] text-outline dark:text-on-surface-variant mt-1">
-								Upload
-							</span>
-						</>
-					)}
-					<input
-						ref={inputRef}
-						type="file"
-						className="hidden"
-						disabled={uploading}
-						onChange={handleFileChange}
-					/>
-				</label>
-			)}
+			{/* Upload trigger */}
+			<label className="flex-1 flex flex-col items-center justify-center cursor-pointer py-6 w-full">
+				<Plus className="w-5 h-5 text-outline" />
+				<span className="text-badge text-outline mt-1">Upload</span>
+				<input
+					ref={inputRef}
+					type="file"
+					className="hidden"
+					onChange={(e) => {
+						const file = e.target.files?.[0];
+						if (file) {
+							onFilePicked(file, selectedType);
+							if (inputRef.current) inputRef.current.value = "";
+						}
+					}}
+				/>
+			</label>
 		</div>
 	);
 }
@@ -571,11 +564,52 @@ export function DocumentsGrid({
 	accessRequests?: DocumentAccessRequest[];
 	onAccessRequested?: (req: DocumentAccessRequest) => void;
 }) {
+	const queryClient = useQueryClient();
+	const [pendingDocs, setPendingDocs] = useState<PendingDoc[]>([]);
+	const pendingIdRef = useRef(0);
 	const hasDocuments = documents.length > 0;
 	const [previewDoc, setPreviewDoc] = useState<Property["documents"][0] | null>(
 		null,
 	);
-	if (!hasDocuments && !isOwner) return null;
+
+	if (!hasDocuments && !isOwner && pendingDocs.length === 0) return null;
+
+	async function uploadDoc(id: number, file: File, type: DocumentType) {
+		try {
+			const formData = new FormData();
+			formData.append("file", file);
+			formData.append("type", type);
+			formData.append("name", file.name);
+			const res = await fetch(
+				`${API_BASE}/properties/${propertyId}/documents`,
+				{ method: "POST", body: formData },
+			);
+			if (!res.ok) {
+				const err = await res.json();
+				throw new Error(err.error ?? "Upload failed");
+			}
+			const { document } = await res.json();
+			onUploaded(document);
+			setPendingDocs((prev) => prev.filter((p) => p.id !== id));
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.detail(propertyId),
+			});
+		} catch (err) {
+			const error = err instanceof Error ? err.message : "Upload failed";
+			setPendingDocs((prev) =>
+				prev.map((p) => (p.id === id ? { ...p, status: "failed", error } : p)),
+			);
+		}
+	}
+
+	function handleFilePicked(file: File, type: DocumentType) {
+		const id = ++pendingIdRef.current;
+		setPendingDocs((prev) => [
+			...prev,
+			{ id, file, type, status: "uploading" },
+		]);
+		uploadDoc(id, file, type);
+	}
 
 	return (
 		<>
@@ -588,12 +622,6 @@ export function DocumentsGrid({
 				/>
 			)}
 			<div className="flex flex-wrap gap-3 items-start">
-				{isOwner && (
-					<DocumentUploadButton
-						propertyId={propertyId}
-						onUploaded={onUploaded}
-					/>
-				)}
 				{documents.map((doc) => (
 					<DocumentCard
 						key={doc.id}
@@ -612,6 +640,27 @@ export function DocumentsGrid({
 						onAccessRequested={onAccessRequested}
 					/>
 				))}
+				{/* Upload placeholders — one card per pending file */}
+				{pendingDocs.map((item) => (
+					<DocUploadPlaceholder
+						key={item.id}
+						item={item}
+						onRetry={() => {
+							setPendingDocs((prev) =>
+								prev.map((p) =>
+									p.id === item.id
+										? { ...p, status: "uploading", error: undefined }
+										: p,
+								),
+							);
+							uploadDoc(item.id, item.file, item.type);
+						}}
+						onDismiss={() =>
+							setPendingDocs((prev) => prev.filter((p) => p.id !== item.id))
+						}
+					/>
+				))}
+				{isOwner && <DocumentUploadButton onFilePicked={handleFilePicked} />}
 			</div>
 		</>
 	);

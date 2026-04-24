@@ -2,6 +2,7 @@
 
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
+import SaleStatusBadge from "@/components/sales/SaleStatusBadge";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useMarketplaceListings } from "@/hooks/usePropertyQueries";
 import { isPlotWordsCode, toPlotWords } from "@/lib/plotwords";
@@ -160,7 +161,8 @@ function ListingCard({
 	const showHeroImage = Boolean(heroImage);
 	const isFeatured =
 		askingPrice > 20_000_000 ||
-		property.propertyType === PropertyType.COMMERCIAL;
+		property.propertyType === PropertyType.BUILDING ||
+		property.propertyType === PropertyType.OFFICE;
 
 	useEffect(() => {
 		setImageIndex(0);
@@ -256,6 +258,16 @@ function ListingCard({
 						Featured
 					</div>
 				)}
+
+				{/* Active sale badge (auction / open offers) */}
+				{property.activeSale && (
+					<div className="absolute top-3 left-3">
+						<SaleStatusBadge
+							sale={property.activeSale}
+							country={property.country}
+						/>
+					</div>
+				)}
 			</div>
 
 			{/* Info */}
@@ -285,6 +297,15 @@ function ListingCard({
 						</span>
 					)}
 				</div>
+				{property.activeSale && (
+					<div className="mb-3">
+						<SaleStatusBadge
+							sale={property.activeSale}
+							country={property.country}
+							variant="row"
+						/>
+					</div>
+				)}
 				{/* Seller info */}
 				<div className="pt-3 border-t border-divider">
 					<UserAvatar

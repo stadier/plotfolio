@@ -62,9 +62,12 @@ export default function Header() {
 			<div className="relative flex items-center justify-between px-4 md:px-6 h-full w-full md:pl-7">
 				{/* Mobile: logo + page title */}
 				<div className="flex md:hidden items-center gap-2">
-					<Link href="/" className="flex items-center gap-2">
+					<Link
+						href={user ? "/portfolio" : "/"}
+						className="flex items-center gap-2"
+					>
 						<Image
-							src="/plotfolio-logo.svg"
+							src="/plotfolio-logo-l.png"
 							alt="Plotfolio"
 							width={24}
 							height={24}

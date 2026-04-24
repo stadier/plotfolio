@@ -37,13 +37,16 @@ export interface Property {
 	propertyType: PropertyType;
 	purchaseDate: Date;
 	purchasePrice: number;
+	listingPrice?: number; // Asking price when listed for sale/rent/lease
 	currentValue?: number;
+	soldPrice?: number; // Actual transacted price — the true market value
+	soldDate?: Date; // Date of transaction/sale
 	documents: PropertyDocument[];
 	status: PropertyStatus;
 	description?: string;
 	images?: string[]; // legacy — prefer media[]
 	media?: PropertyMedia[];
-	zoning?: string;
+	zoning?: ZoningType;
 	taxId?: string;
 	owner: PropertyOwner;
 	portfolioId?: string; // Which portfolio this property belongs to
@@ -73,6 +76,30 @@ export interface Property {
 	// Timestamps from Mongoose
 	createdAt?: string;
 	updatedAt?: string;
+	// Embedded by API when ?include=activeSale — see ActiveSaleSummary type below
+	activeSale?: ActiveSaleSummary;
+}
+
+/**
+ * Lightweight summary of the active Sale attached to a Property
+ * by `GET /api/properties?include=activeSale`. Mirrors a subset of
+ * `Sale` fields plus auction `bidStats`.
+ */
+export interface ActiveSaleSummary {
+	id: string;
+	type: "private_sale" | "auction";
+	status: string;
+	askingPrice: number;
+	reservePrice?: number;
+	currency: string;
+	auctionStartsAt?: string;
+	auctionEndsAt?: string;
+	agreedAmount?: number;
+	bidStats?: {
+		count: number;
+		topAmount?: number;
+		topBidderName?: string;
+	};
 }
 
 export interface PropertySettings {
@@ -143,12 +170,24 @@ export interface DocumentAccessRequest {
 }
 
 export enum PropertyType {
+	LAND = "land",
+	HOUSE = "house",
+	APARTMENT = "apartment",
+	BUILDING = "building",
+	OFFICE = "office",
+	RETAIL = "retail",
+	WAREHOUSE = "warehouse",
+	FARM = "farm",
+	OTHER = "other",
+}
+
+export enum ZoningType {
 	RESIDENTIAL = "residential",
 	COMMERCIAL = "commercial",
 	INDUSTRIAL = "industrial",
 	AGRICULTURAL = "agricultural",
-	VACANT_LAND = "vacant_land",
 	MIXED_USE = "mixed_use",
+	UNSPECIFIED = "unspecified",
 }
 
 export enum PropertyStatus {
@@ -256,6 +295,8 @@ export interface PortfolioPermissions {
 	canManageBookings: boolean;
 	canTransferProperties: boolean;
 	canInviteMembers: boolean;
+	/** Can initiate / manage property sales, auctions, offers on behalf of the portfolio */
+	canManageSales: boolean;
 }
 
 /** Default permissions for each role */
@@ -274,6 +315,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
 		canManageBookings: true,
 		canTransferProperties: true,
 		canInviteMembers: true,
+		canManageSales: true,
 	},
 	[PortfolioRole.MANAGER]: {
 		canViewProperties: true,
@@ -286,6 +328,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
 		canManageBookings: true,
 		canTransferProperties: false,
 		canInviteMembers: false,
+		canManageSales: true,
 	},
 	[PortfolioRole.AGENT]: {
 		canViewProperties: true,
@@ -298,6 +341,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
 		canManageBookings: true,
 		canTransferProperties: false,
 		canInviteMembers: false,
+		/** Off by default — can be granted per-member as an override */
+		canManageSales: false,
 	},
 	[PortfolioRole.VIEWER]: {
 		canViewProperties: true,
@@ -310,6 +355,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
 		canManageBookings: false,
 		canTransferProperties: false,
 		canInviteMembers: false,
+		canManageSales: false,
 	},
 };
 

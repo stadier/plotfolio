@@ -1,3 +1,4 @@
+import type { Chat, ChatSummary } from "@/types/chat";
 import type {
 	AIDocument,
 	AIDocumentType,
@@ -139,7 +140,7 @@ export class PropertyAPI {
 	static async getMarketplaceListings(): Promise<Property[]> {
 		try {
 			const response = await fetch(
-				`${API_BASE_URL}/properties?status=for_sale,for_rent,for_lease`,
+				`${API_BASE_URL}/properties?status=for_sale,for_rent,for_lease&include=activeSale`,
 			);
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
@@ -907,6 +908,73 @@ export class PortfolioAPI {
 			if (!res.ok) {
 				const result = await res.json().catch(() => ({}));
 				return { error: result.error || "Failed to cancel invitation" };
+			}
+			return {};
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+}
+
+/* ── Chat API ──────────────────────────────────────────────────────────────── */
+
+export class ChatAPI {
+	static async getChats(): Promise<ChatSummary[]> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/chat`);
+			if (!res.ok) return [];
+			const data = await res.json();
+			return data.chats ?? [];
+		} catch {
+			return [];
+		}
+	}
+
+	static async getChat(id: string): Promise<Chat | null> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/chat/${id}`);
+			if (!res.ok) return null;
+			const data = await res.json();
+			return data.chat ?? null;
+		} catch {
+			return null;
+		}
+	}
+
+	static async startChat(params: {
+		recipientId: string;
+		propertyId?: string;
+		propertyTitle?: string;
+		propertyImage?: string;
+		initialMessage?: string;
+	}): Promise<{ chat?: Chat; error?: string }> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/chat`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(params),
+			});
+			const data = await res.json();
+			if (!res.ok) return { error: data.error || "Failed to start chat" };
+			return { chat: data.chat };
+		} catch {
+			return { error: "Network error" };
+		}
+	}
+
+	static async sendMessage(
+		chatId: string,
+		message: string,
+	): Promise<{ error?: string }> {
+		try {
+			const res = await fetch(`${API_BASE_URL}/chat/${chatId}`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ message }),
+			});
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				return { error: data.error || "Failed to send message" };
 			}
 			return {};
 		} catch {
