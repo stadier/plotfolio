@@ -1,5 +1,6 @@
 "use client";
 
+import packageInfo from "../../../package.json";
 import { usePortfolio } from "@/components/PortfolioContext";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
 import PrimaryButton from "@/components/ui/PrimaryButton";
@@ -36,6 +37,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+const APP_VERSION = packageInfo.version;
 
 interface NavItem {
 	name: string;
@@ -559,7 +562,7 @@ export default function Sidebar({
 				</div>
 
 				<div className="text-center text-[10px] text-outline/60 font-mono tracking-wide select-none">
-					v0.8.0
+					v{APP_VERSION}
 				</div>
 			</div>
 		</aside>

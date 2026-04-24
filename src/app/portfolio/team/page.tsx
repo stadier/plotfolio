@@ -897,6 +897,10 @@ const PERMISSION_LABELS: Record<
 		label: "Invite members",
 		description: "Add new members to this portfolio",
 	},
+	canManageSales: {
+		label: "Manage sales",
+		description: "Create and manage listings, offers, bids, and disputes",
+	},
 };
 
 const PERMISSION_KEYS = Object.keys(

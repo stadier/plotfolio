@@ -37,6 +37,7 @@ export interface Property {
 	propertyType: PropertyType;
 	purchaseDate: Date;
 	purchasePrice: number;
+	currency?: string;
 	listingPrice?: number; // Asking price when listed for sale/rent/lease
 	currentValue?: number;
 	soldPrice?: number; // Actual transacted price — the true market value
