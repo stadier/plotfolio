@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "plotfolio_session";
 
-async function getAuthUser() {
+async function getAuthContext() {
 	const cookieStore = await cookies();
 	const session = cookieStore.get(SESSION_COOKIE)?.value;
 	if (!session) return null;
@@ -19,18 +19,26 @@ async function getAuthUser() {
 	if (!token || !userId) return null;
 
 	await connectDB();
-	return UserModel.findOne({ id: userId });
+	const user = await UserModel.findOne({ id: userId }).lean();
+	if (!user) return null;
+
+	// Keep behavior aligned with login/auth flows by requiring the current session token.
+	if ((user as any).sessionToken && (user as any).sessionToken !== token) {
+		return null;
+	}
+
+	return { user, userId };
 }
 
 /** GET — return current provider settings (merged with defaults) */
 export async function GET() {
 	try {
-		const user = await getAuthUser();
-		if (!user) {
+		const auth = await getAuthContext();
+		if (!auth) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const saved = (user as any).providerSettings ?? {};
+		const saved = (auth.user as any).providerSettings ?? {};
 		const merged: ProviderSettings = { ...PROVIDER_DEFAULTS, ...saved };
 
 		return NextResponse.json({ providerSettings: merged });
@@ -46,8 +54,8 @@ export async function GET() {
 /** PUT — update provider settings */
 export async function PUT(request: NextRequest) {
 	try {
-		const user = await getAuthUser();
-		if (!user) {
+		const auth = await getAuthContext();
+		if (!auth) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
@@ -69,12 +77,30 @@ export async function PUT(request: NextRequest) {
 			(sanitised as Record<string, string>)[key] = value as string;
 		}
 
-		await UserModel.updateOne(
-			{ id: (user as any).id },
-			{ $set: { providerSettings: sanitised } },
+		if (Object.keys(sanitised).length === 0) {
+			return NextResponse.json(
+				{ error: "No valid provider settings supplied" },
+				{ status: 400 },
+			);
+		}
+
+		const existing = ((auth.user as any).providerSettings ??
+			{}) as Partial<ProviderSettings>;
+		const nextSettings: Partial<ProviderSettings> = {
+			...existing,
+			...sanitised,
+		};
+
+		const updateResult = await UserModel.updateOne(
+			{ id: auth.userId },
+			{ $set: { providerSettings: nextSettings } },
 		);
 
-		const merged: ProviderSettings = { ...PROVIDER_DEFAULTS, ...sanitised };
+		if (updateResult.matchedCount === 0) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		}
+
+		const merged: ProviderSettings = { ...PROVIDER_DEFAULTS, ...nextSettings };
 		return NextResponse.json({ providerSettings: merged });
 	} catch (error) {
 		console.error("Error updating provider settings:", error);

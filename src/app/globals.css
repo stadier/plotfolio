@@ -91,6 +91,19 @@
 	--size-gap-lg: 1rem; /* 16px — section gap (gap-4)               */
 	--size-gap-section: 1.5rem; /* 24px — between major sections (gap-6)    */
 	--size-widget-header-mb: 1rem; /* 16px — widget header bottom margin       */
+
+	/* ── Layering scale (single source of truth for z-index) ─────────────── */
+	--layout-header-height: 4rem;
+	--z-base: 1;
+	--z-sticky: 10;
+	--z-dropdown: 20;
+	--z-header: 30;
+	--z-sidebar: 35;
+	--z-mobile-nav: 40;
+	--z-map-controls: 50;
+	--z-overlay: 60;
+	--z-modal: 70;
+	--z-toast: 80;
 }
 
 body {
@@ -604,4 +617,36 @@ html[data-sidebar-collapsed="true"] [data-sidebar-label] {
 }
 .scrollbar-hide::-webkit-scrollbar {
 	display: none;
+}
+
+/* ── Z-index layer helpers ─────────────────────────────────────────────── */
+.z-layer-base {
+	z-index: var(--z-base);
+}
+.z-layer-sticky {
+	z-index: var(--z-sticky);
+}
+.z-layer-dropdown {
+	z-index: var(--z-dropdown);
+}
+.z-layer-header {
+	z-index: var(--z-header);
+}
+.z-layer-sidebar {
+	z-index: var(--z-sidebar);
+}
+.z-layer-mobile-nav {
+	z-index: var(--z-mobile-nav);
+}
+.z-layer-map {
+	z-index: var(--z-map-controls);
+}
+.z-layer-overlay {
+	z-index: var(--z-overlay);
+}
+.z-layer-modal {
+	z-index: var(--z-modal);
+}
+.z-layer-toast {
+	z-index: var(--z-toast);
 }

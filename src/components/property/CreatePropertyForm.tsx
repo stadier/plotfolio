@@ -7,7 +7,7 @@ import MasonryGrid from "@/components/ui/MasonryGrid";
 import WitnessTagInput, {
 	type WitnessEntry,
 } from "@/components/ui/WitnessTagInput";
-import { queryKeys } from "@/hooks/usePropertyQueries";
+import { queryKeys, useProviderSettings } from "@/hooks/usePropertyQueries";
 import { extractFieldsFromDocument } from "@/lib/documentExtractor";
 import { getPropertyMedia } from "@/lib/utils";
 import {
@@ -18,8 +18,10 @@ import {
 	PropertyDocument,
 	PropertyStatus,
 	PropertyType,
+	StructureOccupancyStatus,
 	ZoningType,
 } from "@/types/property";
+import { PROVIDER_DEFAULTS } from "@/types/providers";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, FileText, Loader2, MapPin, Save } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -43,6 +45,21 @@ const MapLocationPicker = dynamic(
 
 const LocationPreviewMap = dynamic(
 	() => import("@/components/maps/LocationPreviewMap"),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="w-full h-full bg-surface-container animate-pulse rounded-lg" />
+		),
+	},
+);
+
+const GoogleMapLocationPicker = dynamic(
+	() => import("@/components/maps/GoogleMapLocationPicker"),
+	{ ssr: false },
+);
+
+const GoogleLocationPreviewMap = dynamic(
+	() => import("@/components/maps/GoogleLocationPreviewMap"),
 	{
 		ssr: false,
 		loading: () => (
@@ -123,6 +140,29 @@ const CONDITION_LABELS: Record<PropertyCondition, string> = {
 	[PropertyCondition.FINISHED]: "Finished",
 	[PropertyCondition.RENOVATED]: "Renovated",
 	[PropertyCondition.NEEDS_REPAIR]: "Needs Repair",
+};
+
+function normalizeConditionValue(value: string): string {
+	return value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+}
+
+function isHasStructureCondition(value: string): boolean {
+	return normalizeConditionValue(value) === "has structure";
+}
+
+function includesHasStructureCondition(values: string[]): boolean {
+	return values.some(isHasStructureCondition);
+}
+
+function removeHasStructureCondition(values: string[]): string[] {
+	return values.filter((value) => !isHasStructureCondition(value));
+}
+
+const STRUCTURE_OCCUPANCY_LABELS: Record<StructureOccupancyStatus, string> = {
+	[StructureOccupancyStatus.VACANT]: "Vacant",
+	[StructureOccupancyStatus.OCCUPIED]: "Occupied",
+	[StructureOccupancyStatus.PARTIALLY_OCCUPIED]: "Partially Occupied",
+	[StructureOccupancyStatus.UNDER_CONSTRUCTION]: "Under Construction",
 };
 
 const COUNTRIES = [
@@ -393,6 +433,16 @@ export default function CreatePropertyForm({
 	const { user } = useAuth();
 	const { activePortfolio } = usePortfolio();
 	const queryClient = useQueryClient();
+	const { data: providerSettings } = useProviderSettings();
+	const useGoogleMapPicker =
+		(providerSettings?.mapRenderer ?? PROVIDER_DEFAULTS.mapRenderer) ===
+		"google";
+	const LocationPickerComponent = useGoogleMapPicker
+		? GoogleMapLocationPicker
+		: MapLocationPicker;
+	const LocationPreviewComponent = useGoogleMapPicker
+		? GoogleLocationPreviewMap
+		: LocationPreviewMap;
 	const isEdit = !!initialProperty;
 
 	/* basic info */
@@ -425,6 +475,86 @@ export default function CreatePropertyForm({
 	const [quantity, setQuantity] = useState(
 		initialProperty?.quantity ? String(initialProperty.quantity) : "1",
 	);
+	const initialLandStructureEnabled =
+		Boolean(initialProperty?.structure) ||
+		includesHasStructureCondition(initialProperty?.conditions || []);
+	const [structureEnabled, setStructureEnabled] = useState(
+		initialLandStructureEnabled,
+	);
+	const [structureName, setStructureName] = useState(
+		initialProperty?.structure?.name || "",
+	);
+	const [structureType, setStructureType] = useState(
+		initialProperty?.structure?.type || "",
+	);
+	const [structureCondition, setStructureCondition] = useState(
+		initialProperty?.structure?.condition || "",
+	);
+	const [structureFloors, setStructureFloors] = useState(
+		initialProperty?.structure?.floors != null
+			? String(initialProperty.structure.floors)
+			: "",
+	);
+	const [structureArea, setStructureArea] = useState(
+		initialProperty?.structure?.area != null
+			? String(initialProperty.structure.area)
+			: "",
+	);
+	const [structureBedrooms, setStructureBedrooms] = useState(
+		initialProperty?.structure?.bedrooms != null
+			? String(initialProperty.structure.bedrooms)
+			: initialProperty?.bedrooms != null
+				? String(initialProperty.bedrooms)
+				: "",
+	);
+	const [structureBathrooms, setStructureBathrooms] = useState(
+		initialProperty?.structure?.bathrooms != null
+			? String(initialProperty.structure.bathrooms)
+			: initialProperty?.bathrooms != null
+				? String(initialProperty.bathrooms)
+				: "",
+	);
+	const [structureParkingSpaces, setStructureParkingSpaces] = useState(
+		initialProperty?.structure?.parkingSpaces != null
+			? String(initialProperty.structure.parkingSpaces)
+			: initialProperty?.parkingSpaces != null
+				? String(initialProperty.parkingSpaces)
+				: "",
+	);
+	const [structureOccupancyStatus, setStructureOccupancyStatus] = useState<
+		StructureOccupancyStatus | ""
+	>(initialProperty?.structure?.occupancyStatus || "");
+	const [structureYearBuilt, setStructureYearBuilt] = useState(
+		initialProperty?.structure?.yearBuilt != null
+			? String(initialProperty.structure.yearBuilt)
+			: "",
+	);
+	const [structureNotes, setStructureNotes] = useState(
+		initialProperty?.structure?.notes || "",
+	);
+	// One-way sync: keep checkbox in sync when the user edits the
+	// conditions chip list directly. Checkbox → conditions is handled
+	// atomically in the onChange handler to avoid effect ping-pong.
+	useEffect(() => {
+		const hasStructure = includesHasStructureCondition(conditions);
+		setStructureEnabled((prev) =>
+			prev === hasStructure ? prev : hasStructure,
+		);
+	}, [conditions]);
+
+	const handleToggleStructure = (next: boolean) => {
+		setStructureEnabled(next);
+		setConditions((prev) => {
+			const hasStructure = includesHasStructureCondition(prev);
+			if (next && !hasStructure) {
+				return [...prev, PropertyCondition.HAS_STRUCTURE];
+			}
+			if (!next && hasStructure) {
+				return removeHasStructureCondition(prev);
+			}
+			return prev;
+		});
+	};
 
 	/* location */
 	const [lat, setLat] = useState(
@@ -697,6 +827,17 @@ export default function CreatePropertyForm({
 			ownerPhone,
 			zoning,
 			taxId,
+			structureName,
+			structureType,
+			structureCondition,
+			structureFloors,
+			structureArea,
+			structureBedrooms,
+			structureBathrooms,
+			structureParkingSpaces,
+			structureOccupancyStatus,
+			structureYearBuilt,
+			structureNotes,
 			propertyState,
 			city,
 			country,
@@ -711,6 +852,15 @@ export default function CreatePropertyForm({
 
 		try {
 			const id = isEdit ? initialProperty.id : crypto.randomUUID();
+			const normalizedConditions = Array.from(
+				new Set(
+					conditions.map((condition) =>
+						isHasStructureCondition(condition)
+							? PropertyCondition.HAS_STRUCTURE
+							: condition,
+					),
+				),
+			);
 
 			const property = {
 				id,
@@ -739,8 +889,46 @@ export default function CreatePropertyForm({
 					: undefined,
 				soldDate: soldDate ? new Date(soldDate) : undefined,
 				status,
-				conditions: conditions.length > 0 ? conditions : undefined,
+				conditions:
+					normalizedConditions.length > 0 ? normalizedConditions : undefined,
 				quantity: quantity ? Math.max(1, parseInt(quantity, 10)) : 1,
+				structure: structureEnabled
+					? {
+							name: structureName.trim() || undefined,
+							type: structureType.trim() || undefined,
+							condition: structureCondition.trim() || undefined,
+							floors: structureFloors
+								? Math.max(1, parseInt(structureFloors, 10))
+								: undefined,
+							area: structureArea ? parseFloat(structureArea) : undefined,
+							bedrooms: structureBedrooms
+								? Math.max(0, parseInt(structureBedrooms, 10))
+								: undefined,
+							bathrooms: structureBathrooms
+								? Math.max(0, parseFloat(structureBathrooms))
+								: undefined,
+							parkingSpaces: structureParkingSpaces
+								? Math.max(0, parseInt(structureParkingSpaces, 10))
+								: undefined,
+							occupancyStatus: structureOccupancyStatus || undefined,
+							yearBuilt: structureYearBuilt
+								? parseInt(structureYearBuilt, 10)
+								: undefined,
+							notes: structureNotes.trim() || undefined,
+						}
+					: undefined,
+				bedrooms:
+					structureEnabled && structureBedrooms
+						? Math.max(0, parseInt(structureBedrooms, 10))
+						: undefined,
+				bathrooms:
+					structureEnabled && structureBathrooms
+						? Math.max(0, parseFloat(structureBathrooms))
+						: undefined,
+				parkingSpaces:
+					structureEnabled && structureParkingSpaces
+						? Math.max(0, parseInt(structureParkingSpaces, 10))
+						: undefined,
 				zoning: zoning || undefined,
 				taxId: taxId.trim() || undefined,
 				state: propertyState.trim() || undefined,
@@ -1095,17 +1283,197 @@ export default function CreatePropertyForm({
 									</div>
 								</FormSection>
 
+								{(propertyType === PropertyType.LAND ||
+									structureEnabled ||
+									Boolean(initialProperty?.structure)) && (
+									<FormSection title="Structure">
+										<div className="space-y-4">
+											<label className="flex items-start gap-3 rounded-md border border-border bg-surface-container px-4 py-3 cursor-pointer">
+												<input
+													type="checkbox"
+													className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+													checked={structureEnabled}
+													onChange={(e) =>
+														handleToggleStructure(e.target.checked)
+													}
+												/>
+												<div>
+													<p className="text-sm font-medium text-on-surface">
+														This land has an existing structure
+													</p>
+													<p className="text-xs text-outline mt-1 font-body">
+														Capture building details, occupancy, and other
+														improvements on the land.
+													</p>
+												</div>
+											</label>
+
+											{structureEnabled && (
+												<>
+													<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+														<Field label="Structure Name">
+															<input
+																className={inputCls}
+																placeholder="e.g. Gatehouse, Bungalow, Warehouse"
+																value={structureName}
+																onChange={(e) =>
+																	setStructureName(e.target.value)
+																}
+															/>
+														</Field>
+														<Field label="Structure Type">
+															<input
+																className={inputCls}
+																placeholder="e.g. Detached house, Office block, Shop row"
+																value={structureType}
+																onChange={(e) =>
+																	setStructureType(e.target.value)
+																}
+															/>
+														</Field>
+														<Field label="Structure Condition">
+															<input
+																className={inputCls}
+																placeholder="e.g. Finished, Shell only, Needs repair"
+																value={structureCondition}
+																onChange={(e) =>
+																	setStructureCondition(e.target.value)
+																}
+															/>
+														</Field>
+														<Field label="Occupancy Status">
+															<select
+																className={selectCls}
+																value={structureOccupancyStatus}
+																onChange={(e) =>
+																	setStructureOccupancyStatus(
+																		e.target.value as
+																			| StructureOccupancyStatus
+																			| "",
+																	)
+																}
+															>
+																<option value="">Select status</option>
+																{Object.entries(STRUCTURE_OCCUPANCY_LABELS).map(
+																	([value, label]) => (
+																		<option key={value} value={value}>
+																			{label}
+																		</option>
+																	),
+																)}
+															</select>
+														</Field>
+													</div>
+
+													<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+														<Field label="Built-up Area (sqm)">
+															<input
+																type="number"
+																className={inputCls}
+																placeholder="e.g. 240"
+																value={structureArea}
+																onChange={(e) =>
+																	setStructureArea(e.target.value)
+																}
+																min={0}
+																step="any"
+															/>
+														</Field>
+														<Field label="Floors">
+															<input
+																type="number"
+																className={inputCls}
+																placeholder="e.g. 2"
+																value={structureFloors}
+																onChange={(e) =>
+																	setStructureFloors(e.target.value)
+																}
+																min={1}
+																step="1"
+															/>
+														</Field>
+														<Field label="Bedrooms">
+															<input
+																type="number"
+																className={inputCls}
+																placeholder="e.g. 4"
+																value={structureBedrooms}
+																onChange={(e) =>
+																	setStructureBedrooms(e.target.value)
+																}
+																min={0}
+																step="1"
+															/>
+														</Field>
+														<Field label="Bathrooms">
+															<input
+																type="number"
+																className={inputCls}
+																placeholder="e.g. 3"
+																value={structureBathrooms}
+																onChange={(e) =>
+																	setStructureBathrooms(e.target.value)
+																}
+																min={0}
+																step="0.5"
+															/>
+														</Field>
+														<Field label="Parking Spaces">
+															<input
+																type="number"
+																className={inputCls}
+																placeholder="e.g. 6"
+																value={structureParkingSpaces}
+																onChange={(e) =>
+																	setStructureParkingSpaces(e.target.value)
+																}
+																min={0}
+																step="1"
+															/>
+														</Field>
+														<Field label="Year Built">
+															<input
+																type="number"
+																className={inputCls}
+																placeholder="e.g. 2021"
+																value={structureYearBuilt}
+																onChange={(e) =>
+																	setStructureYearBuilt(e.target.value)
+																}
+																min={1800}
+																step="1"
+															/>
+														</Field>
+													</div>
+
+													<Field label="Notes">
+														<textarea
+															className={`${inputCls} resize-none`}
+															rows={3}
+															placeholder="Add any extra context about the structure, improvements, or current use"
+															value={structureNotes}
+															onChange={(e) =>
+																setStructureNotes(e.target.value)
+															}
+														/>
+													</Field>
+												</>
+											)}
+										</div>
+									</FormSection>
+								)}
+
 								{/* ── Location ────────────────────────────── */}
 								<FormSection title="Location">
 									{/* Map preview + prompt bar */}
-									<div className="rounded-md border border-border overflow-hidden max-w-md">
+									<div className="rounded-sm border border-border overflow-hidden max-w-md">
 										<div
 											className="relative w-full bg-surface-container cursor-pointer"
 											style={{ height: 180 }}
 											onClick={() => setMapPickerOpen(true)}
 										>
 											{lat && lng ? (
-												<LocationPreviewMap
+												<LocationPreviewComponent
 													lat={parseFloat(lat)}
 													lng={parseFloat(lng)}
 													onClick={() => setMapPickerOpen(true)}
@@ -1518,7 +1886,7 @@ export default function CreatePropertyForm({
 
 			{/* Map location picker modal */}
 			{mapPickerOpen && (
-				<MapLocationPicker
+				<LocationPickerComponent
 					initialLat={lat ? parseFloat(lat) : undefined}
 					initialLng={lng ? parseFloat(lng) : undefined}
 					initialQuery={[address, city, propertyState, country]

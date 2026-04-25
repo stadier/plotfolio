@@ -30,7 +30,7 @@ export default function StatusToggle({
 	if (!canToggle) {
 		return (
 			<span
-				className={`ml-auto sm:ml-2 shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+				className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
 			>
 				{property.status.replace(/_/g, " ").toUpperCase()}
 			</span>
@@ -43,7 +43,7 @@ export default function StatusToggle({
 			disabled={isPending}
 			onClick={() => onToggle(nextStatus)}
 			title={`Switch to ${nextLabel}`}
-			className={`ml-auto sm:ml-2 shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer transition-opacity hover:opacity-80 disabled:opacity-50 ${getStatusColor(property.status)}`}
+			className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer transition-opacity hover:opacity-80 disabled:opacity-50 ${getStatusColor(property.status)}`}
 		>
 			{isPending ? (
 				<Loader2 className="w-3 h-3 animate-spin" />

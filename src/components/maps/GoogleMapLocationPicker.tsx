@@ -1,28 +1,16 @@
 "use client";
 
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import {
+	AdvancedMarker,
+	APIProvider,
+	Map,
+	useMap,
+} from "@vis.gl/react-google-maps";
 import { Loader2, LocateFixed, MapPin, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	MapContainer,
-	Marker,
-	TileLayer,
-	useMap,
-	useMapEvents,
-} from "react-leaflet";
+import type { PickedLocationAddress } from "./MapLocationPicker";
 
-// Fix for default markers in Leaflet with Next.js
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl: unknown })
-	._getIconUrl;
-L.Icon.Default.mergeOptions({
-	iconRetinaUrl:
-		"https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-	iconUrl:
-		"https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-	shadowUrl:
-		"https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-});
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 interface NominatimResult {
 	place_id: number;
@@ -31,15 +19,7 @@ interface NominatimResult {
 	lon: string;
 }
 
-export interface PickedLocationAddress {
-	city: string;
-	state: string;
-	country: string;
-	street: string;
-	display_name: string;
-}
-
-interface MapLocationPickerProps {
+interface GoogleMapLocationPickerProps {
 	initialLat?: number;
 	initialLng?: number;
 	initialQuery?: string;
@@ -51,36 +31,14 @@ interface MapLocationPickerProps {
 	onClose: () => void;
 }
 
-/** Inner component that listens for map click events */
-function ClickHandler({
+function MapInteractionController({
 	onLocationSelect,
-}: {
-	onLocationSelect: (lat: number, lng: number) => void;
-}) {
-	useMapEvents({
-		click(e) {
-			onLocationSelect(e.latlng.lat, e.latlng.lng);
-		},
-	});
-	return null;
-}
-
-/** Flies the map to a given coordinate when it changes */
-function FlyToHandler({ target }: { target: [number, number] | null }) {
-	const map = useMap();
-	useEffect(() => {
-		if (target) {
-			map.flyTo(target, 17, { duration: 1.2 });
-		}
-	}, [map, target]);
-	return null;
-}
-
-/** Requests geolocation on mount and flies to the user's position */
-function GeolocationHandler({
+	flyTarget,
 	onLocated,
 	hasInitial,
 }: {
+	onLocationSelect: (lat: number, lng: number) => void;
+	flyTarget: { lat: number; lng: number } | null;
 	onLocated: (lat: number, lng: number) => void;
 	hasInitial: boolean;
 }) {
@@ -88,7 +46,25 @@ function GeolocationHandler({
 	const requested = useRef(false);
 
 	useEffect(() => {
-		if (requested.current || hasInitial) return;
+		if (!map) return;
+		const listener = map.addListener(
+			"click",
+			(event: google.maps.MapMouseEvent) => {
+				if (!event.latLng) return;
+				onLocationSelect(event.latLng.lat(), event.latLng.lng());
+			},
+		);
+		return () => listener.remove();
+	}, [map, onLocationSelect]);
+
+	useEffect(() => {
+		if (!map || !flyTarget) return;
+		map.panTo(flyTarget);
+		map.setZoom(17);
+	}, [map, flyTarget]);
+
+	useEffect(() => {
+		if (!map || requested.current || hasInitial) return;
 		requested.current = true;
 
 		if (!navigator.geolocation) return;
@@ -96,12 +72,11 @@ function GeolocationHandler({
 		navigator.geolocation.getCurrentPosition(
 			(pos) => {
 				const { latitude, longitude } = pos.coords;
-				map.flyTo([latitude, longitude], 15, { duration: 1.2 });
+				map.panTo({ lat: latitude, lng: longitude });
+				map.setZoom(15);
 				onLocated(latitude, longitude);
 			},
-			() => {
-				// Permission denied or error — stay on default view
-			},
+			() => {},
 			{ enableHighAccuracy: true, timeout: 8000 },
 		);
 	}, [map, onLocated, hasInitial]);
@@ -109,7 +84,6 @@ function GeolocationHandler({
 	return null;
 }
 
-/** Address search with Nominatim autocomplete */
 function AddressSearch({
 	onPlaceSelect,
 	initialQuery = "",
@@ -126,7 +100,6 @@ function AddressSearch({
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	const doSearch = useCallback(async (q: string) => {
-		// Cancel any in-flight request
 		if (abortRef.current) abortRef.current.abort();
 		const controller = new AbortController();
 		abortRef.current = controller;
@@ -169,7 +142,6 @@ function AddressSearch({
 		[doSearch],
 	);
 
-	// Close dropdown on outside click
 	useEffect(() => {
 		function handleClick(e: MouseEvent) {
 			if (
@@ -203,10 +175,10 @@ function AddressSearch({
 				onChange={(e) => handleInputChange(e.target.value)}
 				onFocus={() => results.length > 0 && setOpen(true)}
 				placeholder="Search for an address or place..."
-				className="w-full pl-9 pr-9 py-2.5 text-sm bg-card border border-border rounded-lg text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+				className="w-full pl-9 pr-9 py-2.5 text-sm bg-card border border-border rounded-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
 			/>
 			{open && (
-				<ul className="absolute z-layer-dropdown mt-1 w-full bg-card border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+				<ul className="absolute z-layer-dropdown mt-1 w-full bg-card border border-border rounded-md shadow-lg max-h-56 overflow-y-auto">
 					{results.map((r) => (
 						<li key={r.place_id}>
 							<button
@@ -224,24 +196,30 @@ function AddressSearch({
 	);
 }
 
-export default function MapLocationPicker({
+export default function GoogleMapLocationPicker({
 	initialLat,
 	initialLng,
 	initialQuery,
 	onConfirm,
 	onClose,
-}: MapLocationPickerProps) {
+}: GoogleMapLocationPickerProps) {
 	const hasInitial = !!(initialLat && initialLng);
 	const [selected, setSelected] = useState<{ lat: number; lng: number } | null>(
 		hasInitial ? { lat: initialLat!, lng: initialLng! } : null,
 	);
-	const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
-	const [geoCenter, setGeoCenter] = useState<[number, number] | null>(null);
+	const [flyTarget, setFlyTarget] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
+	const [geoCenter, setGeoCenter] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
 	const [confirming, setConfirming] = useState(false);
 
-	const center: [number, number] = hasInitial
-		? [initialLat!, initialLng!]
-		: [20, 0];
+	const center = hasInitial
+		? { lat: initialLat!, lng: initialLng! }
+		: { lat: 20, lng: 0 };
 
 	const handleLocationSelect = useCallback((lat: number, lng: number) => {
 		setSelected({ lat, lng });
@@ -250,29 +228,32 @@ export default function MapLocationPicker({
 	const handlePlaceSelect = useCallback(
 		(lat: number, lng: number) => {
 			handleLocationSelect(lat, lng);
-			setFlyTarget([lat, lng]);
+			setFlyTarget({ lat, lng });
 		},
 		[handleLocationSelect],
 	);
 
 	const handleGeoLocated = useCallback((lat: number, lng: number) => {
-		setGeoCenter([lat, lng]);
+		setGeoCenter({ lat, lng });
 	}, []);
 
 	const handleRecenter = useCallback(() => {
 		if (geoCenter) {
-			setFlyTarget([...geoCenter]);
-		} else if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(
-				(pos) => {
-					const { latitude, longitude } = pos.coords;
-					setGeoCenter([latitude, longitude]);
-					setFlyTarget([latitude, longitude]);
-				},
-				() => {},
-				{ enableHighAccuracy: true, timeout: 8000 },
-			);
+			setFlyTarget({ ...geoCenter });
+			return;
 		}
+
+		if (!navigator.geolocation) return;
+
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				const { latitude, longitude } = pos.coords;
+				setGeoCenter({ lat: latitude, lng: longitude });
+				setFlyTarget({ lat: latitude, lng: longitude });
+			},
+			() => {},
+			{ enableHighAccuracy: true, timeout: 8000 },
+		);
 	}, [geoCenter]);
 
 	const handleConfirm = useCallback(async () => {
@@ -297,7 +278,6 @@ export default function MapLocationPicker({
 				className="relative bg-card rounded-2xl shadow-2xl overflow-hidden max-w-5xl w-full mx-4 flex flex-col"
 				style={{ maxHeight: "90vh" }}
 			>
-				{/* Header */}
 				<div className="flex items-center justify-between px-5 py-3 border-b border-border">
 					<div className="flex items-center gap-2">
 						<MapPin className="w-4 h-4 text-primary" />
@@ -308,13 +288,12 @@ export default function MapLocationPicker({
 					<button
 						type="button"
 						onClick={onClose}
-						className="p-1.5 rounded-lg hover:bg-surface-container-high transition-colors"
+						className="p-1.5 rounded-md hover:bg-surface-container-high transition-colors"
 					>
 						<X className="w-4 h-4 text-on-surface-variant" />
 					</button>
 				</div>
 
-				{/* Search bar */}
 				<div className="px-5 py-3 border-b border-border">
 					<AddressSearch
 						onPlaceSelect={handlePlaceSelect}
@@ -322,28 +301,35 @@ export default function MapLocationPicker({
 					/>
 				</div>
 
-				{/* Map */}
-				<div className="relative h-[60vh]">
-					<MapContainer
-						center={center}
-						zoom={hasInitial ? 15 : 3}
-						className="h-full w-full"
-						style={{ height: "100%", width: "100%" }}
-					>
-						<TileLayer
-							attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-						/>
-						<ClickHandler onLocationSelect={handleLocationSelect} />
-						<FlyToHandler target={flyTarget} />
-						<GeolocationHandler
-							onLocated={handleGeoLocated}
-							hasInitial={hasInitial}
-						/>
-						{selected && <Marker position={[selected.lat, selected.lng]} />}
-					</MapContainer>
+				<div className="relative h-[60vh] bg-surface-container">
+					{GOOGLE_MAPS_API_KEY ? (
+						<APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+							<Map
+								mapId="plotfolio-location-picker"
+								defaultCenter={center}
+								defaultZoom={hasInitial ? 15 : 3}
+								gestureHandling="greedy"
+								disableDefaultUI={true}
+								style={{ width: "100%", height: "100%" }}
+							>
+								<MapInteractionController
+									onLocationSelect={handleLocationSelect}
+									flyTarget={flyTarget}
+									onLocated={handleGeoLocated}
+									hasInitial={hasInitial}
+								/>
+								{selected && <AdvancedMarker position={selected} />}
+							</Map>
+						</APIProvider>
+					) : (
+						<div className="w-full h-full flex items-center justify-center px-6 text-center">
+							<p className="text-sm text-outline">
+								Google Maps key is not configured. Set
+								NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to use the map picker.
+							</p>
+						</div>
+					)}
 
-					{/* My Location button */}
 					<button
 						type="button"
 						onClick={handleRecenter}
@@ -354,9 +340,8 @@ export default function MapLocationPicker({
 					</button>
 				</div>
 
-				{/* Footer */}
 				<div className="px-5 py-3 border-t border-border flex items-center justify-between">
-					<div className="text-xs text-slate-500 dark:text-on-surface-variant font-body">
+					<div className="text-xs text-on-surface-variant font-body">
 						{selected ? (
 							<span>
 								{selected.lat.toFixed(6)}°N, {selected.lng.toFixed(6)}°E
@@ -369,7 +354,7 @@ export default function MapLocationPicker({
 						<button
 							type="button"
 							onClick={onClose}
-							className="px-4 py-2 rounded-lg border border-border bg-card text-xs font-medium text-on-surface-variant hover:bg-slate-50 dark:hover:bg-surface-container-high transition-colors font-label"
+							className="px-4 py-2 rounded-md border border-border bg-card text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors font-label"
 						>
 							Cancel
 						</button>
@@ -377,7 +362,7 @@ export default function MapLocationPicker({
 							type="button"
 							disabled={!selected || confirming}
 							onClick={handleConfirm}
-							className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-lg shadow-md active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+							className="signature-gradient text-white font-headline font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-md shadow-md active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
 						>
 							Confirm
 						</button>

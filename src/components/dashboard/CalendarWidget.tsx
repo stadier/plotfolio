@@ -160,7 +160,7 @@ export default function CalendarWidget({
 					return (
 						<div
 							key={i}
-							className={`relative flex flex-col items-center justify-center h-8 rounded-lg typo-badge transition-colors ${
+							className={`relative flex flex-col items-center justify-center h-8 rounded-sm typo-badge transition-colors ${
 								day == null
 									? ""
 									: isToday(day)

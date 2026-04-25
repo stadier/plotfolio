@@ -5,7 +5,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /* ── helpers ──────────────────────────────────────────── */
 
-type FileKind = "image" | "pdf" | "video" | "audio" | "document";
+type FileKind = "image" | "pdf" | "video" | "audio" | "pptx" | "document";
+
+const PPTX_MIME_TYPES = new Set([
+	"application/vnd.ms-powerpoint",
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	"application/vnd.openxmlformats-officedocument.presentationml.slideshow",
+]);
 
 function getFileKind(file: File): FileKind {
 	const t = file.type;
@@ -13,6 +19,7 @@ function getFileKind(file: File): FileKind {
 	if (t === "application/pdf") return "pdf";
 	if (t.startsWith("video/")) return "video";
 	if (t.startsWith("audio/")) return "audio";
+	if (PPTX_MIME_TYPES.has(t)) return "pptx";
 	return "document";
 }
 
@@ -109,6 +116,43 @@ function AudioPreview({ url, name }: { url: string; name: string }) {
 	);
 }
 
+function PptxPreview({
+	url,
+	name,
+	isLocal,
+}: {
+	url: string;
+	name: string;
+	isLocal: boolean;
+}) {
+	if (isLocal) {
+		return (
+			<div className="flex-1 flex flex-col items-center justify-center gap-4 p-4">
+				<div className="w-20 h-20 rounded-2xl bg-orange-500/20 flex items-center justify-center">
+					<FileText className="w-9 h-9 text-orange-300" />
+				</div>
+				<div className="text-center max-w-xs">
+					<p className="text-sm font-medium text-white/80">{name}</p>
+					<p className="text-xs text-white/50 mt-1">
+						Presentation preview is available after the file has been uploaded.
+					</p>
+				</div>
+			</div>
+		);
+	}
+	const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+	return (
+		<div className="flex-1 flex items-stretch p-4">
+			<iframe
+				src={viewerUrl}
+				title="Presentation preview"
+				className="w-full h-full rounded-lg border border-white/10"
+				allowFullScreen
+			/>
+		</div>
+	);
+}
+
 function UnsupportedPreview({ name }: { name: string }) {
 	return (
 		<div className="flex-1 flex flex-col items-center justify-center gap-4 p-4">
@@ -144,6 +188,7 @@ function getFileKindFromUrl(name: string, url: string): FileKind {
 	if (ext === "pdf") return "pdf";
 	if (["mp4", "webm", "mov", "avi"].includes(ext)) return "video";
 	if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) return "audio";
+	if (["ppt", "pptx", "pps", "ppsx"].includes(ext)) return "pptx";
 	return "document";
 }
 
@@ -245,6 +290,9 @@ export default function DocumentPreview(props: DocumentPreviewProps) {
 			{kind === "pdf" && <PdfPreview url={url} />}
 			{kind === "video" && <VideoPreview url={url} />}
 			{kind === "audio" && <AudioPreview url={url} name={name} />}
+			{kind === "pptx" && (
+				<PptxPreview url={url} name={name} isLocal={!isRemote} />
+			)}
 			{kind === "document" && <UnsupportedPreview name={name} />}
 		</div>
 	);

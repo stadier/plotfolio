@@ -232,7 +232,7 @@ export default function SignaturePad({
 	];
 
 	return (
-		<div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+		<div className="fixed inset-0 z-layer-modal flex items-center justify-center bg-black/50 backdrop-blur-sm">
 			<div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
 				{/* Header */}
 				<div className="flex items-center justify-between px-5 py-4 border-b border-border">

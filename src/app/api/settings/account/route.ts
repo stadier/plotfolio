@@ -37,9 +37,13 @@ export async function DELETE(req: NextRequest) {
 		}
 
 		const u = user as any;
+		const isGoogleOnlyAccount =
+			typeof u.passwordHash === "string" &&
+			(u.passwordHash === "google-oauth" ||
+				u.passwordHash.startsWith("google:"));
 
 		// Verify password (skip for google-only accounts — they pass "confirm")
-		if (u.passwordHash && u.passwordHash !== "google-oauth") {
+		if (u.passwordHash && !isGoogleOnlyAccount) {
 			if (!verifyPassword(password, u.passwordHash)) {
 				return NextResponse.json(
 					{ error: "Incorrect password" },

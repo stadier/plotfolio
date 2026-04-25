@@ -26,15 +26,18 @@ import {
 	BedDouble,
 	Building2,
 	Car,
+	Check,
 	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
 	ChevronUp,
 	Expand,
 	Fence,
+	GripVertical,
 	Home,
 	ImagePlus,
 	Landmark,
+	Loader2,
 	Mail,
 	MapPin,
 	MessageCircle,
@@ -54,7 +57,7 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	Bar,
 	BarChart,
@@ -107,6 +110,85 @@ function MediaGallery({
 	const pendingIdRef = useRef(0);
 	const addInputRef = useRef<HTMLInputElement>(null);
 
+	// ── Reorder state ──────────────────────────────────────────
+	const [reorderMode, setReorderMode] = useState(false);
+	const [orderedMedia, setOrderedMedia] = useState<PropertyMedia[]>(media);
+	const [savingOrder, setSavingOrder] = useState(false);
+	const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
+	const [dropIndex, setDropIndex] = useState<number | null>(null);
+
+	// Keep local order in sync with incoming prop when not in reorder mode
+	const prevMediaRef = useRef(media);
+	useEffect(() => {
+		if (!reorderMode && prevMediaRef.current !== media) {
+			prevMediaRef.current = media;
+			setOrderedMedia(media);
+		}
+	}, [media, reorderMode]);
+
+	function handleDragStart(e: React.DragEvent<HTMLDivElement>, idx: number) {
+		e.dataTransfer.effectAllowed = "move";
+		setActiveDragIndex(idx);
+		setDropIndex(idx);
+	}
+
+	async function saveOrder(items: PropertyMedia[]) {
+		if (!propertyId) return;
+		setSavingOrder(true);
+		try {
+			const res = await fetch(`/api/properties/${propertyId}/media`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ urls: items.map((m) => m.url) }),
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => null);
+				throw new Error(err?.error ?? "Failed to save media order");
+			}
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.detail(propertyId),
+			});
+		} finally {
+			setSavingOrder(false);
+		}
+	}
+
+	function commitDrop(targetIndex: number) {
+		if (activeDragIndex === null) return;
+		if (targetIndex === activeDragIndex) {
+			setActiveDragIndex(null);
+			setDropIndex(null);
+			return;
+		}
+
+		setOrderedMedia((prev) => {
+			const next = [...prev];
+			const [moved] = next.splice(activeDragIndex, 1);
+			next.splice(targetIndex, 0, moved);
+			return next;
+		});
+
+		setActiveDragIndex(null);
+		setDropIndex(null);
+	}
+
+	function cancelDrag() {
+		setActiveDragIndex(null);
+		setDropIndex(null);
+	}
+
+	async function exitReorderMode(save: boolean) {
+		if (save) {
+			try {
+				await saveOrder(orderedMedia);
+			} catch (error) {
+				console.error("Failed to save media order:", error);
+				return;
+			}
+		}
+		setReorderMode(false);
+	}
+
 	function detectMediaType(file: File): "image" | "video" | "audio" {
 		if (file.type.startsWith("video/")) return "video";
 		if (file.type.startsWith("audio/")) return "audio";
@@ -156,7 +238,7 @@ function MediaGallery({
 		}
 	}
 
-	const handleDrop = (e: React.DragEvent) => {
+	const handleFileDrop = (e: React.DragEvent) => {
 		e.preventDefault();
 		setDragging(false);
 		if (e.dataTransfer.files.length)
@@ -173,7 +255,7 @@ function MediaGallery({
 						setDragging(true);
 					}}
 					onDragLeave={() => setDragging(false)}
-					onDrop={handleDrop}
+					onDrop={handleFileDrop}
 					className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center h-64 cursor-pointer transition-colors ${
 						dragging
 							? "border-primary bg-primary/10"
@@ -207,122 +289,211 @@ function MediaGallery({
 
 	return (
 		<>
+			{/* Reorder toolbar — shown when owner has 2+ items */}
+			{isOwner && orderedMedia.length > 1 && (
+				<div className="flex items-center justify-end gap-2 mb-3">
+					{reorderMode ? (
+						<>
+							<button
+								type="button"
+								onClick={() => void exitReorderMode(true)}
+								disabled={savingOrder}
+								className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-3 py-1.5 rounded-md transition-colors"
+							>
+								<Check className="w-3.5 h-3.5" />
+								{savingOrder ? "Saving…" : "Save order"}
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setOrderedMedia(media);
+									setReorderMode(false);
+								}}
+								className="flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-on-surface px-3 py-1.5 rounded-md hover:bg-surface-container-high transition-colors"
+							>
+								<X className="w-3.5 h-3.5" />
+								Cancel
+							</button>
+						</>
+					) : (
+						<button
+							type="button"
+							onClick={() => {
+								setOrderedMedia(media);
+								setReorderMode(true);
+							}}
+							className="flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-on-surface px-3 py-1.5 rounded-md hover:bg-surface-container-high border border-border transition-colors"
+						>
+							<GripVertical className="w-3.5 h-3.5" />
+							Reorder
+						</button>
+					)}
+					{reorderMode && (
+						<p className="text-xs text-outline">Drag items to reorder</p>
+					)}
+				</div>
+			)}
+
 			{/* Media items + pending placeholders + add button, top-left aligned */}
 			<div className="flex flex-wrap items-start content-start gap-3">
-				{media.map((item, idx) => (
-					<button
-						key={idx}
-						type="button"
-						className="inline-block max-w-sm cursor-pointer group overflow-hidden rounded-xl"
-						onClick={() => setLightbox(idx)}
-					>
-						{item.type === MediaType.VIDEO ? (
-							<div className="relative">
-								<video
-									src={item.url}
-									className="w-full h-auto rounded-xl"
-									muted
-									preload="metadata"
-								/>
-								<div className="absolute inset-0 flex items-center justify-center">
-									<div className="bg-black/50 rounded-full p-3">
-										<Play className="w-8 h-8 text-white fill-white" />
-									</div>
-								</div>
+				{orderedMedia.map((item, idx) =>
+					reorderMode ? (
+						<div
+							key={`${item.url}-${idx}`}
+							draggable
+							onDragStart={(e) => handleDragStart(e, idx)}
+							onDragOver={(e) => {
+								e.preventDefault();
+								if (dropIndex !== idx) setDropIndex(idx);
+							}}
+							onDrop={(e) => {
+								e.preventDefault();
+								commitDrop(idx);
+							}}
+							onDragEnd={cancelDrag}
+							className={`relative inline-block max-w-sm overflow-hidden rounded-xl cursor-grab active:cursor-grabbing select-none transition-all ${
+								dropIndex === idx && activeDragIndex !== idx
+									? "ring-2 ring-primary"
+									: "ring-2 ring-primary/30"
+							}`}
+						>
+							<div className="absolute top-1.5 left-1.5 z-10 bg-black/50 backdrop-blur-sm rounded p-0.5 pointer-events-none">
+								<GripVertical className="w-4 h-4 text-white" />
 							</div>
-						) : item.type === MediaType.AUDIO ? (
-							<div className="relative w-full h-40 rounded-xl bg-linear-to-br from-violet-600 to-indigo-800 flex flex-col items-center justify-center text-white">
-								{item.thumbnail && (
-									<Image
-										src={item.thumbnail}
-										alt={`${name} audio ${idx + 1}`}
-										fill
-										className="object-cover opacity-40 rounded-xl"
-									/>
-								)}
-								<Mic className="w-10 h-10 relative z-1" />
-								<span className="text-xs mt-2 relative z-1 font-medium text-center break-words px-10">
-									{item.caption ?? "Audio"}
+							<div className="absolute top-1.5 right-1.5 z-10 bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5 pointer-events-none">
+								<span className="text-badge text-white font-bold">
+									{idx + 1}
 								</span>
 							</div>
-						) : (
-							/* eslint-disable-next-line @next/next/no-img-element */
-							<img
-								src={item.url}
-								alt={`${name} ${idx + 1}`}
-								className="w-full h-auto rounded-xl group-hover:scale-[1.02] transition-transform duration-300"
-								loading={idx < 2 ? "eager" : "lazy"}
-							/>
-						)}
-					</button>
-				))}
-
-				{/* Upload placeholders — one card per pending file */}
-				{pendingMedia.map((item) => (
-					<div
-						key={item.id}
-						className="relative w-32 h-32 shrink-0 rounded-xl overflow-hidden border border-border bg-surface-container"
-					>
-						{item.previewUrl ? (
-							/* eslint-disable-next-line @next/next/no-img-element */
-							<img
-								src={item.previewUrl}
-								alt={item.file.name}
-								className="w-full h-full object-cover opacity-60"
-							/>
-						) : item.file.type.startsWith("video/") ? (
-							<div className="w-full h-full flex items-center justify-center">
-								<Play className="w-8 h-8 text-outline" />
-							</div>
-						) : (
-							<div className="w-full h-full flex items-center justify-center">
-								<Mic className="w-8 h-8 text-outline" />
-							</div>
-						)}
-						<div className="absolute bottom-0 left-0 right-0 bg-card/90 backdrop-blur-sm px-2 py-1.5">
-							<p className="text-badge font-medium text-on-surface truncate leading-tight">
-								{item.file.name}
-							</p>
-							{item.status === "uploading" ? (
-								<div className="flex items-center gap-1.5 mt-1">
-									<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-										<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
+							{item.type === MediaType.VIDEO ? (
+								<div className="relative">
+									<video
+										src={item.url}
+										className={`w-full h-auto rounded-xl ${
+											activeDragIndex === idx ? "opacity-40" : "opacity-80"
+										}`}
+										muted
+										preload="metadata"
+									/>
+									<div className="absolute inset-0 flex items-center justify-center">
+										<div className="bg-black/50 rounded-full p-3">
+											<Play className="w-8 h-8 text-white fill-white" />
+										</div>
 									</div>
-									<button
-										type="button"
-										onClick={() =>
-											setPendingMedia((prev) =>
-												prev.filter((p) => p.id !== item.id),
-											)
-										}
-										className="text-[9px] text-red-500 hover:text-red-600 font-medium shrink-0"
-									>
-										Cancel
-									</button>
+								</div>
+							) : item.type === MediaType.AUDIO ? (
+								<div
+									className={`relative w-full h-40 rounded-xl bg-linear-to-br from-violet-600 to-indigo-800 flex flex-col items-center justify-center text-white ${
+										activeDragIndex === idx ? "opacity-40" : "opacity-80"
+									}`}
+								>
+									{item.thumbnail && (
+										<Image
+											src={item.thumbnail}
+											alt={`${name} audio ${idx + 1}`}
+											fill
+											className="object-cover opacity-40 rounded-xl"
+										/>
+									)}
+									<Mic className="w-10 h-10 relative z-1" />
+									<span className="text-xs mt-2 relative z-1 font-medium text-center wrap-break-word px-10">
+										{item.caption ?? "Audio"}
+									</span>
 								</div>
 							) : (
-								<>
-									<p className="text-[9px] text-red-500 leading-tight mt-0.5 truncate">
-										{item.error}
-									</p>
-									<div className="flex items-center gap-2 mt-0.5">
-										<button
-											type="button"
-											onClick={() => {
-												setPendingMedia((prev) =>
-													prev.map((p) =>
-														p.id === item.id
-															? { ...p, status: "uploading", error: undefined }
-															: p,
-													),
-												);
-												uploadSingle(item.id, item.file);
-											}}
-											className="text-[9px] text-primary font-medium hover:underline flex items-center gap-0.5 shrink-0"
-										>
-											<Upload className="w-2.5 h-2.5" />
-											Retry
-										</button>
+								/* eslint-disable-next-line @next/next/no-img-element */
+								<img
+									src={item.url}
+									alt={`${name} ${idx + 1}`}
+									className={`w-full h-auto rounded-xl ${
+										activeDragIndex === idx ? "opacity-40" : "opacity-80"
+									}`}
+									loading="lazy"
+									draggable={false}
+								/>
+							)}
+						</div>
+					) : (
+						<button
+							key={item.url}
+							type="button"
+							className="inline-block max-w-sm cursor-pointer group overflow-hidden rounded-xl"
+							onClick={() => setLightbox(idx)}
+						>
+							{item.type === MediaType.VIDEO ? (
+								<div className="relative">
+									<video
+										src={item.url}
+										className="w-full h-auto rounded-xl"
+										muted
+										preload="metadata"
+									/>
+									<div className="absolute inset-0 flex items-center justify-center">
+										<div className="bg-black/50 rounded-full p-3">
+											<Play className="w-8 h-8 text-white fill-white" />
+										</div>
+									</div>
+								</div>
+							) : item.type === MediaType.AUDIO ? (
+								<div className="relative w-full h-40 rounded-xl bg-linear-to-br from-violet-600 to-indigo-800 flex flex-col items-center justify-center text-white">
+									{item.thumbnail && (
+										<Image
+											src={item.thumbnail}
+											alt={`${name} audio ${idx + 1}`}
+											fill
+											className="object-cover opacity-40 rounded-xl"
+										/>
+									)}
+									<Mic className="w-10 h-10 relative z-1" />
+									<span className="text-xs mt-2 relative z-1 font-medium text-center wrap-break-word px-10">
+										{item.caption ?? "Audio"}
+									</span>
+								</div>
+							) : (
+								/* eslint-disable-next-line @next/next/no-img-element */
+								<img
+									src={item.url}
+									alt={`${name} ${idx + 1}`}
+									className="w-full h-auto rounded-xl group-hover:scale-[1.02] transition-transform duration-300"
+									loading={idx < 2 ? "eager" : "lazy"}
+								/>
+							)}
+						</button>
+					),
+				)}
+
+				{/* Upload placeholders — one card per pending file */}
+				{!reorderMode &&
+					pendingMedia.map((item) => (
+						<div
+							key={item.id}
+							className="relative w-32 h-32 shrink-0 rounded-xl overflow-hidden border border-border bg-surface-container"
+						>
+							{item.previewUrl ? (
+								/* eslint-disable-next-line @next/next/no-img-element */
+								<img
+									src={item.previewUrl}
+									alt={item.file.name}
+									className="w-full h-full object-cover opacity-60"
+								/>
+							) : item.file.type.startsWith("video/") ? (
+								<div className="w-full h-full flex items-center justify-center">
+									<Play className="w-8 h-8 text-outline" />
+								</div>
+							) : (
+								<div className="w-full h-full flex items-center justify-center">
+									<Mic className="w-8 h-8 text-outline" />
+								</div>
+							)}
+							<div className="absolute bottom-0 left-0 right-0 bg-card/90 backdrop-blur-sm px-2 py-1.5">
+								<p className="text-badge font-medium text-on-surface truncate leading-tight">
+									{item.file.name}
+								</p>
+								{item.status === "uploading" ? (
+									<div className="flex items-center gap-1.5 mt-1">
+										<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+											<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
+										</div>
 										<button
 											type="button"
 											onClick={() =>
@@ -330,19 +501,58 @@ function MediaGallery({
 													prev.filter((p) => p.id !== item.id),
 												)
 											}
-											className="text-[9px] text-outline hover:text-on-surface-variant shrink-0"
+											className="text-[9px] text-red-500 hover:text-red-600 font-medium shrink-0"
 										>
-											Dismiss
+											Cancel
 										</button>
 									</div>
-								</>
-							)}
+								) : (
+									<>
+										<p className="text-[9px] text-red-500 leading-tight mt-0.5 truncate">
+											{item.error}
+										</p>
+										<div className="flex items-center gap-2 mt-0.5">
+											<button
+												type="button"
+												onClick={() => {
+													setPendingMedia((prev) =>
+														prev.map((p) =>
+															p.id === item.id
+																? {
+																		...p,
+																		status: "uploading",
+																		error: undefined,
+																	}
+																: p,
+														),
+													);
+													uploadSingle(item.id, item.file);
+												}}
+												className="text-[9px] text-primary font-medium hover:underline flex items-center gap-0.5 shrink-0"
+											>
+												<Upload className="w-2.5 h-2.5" />
+												Retry
+											</button>
+											<button
+												type="button"
+												onClick={() =>
+													setPendingMedia((prev) =>
+														prev.filter((p) => p.id !== item.id),
+													)
+												}
+												className="text-[9px] text-outline hover:text-on-surface-variant shrink-0"
+											>
+												Dismiss
+											</button>
+										</div>
+									</>
+								)}
+							</div>
 						</div>
-					</div>
-				))}
+					))}
 
-				{/* Add media button — always visible for owner */}
-				{isOwner && propertyId && (
+				{/* Add media button — always visible for owner (hidden in reorder mode) */}
+				{isOwner && propertyId && !reorderMode && (
 					<label className="w-32 h-32 shrink-0 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 hover:bg-surface-container-high transition-colors cursor-pointer">
 						<Plus className="w-5 h-5 text-outline" />
 						<span className="text-badge text-outline mt-1">Add</span>
@@ -363,7 +573,7 @@ function MediaGallery({
 			{/* Lightbox */}
 			{lightbox !== null && (
 				<MediaLightbox
-					media={media}
+					media={orderedMedia}
 					currentIndex={lightbox}
 					name={name}
 					onClose={() => setLightbox(null)}
@@ -390,9 +600,9 @@ function TitleRow({
 		property.purchasePrice ??
 		0;
 	return (
-		<div className="flex flex-wrap items-start justify-between gap-4">
+		<div className="flex flex-wrap items-end justify-between gap-4">
 			{/* name */}
-			<div className="flex items-center gap-3 min-w-0 flex-1">
+			<div className="flex items-end gap-3 min-w-0 flex-1 pb-1">
 				<div className="min-w-0">
 					<h1 className="font-headline text-xl font-bold text-on-surface truncate">
 						{property.name}
@@ -400,8 +610,8 @@ function TitleRow({
 				</div>
 			</div>
 			{/* Right: price */}
-			<div className="flex items-center gap-3 shrink-0">
-				<span className="font-headline text-2xl font-bold text-primary">
+			<div className="flex items-center gap-1 shrink-0">
+				<span className="font-headline text-2xl font-bold text-primary mr-3">
 					{formatCurrency(askingPrice, property.country)}
 				</span>
 				{actions}
@@ -412,16 +622,62 @@ function TitleRow({
 
 /* ─── Description with See More ──────────────────────────────── */
 
-function DescriptionBlock({ text }: { text: string }) {
+function DescriptionBlock({
+	text,
+	isOwner,
+	propertyId,
+	onGenerated,
+}: {
+	text: string;
+	isOwner?: boolean;
+	propertyId?: string;
+	onGenerated?: (description: string) => void;
+}) {
 	const [expanded, setExpanded] = useState(false);
+	const [generating, setGenerating] = useState(false);
 	const isLong = text.length > 280;
 	const visible = expanded ? text : text.slice(0, 280);
 
+	async function handleGenerate() {
+		if (!propertyId) return;
+		setGenerating(true);
+		try {
+			const res = await fetch(
+				`/api/properties/${propertyId}/generate-description`,
+				{ method: "POST" },
+			);
+			if (res.ok) {
+				const { description } = await res.json();
+				onGenerated?.(description);
+			}
+		} finally {
+			setGenerating(false);
+		}
+	}
+
 	return (
 		<section>
-			<h2 className="font-headline text-base font-semibold text-on-surface mb-2">
-				Description
-			</h2>
+			<div className="flex items-center gap-2 mb-2">
+				<h2 className="font-headline text-base font-semibold text-on-surface">
+					Description
+				</h2>
+				{isOwner && propertyId && (
+					<button
+						type="button"
+						onClick={handleGenerate}
+						disabled={generating}
+						title="Generate description with AI"
+						className="flex items-center gap-1 text-[11px] text-primary font-medium hover:underline disabled:opacity-50"
+					>
+						{generating ? (
+							<Loader2 className="w-3 h-3 animate-spin" />
+						) : (
+							<Sparkles className="w-3 h-3" />
+						)}
+						{generating ? "Generating…" : "Generate with AI"}
+					</button>
+				)}
+			</div>
 			<p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-line">
 				{visible}
 				{isLong && !expanded && "… "}
@@ -1583,8 +1839,18 @@ export default function PropertyFullView({
 						)}
 
 						{!hideHeader && <TitleRow property={property} actions={actions} />}
-						{property.description && (
-							<DescriptionBlock text={property.description} />
+						{(property.description || isOwner) && (
+							<DescriptionBlock
+								text={property.description ?? ""}
+								isOwner={isOwner}
+								propertyId={property.id}
+								onGenerated={(desc) =>
+									updateProperty.mutate({
+										id: property.id,
+										updates: { description: desc },
+									})
+								}
+							/>
 						)}
 						<PropertyDetails property={property} />
 
@@ -1666,7 +1932,11 @@ export default function PropertyFullView({
 					onToggle={() => setOwnershipOpen(!ownershipOpen)}
 					className={mobileOnly}
 				>
-					<OwnershipPanel property={property} showHeader={false} />
+					<OwnershipPanel
+						property={property}
+						showHeader={false}
+						isOwner={isOwner}
+					/>
 				</MobileAccordionSection>
 
 				{/* Property Settings (owner only, mobile) */}
@@ -1781,8 +2051,18 @@ export default function PropertyFullView({
 							{!hideHeader && (
 								<TitleRow property={property} actions={actions} />
 							)}
-							{property.description && (
-								<DescriptionBlock text={property.description} />
+							{(property.description || isOwner) && (
+								<DescriptionBlock
+									text={property.description ?? ""}
+									isOwner={isOwner}
+									propertyId={property.id}
+									onGenerated={(desc) =>
+										updateProperty.mutate({
+											id: property.id,
+											updates: { description: desc },
+										})
+									}
+								/>
 							)}
 							<PropertyDetails property={property} />
 
@@ -1860,7 +2140,11 @@ export default function PropertyFullView({
 						open={ownershipOpen}
 						onToggle={() => setOwnershipOpen(!ownershipOpen)}
 					>
-						<OwnershipPanel property={property} showHeader={false} />
+						<OwnershipPanel
+							property={property}
+							showHeader={false}
+							isOwner={isOwner}
+						/>
 					</MobileAccordionSection>
 
 					{/* Property Settings (owner only, desktop) */}
@@ -1902,7 +2186,7 @@ export default function PropertyFullView({
 
 				{mapModalOpen && hasCoordinates && (
 					<div
-						className="fixed inset-x-0 bottom-0 top-16 z-50 bg-black/65 p-4 sm:p-6"
+						className="fixed inset-x-0 bottom-0 top-16 z-layer-modal bg-black/65 p-4 sm:p-6"
 						onClick={() => setMapModalOpen(false)}
 					>
 						<div

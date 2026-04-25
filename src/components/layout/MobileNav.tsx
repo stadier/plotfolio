@@ -111,7 +111,7 @@ export default function MobileNav() {
 	return (
 		<>
 			{/* Bottom navigation bar — visible only below md */}
-			<nav className="fixed bottom-0 inset-x-0 z-50 bg-card border-t border-border md:hidden safe-bottom">
+			<nav className="fixed bottom-0 inset-x-0 z-layer-mobile-nav bg-card border-t border-border md:hidden safe-bottom">
 				<div className="flex items-center justify-around px-1 pt-1.5 pb-1">
 					{bottomItems.map((item) => {
 						const Icon = item.icon;
@@ -125,7 +125,7 @@ export default function MobileNav() {
 								}`}
 							>
 								<Icon className="w-5 h-5" />
-								<span className="text-[10px] font-semibold truncate">
+								<span className="text-badge font-semibold truncate">
 									{item.name}
 								</span>
 							</Link>
@@ -139,7 +139,7 @@ export default function MobileNav() {
 						}`}
 					>
 						<Menu className="w-5 h-5" />
-						<span className="text-[10px] font-semibold">More</span>
+						<span className="text-badge font-semibold">More</span>
 					</button>
 				</div>
 			</nav>
@@ -149,11 +149,11 @@ export default function MobileNav() {
 				<>
 					{/* Backdrop */}
 					<div
-						className="fixed inset-0 z-50 bg-black/40 md:hidden"
+						className="fixed inset-0 z-layer-overlay bg-black/40 md:hidden"
 						onClick={() => setMoreOpen(false)}
 					/>
 					{/* Drawer */}
-					<div className="fixed bottom-0 inset-x-0 z-50 bg-card rounded-t-2xl border-t border-border md:hidden animate-slide-up safe-bottom">
+					<div className="fixed bottom-0 inset-x-0 z-layer-modal bg-card rounded-t-2xl border-t border-border md:hidden animate-slide-up safe-bottom">
 						<div className="flex items-center justify-between px-5 pt-4 pb-2">
 							<div className="flex items-center gap-2">
 								<Image

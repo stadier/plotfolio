@@ -130,20 +130,20 @@ export async function PATCH(
 	try {
 		const { id } = await params;
 		const body = await request.json();
-		const { docId, accessLevel, type } = body;
+		const { docId, accessLevel, type, watermark } = body;
 
 		if (!docId) {
 			return NextResponse.json({ error: "docId is required" }, { status: 400 });
 		}
 
-		if (!accessLevel && !type) {
+		if (!accessLevel && !type && watermark === undefined) {
 			return NextResponse.json(
-				{ error: "accessLevel or type is required" },
+				{ error: "accessLevel, type, or watermark is required" },
 				{ status: 400 },
 			);
 		}
 
-		const updates: Record<string, string> = {};
+		const updates: Record<string, unknown> = {};
 
 		if (accessLevel) {
 			if (!Object.values(DocumentAccessLevel).includes(accessLevel)) {
@@ -165,6 +165,22 @@ export async function PATCH(
 			updates["documents.$.type"] = type;
 		}
 
+		// watermark: null clears it, object sets it
+		if (watermark !== undefined) {
+			if (watermark === null) {
+				updates["documents.$.watermark"] = null;
+			} else {
+				const allowed = ["seal", "platform", "text"];
+				if (watermark.type && !allowed.includes(watermark.type)) {
+					return NextResponse.json(
+						{ error: "Invalid watermark type" },
+						{ status: 400 },
+					);
+				}
+				updates["documents.$.watermark"] = watermark;
+			}
+		}
+
 		await connectDB();
 
 		const result = await PropertyModel.updateOne(
@@ -179,7 +195,7 @@ export async function PATCH(
 			);
 		}
 
-		return NextResponse.json({ success: true, accessLevel, type });
+		return NextResponse.json({ success: true, accessLevel, type, watermark });
 	} catch (error) {
 		console.error("Error updating document:", error);
 		return NextResponse.json(

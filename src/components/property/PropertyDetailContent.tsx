@@ -1,5 +1,6 @@
 "use client";
 
+import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -22,7 +23,6 @@ import {
 	DocumentAccessLevelPicker,
 	RestrictedDocumentRow,
 } from "./DocumentAccessControl";
-import DocumentPreview from "./DocumentPreview";
 
 const API_BASE = "/api";
 
@@ -274,7 +274,7 @@ function DocumentCard({
 	}
 
 	return (
-		<div className="w-44 flex flex-col rounded-xl bg-card group relative shrink-0 hover:shadow-md transition-all">
+		<div className="w-44 flex flex-col rounded-xl bg-card border border-border group relative shrink-0 hover:shadow-md transition-all">
 			{/* Rich thumbnail */}
 			<div className="rounded-t-xl overflow-hidden">
 				{kind === "image" ? (
@@ -580,10 +580,12 @@ export function DocumentsGrid({
 	return (
 		<>
 			{previewDoc && (
-				<DocumentPreview
-					remoteUrl={getDocViewUrl(propertyId, previewDoc.id)}
-					remoteName={previewDoc.name}
-					remoteSize={previewDoc.size}
+				<UnifiedMediaViewer
+					source={{
+						url: getDocViewUrl(propertyId, previewDoc.id),
+						name: previewDoc.name,
+						size: previewDoc.size,
+					}}
 					onClose={() => setPreviewDoc(null)}
 				/>
 			)}

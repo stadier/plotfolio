@@ -190,7 +190,7 @@ export default function PropertyMiniMap({
 						className={`w-full transition-all duration-300 isolate ${isExpanded ? expandedHeightClassName : collapsedHeightClassName}`}
 					/>
 					{/* Floating tile view toggle */}
-					<div className="absolute bottom-2 left-2 z-1000 flex gap-1">
+					<div className="absolute bottom-2 left-2 z-layer-sticky flex gap-1">
 						{(Object.keys(TILE_LABELS) as TileView[]).map((view) => (
 							<button
 								key={view}

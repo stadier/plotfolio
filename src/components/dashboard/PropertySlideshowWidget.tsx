@@ -1,9 +1,9 @@
 "use client";
 
 import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
-import { formatCurrencyFull } from "@/lib/utils";
+import { formatCurrencyFull, getPropertyMedia } from "@/lib/utils";
 import { MediaType, Property, PropertyType } from "@/types/property";
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Mic, Play } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -14,12 +14,146 @@ interface PropertySlideshowWidgetProps {
 
 const SLIDE_INTERVAL = 5000;
 
-/** Get the first image URL for a property (media[] → images[] fallback). */
-function getPropertyImage(p: Property): string | null {
-	const fromMedia = p.media?.find((m) => m.type === MediaType.IMAGE);
-	if (fromMedia) return fromMedia.url;
-	if (p.images && p.images.length > 0) return p.images[0];
-	return null;
+function MediaTile({
+	url,
+	type,
+	thumbnail,
+	caption,
+	className,
+	overlay,
+}: {
+	url: string;
+	type: MediaType;
+	thumbnail?: string;
+	caption?: string;
+	className: string;
+	overlay?: React.ReactNode;
+}) {
+	if (type === MediaType.VIDEO) {
+		return (
+			<div className={`relative overflow-hidden ${className}`}>
+				<Image
+					src={thumbnail || url}
+					alt={caption || "Video"}
+					fill
+					className="object-cover"
+					sizes="(max-width: 768px) 100vw, 50vw"
+				/>
+				<div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+					<div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center">
+						<Play className="w-4 h-4 text-white fill-white" />
+					</div>
+				</div>
+				{overlay}
+			</div>
+		);
+	}
+
+	if (type === MediaType.AUDIO) {
+		return (
+			<div
+				className={`relative overflow-hidden bg-linear-to-br from-violet-700 to-indigo-900 flex items-center justify-center ${className}`}
+			>
+				<div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+					<Mic className="w-5 h-5 text-white" />
+				</div>
+				{overlay}
+			</div>
+		);
+	}
+
+	return (
+		<div className={`relative overflow-hidden ${className}`}>
+			<Image
+				src={url}
+				alt={caption || "Property media"}
+				fill
+				className="object-cover"
+				sizes="(max-width: 768px) 100vw, 60vw"
+			/>
+			{overlay}
+		</div>
+	);
+}
+
+function MediaMosaic({ property }: { property: Property }) {
+	const media = getPropertyMedia(property);
+	if (media.length === 0) {
+		return (
+			<PropertyPlaceholderSvg
+				seed={property.id || property.name}
+				hasBuilding={hasBuilding(property)}
+				className="absolute inset-0"
+			/>
+		);
+	}
+
+	const visible = media.slice(0, 4);
+	const extra = media.length - visible.length;
+
+	if (visible.length === 1) {
+		const item = visible[0];
+		return (
+			<MediaTile
+				url={item.url}
+				type={item.type}
+				thumbnail={item.thumbnail}
+				caption={item.caption}
+				className="absolute inset-0"
+			/>
+		);
+	}
+
+	if (visible.length === 2) {
+		return (
+			<div className="absolute inset-0 grid grid-cols-2 gap-0.5 bg-card/20">
+				{visible.map((item, idx) => (
+					<MediaTile
+						key={`${item.url}-${idx}`}
+						url={item.url}
+						type={item.type}
+						thumbnail={item.thumbnail}
+						caption={item.caption}
+						className="h-full"
+					/>
+				))}
+			</div>
+		);
+	}
+
+	return (
+		<div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-0.5 bg-card/20">
+			<MediaTile
+				url={visible[0].url}
+				type={visible[0].type}
+				thumbnail={visible[0].thumbnail}
+				caption={visible[0].caption}
+				className="col-span-2 row-span-3"
+			/>
+			{visible.slice(1).map((item, idx) => {
+				const isLastVisible = idx === visible.slice(1).length - 1;
+				return (
+					<MediaTile
+						key={`${item.url}-${idx + 1}`}
+						url={item.url}
+						type={item.type}
+						thumbnail={item.thumbnail}
+						caption={item.caption}
+						className="col-span-1"
+						overlay={
+							extra > 0 && isLastVisible ? (
+								<div className="absolute inset-0 bg-black/55 flex items-center justify-center">
+									<span className="font-headline text-2xl font-extrabold text-white">
+										+{extra}
+									</span>
+								</div>
+							) : undefined
+						}
+					/>
+				);
+			})}
+		</div>
+	);
 }
 
 function hasBuilding(p: Property): boolean {
@@ -75,11 +209,20 @@ export default function PropertySlideshowWidget({
 		};
 	}, [resetTimer]);
 
+	useEffect(() => {
+		if (count === 0) {
+			setActiveIdx(0);
+			return;
+		}
+		if (activeIdx >= count) {
+			setActiveIdx(0);
+		}
+	}, [activeIdx, count]);
+
 	if (slides.length === 0) return null;
 
 	const current = slides[activeIdx];
 	const worth = current.currentValue || current.purchasePrice || 0;
-	const imageUrl = getPropertyImage(current);
 	const slideClass =
 		slideDir === "left" ? "animate-slide-left" : "animate-slide-right";
 
@@ -91,22 +234,8 @@ export default function PropertySlideshowWidget({
 				onClick={() => onSelect(current.id)}
 				className={`relative h-72 md:h-80 lg:h-96 cursor-pointer ${slideClass}`}
 			>
-				{/* Actual property image or land-parcel placeholder */}
-				{imageUrl ? (
-					<Image
-						src={imageUrl}
-						alt={current.name}
-						fill
-						className="object-cover"
-						sizes="(max-width: 768px) 100vw, 60vw"
-					/>
-				) : (
-					<PropertyPlaceholderSvg
-						seed={current.id || current.name}
-						hasBuilding={hasBuilding(current)}
-						className="absolute inset-0"
-					/>
-				)}
+				{/* Property media collage */}
+				<MediaMosaic property={current} />
 
 				{/* Nav controls */}
 				{count > 1 && (

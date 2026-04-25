@@ -1,6 +1,5 @@
 "use client";
 
-import packageInfo from "../../../package.json";
 import { usePortfolio } from "@/components/PortfolioContext";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
 import PrimaryButton from "@/components/ui/PrimaryButton";
@@ -37,6 +36,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import packageInfo from "../../../package.json";
 
 const APP_VERSION = packageInfo.version;
 
@@ -220,12 +220,12 @@ export default function Sidebar({
 	return (
 		<aside
 			data-sidebar
-			className={`relative hidden md:flex flex-col h-full shrink-0 bg-sidebar px-2 pb-4 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
+			className={`relative z-layer-sidebar hidden md:flex flex-col h-full shrink-0 bg-sidebar px-2 pb-4 ${mounted ? "transition-all duration-300 ease-in-out" : ""} ${
 				collapsed ? "w-[72px]" : "w-56"
 			} ${className}`}
 		>
 			{/* Logo */}
-			<div className="flex items-center px-4 gap-2 pt-4.5 pb-3">
+			<div className="relative z-layer-sidebar flex items-center px-4 gap-2 pt-4.5 pb-3">
 				<Link href="/portfolio" className="flex items-center gap-2">
 					<Image
 						src="/plotfolio-logo-l.png"
@@ -247,7 +247,7 @@ export default function Sidebar({
 
 			{/* Portfolio switcher — under logo */}
 			{!isMarketplace && portfolios.length > 0 && (
-				<div ref={switcherRef} className="relative my-3">
+				<div ref={switcherRef} className="relative z-layer-sidebar my-3">
 					<button
 						onClick={() => {
 							setSwitcherOpen((prev) => !prev);
@@ -272,7 +272,7 @@ export default function Sidebar({
 							/>
 						) : (
 							<span
-								className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0"
+								className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-badge font-bold shrink-0"
 								onMouseEnter={() => setAvatarHover(true)}
 								onMouseLeave={() => setAvatarHover(false)}
 							>
@@ -300,7 +300,7 @@ export default function Sidebar({
 
 					{/* Hover preview card */}
 					{!switcherOpen && avatarHover && (
-						<div className="pointer-events-none absolute z-50 left-full ml-3 top-0 flex flex-col items-center gap-4 bg-card border border-border rounded-md shadow-2xl p-4 whitespace-nowrap min-w-100">
+						<div className="pointer-events-none absolute z-layer-dropdown left-full ml-3 top-0 flex flex-col items-center gap-4 bg-card border border-border rounded-md shadow-2xl p-4 whitespace-nowrap min-w-100">
 							{activePortfolio?.avatar ? (
 								<img
 									src={activePortfolio.avatar}
@@ -319,7 +319,7 @@ export default function Sidebar({
 					)}
 
 					{switcherOpen && (
-						<div className="absolute z-50 left-full ml-3 top-0 w-56 bg-card border border-border rounded-md shadow-2xl overflow-hidden">
+						<div className="absolute z-layer-dropdown left-full ml-3 top-0 w-56 bg-card border border-border rounded-md shadow-2xl overflow-hidden">
 							{/* Search */}
 							<div className="flex items-center gap-2 px-3 py-2 border-b border-border">
 								<Search className="w-3.5 h-3.5 text-outline shrink-0" />
@@ -383,7 +383,7 @@ export default function Sidebar({
 																className="w-6 h-6 rounded-md object-cover shrink-0"
 															/>
 														) : (
-															<span className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+															<span className="w-6 h-6 rounded-md bg-linear-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-badge font-bold shrink-0">
 																{p.name.charAt(0).toUpperCase()}
 															</span>
 														)}
@@ -429,7 +429,7 @@ export default function Sidebar({
 			<button
 				onClick={toggle}
 				title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-				className="absolute top-1/2 -translate-y-1/2 -right-3 z-10 flex items-center justify-center w-6 h-6 rounded-full border border-border bg-card text-slate-400 dark:text-on-surface-variant hover:text-primary hover:border-primary/40 shadow-sm transition-all"
+				className="absolute top-1/2 -translate-y-1/2 -right-3 z-layer-dropdown flex items-center justify-center w-6 h-6 rounded-full border border-border bg-card text-slate-400 dark:text-on-surface-variant hover:text-primary hover:border-primary/40 shadow-sm transition-all"
 			>
 				{collapsed ? (
 					<PanelLeftOpen className="w-3 h-3" />
@@ -561,7 +561,7 @@ export default function Sidebar({
 					</button>
 				</div>
 
-				<div className="text-center text-[10px] text-outline/60 font-mono tracking-wide select-none">
+				<div className="text-center text-badge text-outline/60 font-mono tracking-wide select-none">
 					v{APP_VERSION}
 				</div>
 			</div>

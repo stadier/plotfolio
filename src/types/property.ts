@@ -10,6 +10,27 @@ export interface PropertyGrid {
 	color?: string;
 }
 
+export enum StructureOccupancyStatus {
+	VACANT = "vacant",
+	OCCUPIED = "occupied",
+	PARTIALLY_OCCUPIED = "partially_occupied",
+	UNDER_CONSTRUCTION = "under_construction",
+}
+
+export interface PropertyStructure {
+	name?: string;
+	type?: string;
+	condition?: string;
+	floors?: number;
+	area?: number;
+	bedrooms?: number;
+	bathrooms?: number;
+	parkingSpaces?: number;
+	occupancyStatus?: StructureOccupancyStatus;
+	yearBuilt?: number;
+	notes?: string;
+}
+
 export enum MediaType {
 	IMAGE = "image",
 	VIDEO = "video",
@@ -60,6 +81,7 @@ export interface Property {
 	conditions?: string[]; // Physical state tags — enum values or custom strings
 	visibility?: PropertyVisibility; // Profile/search visibility — defaults to private
 	quantity?: number; // Number of identical units (e.g. 10 plots in the same location)
+	structure?: PropertyStructure; // Existing structure details for land with improvements
 	// Building details
 	bedrooms?: number;
 	bathrooms?: number;
@@ -152,6 +174,7 @@ export interface PropertyDocument {
 	uploadDate: Date;
 	size: number;
 	accessLevel: DocumentAccessLevel;
+	watermark?: import("@/types/seal").WatermarkConfig;
 }
 
 export interface DocumentAccessRequest {

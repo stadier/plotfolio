@@ -22,9 +22,9 @@ export async function PUT(req: NextRequest) {
 
 		const { currentPassword, newPassword } = await req.json();
 
-		if (!currentPassword || !newPassword) {
+		if (!newPassword) {
 			return NextResponse.json(
-				{ error: "Both current and new password are required" },
+				{ error: "New password is required" },
 				{ status: 400 },
 			);
 		}
@@ -49,19 +49,31 @@ export async function PUT(req: NextRequest) {
 		}
 
 		const u = user as any;
+		const isGoogleOnlyAccount =
+			typeof u.passwordHash === "string" &&
+			(u.passwordHash === "google-oauth" ||
+				u.passwordHash.startsWith("google:"));
 
-		// Google-only accounts may not have a password
-		if (!u.passwordHash || u.passwordHash === "google-oauth") {
+		if (!u.passwordHash) {
 			return NextResponse.json(
 				{
-					error:
-						"This account uses Google sign-in. Password cannot be changed here.",
+					error: "No existing password record found for this account.",
 				},
 				{ status: 400 },
 			);
 		}
 
-		if (!verifyPassword(currentPassword, u.passwordHash)) {
+		if (!isGoogleOnlyAccount && !currentPassword) {
+			return NextResponse.json(
+				{ error: "Current password is required" },
+				{ status: 400 },
+			);
+		}
+
+		if (
+			!isGoogleOnlyAccount &&
+			!verifyPassword(currentPassword, u.passwordHash)
+		) {
 			return NextResponse.json(
 				{ error: "Current password is incorrect" },
 				{ status: 403 },

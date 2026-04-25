@@ -15,6 +15,7 @@ export interface GeocodeResult {
 }
 
 type GeocodeProvider = (q: string) => Promise<GeocodeResult[]>;
+type GeocodeProviderName = "google" | "photon" | "nominatim";
 
 const HEADERS = {
 	"User-Agent": "Plotfolio/1.0 (property management app)",
@@ -141,6 +142,35 @@ export function getGeocodeWithFallback(): GeocodeProvider {
 		}
 		return [];
 	};
+}
+
+/**
+ * Returns geocode results plus the provider that returned them.
+ * Helpful for diagnostics and runtime verification.
+ */
+export async function geocodeWithFallbackAndSource(q: string): Promise<{
+	results: GeocodeResult[];
+	provider: GeocodeProviderName | "none";
+}> {
+	const chain: Array<{ name: GeocodeProviderName; provider: GeocodeProvider }> =
+		[
+			{ name: "google", provider: google },
+			{ name: "photon", provider: photon },
+			{ name: "nominatim", provider: nominatim },
+		];
+
+	for (const { name, provider } of chain) {
+		try {
+			const results = await provider(q);
+			if (results.length > 0) {
+				return { results, provider: name };
+			}
+		} catch {
+			// try next provider
+		}
+	}
+
+	return { results: [], provider: "none" };
 }
 
 // ─── Reverse Geocoding ──────────────────────────────────────────

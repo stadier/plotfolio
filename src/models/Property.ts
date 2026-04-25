@@ -9,6 +9,7 @@ import {
 	PropertyStatus,
 	PropertyType,
 	PropertyVisibility,
+	StructureOccupancyStatus,
 	SurveyData,
 	ZoningType,
 } from "@/types/property";
@@ -108,6 +109,26 @@ const PropertyGridSchema = new Schema({
 	color: { type: String },
 });
 
+const PropertyStructureSchema = new Schema(
+	{
+		name: { type: String },
+		type: { type: String },
+		condition: { type: String },
+		floors: { type: Number },
+		area: { type: Number },
+		bedrooms: { type: Number },
+		bathrooms: { type: Number },
+		parkingSpaces: { type: Number },
+		occupancyStatus: {
+			type: String,
+			enum: [...Object.values(StructureOccupancyStatus), null],
+		},
+		yearBuilt: { type: Number },
+		notes: { type: String },
+	},
+	{ _id: false },
+);
+
 // Property Document Schema
 const PropertyDocumentSchema = new Schema({
 	id: { type: String, required: true },
@@ -124,6 +145,17 @@ const PropertyDocumentSchema = new Schema({
 		type: String,
 		enum: Object.values(DocumentAccessLevel),
 		default: DocumentAccessLevel.PUBLIC,
+	},
+	watermark: {
+		type: {
+			type: String,
+			enum: ["seal", "platform", "text"],
+		},
+		sealId: String,
+		text: String,
+		opacity: Number,
+		position: String,
+		includePlatformBrand: Boolean,
 	},
 });
 
@@ -209,6 +241,7 @@ const PropertySchema = new Schema<Property & Document>(
 			default: PropertyVisibility.PRIVATE,
 		},
 		quantity: { type: Number, default: 1 },
+		structure: { type: PropertyStructureSchema },
 		bedrooms: { type: Number },
 		bathrooms: { type: Number },
 		parkingSpaces: { type: Number },

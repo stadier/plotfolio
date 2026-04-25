@@ -231,7 +231,13 @@ interface TransferFormData {
 	price: string;
 }
 
-export function TransferOwnershipPanel({ property }: { property: Property }) {
+export function TransferOwnershipPanel({
+	property,
+	isOwner: isOwnerProp,
+}: {
+	property: Property;
+	isOwner?: boolean;
+}) {
 	const { user } = useAuth();
 	const [transfers, setTransfers] = useState<OwnershipTransfer[]>([]);
 	const [showForm, setShowForm] = useState(false);
@@ -248,7 +254,7 @@ export function TransferOwnershipPanel({ property }: { property: Property }) {
 		price: "",
 	});
 
-	const isOwner = user?.id === property.owner?.id;
+	const isOwner = isOwnerProp ?? user?.id === property.owner?.id;
 
 	const handleUserFound = (user: LookedUpUser) => {
 		setForm((prev) => ({
@@ -627,7 +633,13 @@ const emptyHistoryForm: HistoryFormData = {
 	notes: "",
 };
 
-export function OwnershipHistoryPanel({ property }: { property: Property }) {
+export function OwnershipHistoryPanel({
+	property,
+	isOwner: isOwnerProp,
+}: {
+	property: Property;
+	isOwner?: boolean;
+}) {
 	const { user } = useAuth();
 	const [records, setRecords] = useState<OwnershipRecord[]>([]);
 	const [showForm, setShowForm] = useState(false);
@@ -636,7 +648,7 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 	const [error, setError] = useState<string | null>(null);
 	const [form, setForm] = useState<HistoryFormData>(emptyHistoryForm);
 
-	const isOwner = user?.id === property.owner?.id;
+	const isOwner = isOwnerProp ?? user?.id === property.owner?.id;
 
 	const fetchHistory = useCallback(async () => {
 		setLoading(true);
@@ -903,21 +915,27 @@ export function OwnershipHistoryPanel({ property }: { property: Property }) {
 export default function OwnershipPanel({
 	property,
 	showHeader = true,
+	isOwner: isOwnerProp,
 }: {
 	property: Property;
 	showHeader?: boolean;
+	isOwner?: boolean;
 }) {
 	const { user } = useAuth();
 	const [expanded, setExpanded] = useState(true);
 
-	const isOwner = user?.id === property.owner?.id;
+	const isOwner = isOwnerProp ?? user?.id === property.owner?.id;
 	const historyVisible =
 		isOwner || (property.settings?.showOwnershipHistory ?? false);
 
 	const content = (
 		<div className="space-y-8 w-full max-w-full">
-			{isOwner && <TransferOwnershipPanel property={property} />}
-			{historyVisible && <OwnershipHistoryPanel property={property} />}
+			{isOwner && (
+				<TransferOwnershipPanel property={property} isOwner={isOwner} />
+			)}
+			{historyVisible && (
+				<OwnershipHistoryPanel property={property} isOwner={isOwner} />
+			)}
 			{!isOwner && !historyVisible && (
 				<p className="text-xs text-outline">
 					Ownership information is not publicly visible for this property.

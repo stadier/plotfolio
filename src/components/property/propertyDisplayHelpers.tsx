@@ -3,6 +3,7 @@
 import { queryKeys } from "@/hooks/usePropertyQueries";
 import { useQueryClient } from "@tanstack/react-query";
 
+import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -11,13 +12,22 @@ import {
 	Property,
 	PropertyStatus,
 } from "@/types/property";
-import { ChevronDown, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { WatermarkConfig, WatermarkType } from "@/types/seal";
+import {
+	ChevronDown,
+	Droplets,
+	Eye,
+	FileText,
+	MoreVertical,
+	Plus,
+	Trash2,
+	Upload,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
 	DocumentAccessLevelPicker,
 	RestrictedDocumentRow,
 } from "./DocumentAccessControl";
-import DocumentPreview from "./DocumentPreview";
 
 const API_BASE = "/api";
 
@@ -198,8 +208,23 @@ function DocumentCard({
 	accessRequests?: DocumentAccessRequest[];
 	onAccessRequested?: (req: DocumentAccessRequest) => void;
 }) {
+	const queryClient = useQueryClient();
 	const [typeOpen, setTypeOpen] = useState(false);
 	const typeRef = useRef<HTMLDivElement>(null);
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef<HTMLDivElement>(null);
+	const [watermarkOpen, setWatermarkOpen] = useState(false);
+	const [watermarkState, setWatermarkState] = useState<
+		WatermarkConfig | undefined
+	>((doc as { watermark?: WatermarkConfig }).watermark);
+	const [watermarkDraft, setWatermarkDraft] = useState<WatermarkConfig>(
+		(doc as { watermark?: WatermarkConfig }).watermark ?? {
+			type: WatermarkType.PLATFORM,
+			position: "bottom-right",
+			opacity: 0.15,
+		},
+	);
+	const [savingWatermark, setSavingWatermark] = useState(false);
 
 	useEffect(() => {
 		function handleClickOutside(e: MouseEvent) {
@@ -210,6 +235,16 @@ function DocumentCard({
 		if (typeOpen) document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [typeOpen]);
+
+	useEffect(() => {
+		function handleClickOutside(e: MouseEvent) {
+			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+				setMenuOpen(false);
+			}
+		}
+		if (menuOpen) document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [menuOpen]);
 
 	const accessLevel = doc.accessLevel ?? DocumentAccessLevel.PUBLIC;
 	const kind = getFileKind(doc.name, doc.url);
@@ -268,8 +303,58 @@ function DocumentCard({
 		}
 	}
 
+	async function handleSaveWatermark() {
+		setSavingWatermark(true);
+		try {
+			const res = await fetch(
+				`${API_BASE}/properties/${propertyId}/documents`,
+				{
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ docId: doc.id, watermark: watermarkDraft }),
+				},
+			);
+			if (!res.ok) throw new Error("Failed to save watermark");
+			setWatermarkState(watermarkDraft);
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.detail(propertyId),
+			});
+			setWatermarkOpen(false);
+		} catch {
+			/* silent */
+		} finally {
+			setSavingWatermark(false);
+		}
+	}
+
+	async function handleClearWatermark() {
+		setSavingWatermark(true);
+		try {
+			const res = await fetch(
+				`${API_BASE}/properties/${propertyId}/documents`,
+				{
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ docId: doc.id, watermark: null }),
+				},
+			);
+			if (!res.ok) throw new Error("Failed to clear watermark");
+			setWatermarkState(undefined);
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.detail(propertyId),
+			});
+			setWatermarkOpen(false);
+		} catch {
+			/* silent */
+		} finally {
+			setSavingWatermark(false);
+		}
+	}
+
+	const hasWatermark = !!watermarkState;
+
 	return (
-		<div className="w-44 flex flex-col rounded-xl bg-card group relative shrink-0 hover:shadow-md transition-all">
+		<div className="w-44 flex flex-col rounded-xl bg-card border border-border group relative shrink-0 hover:shadow-md transition-all">
 			{/* Rich thumbnail */}
 			<div className="rounded-t-xl overflow-hidden">
 				{kind === "image" ? (
@@ -299,16 +384,172 @@ function DocumentCard({
 							currentLevel={accessLevel}
 							onChanged={(docId, level) => onAccessLevelChanged?.(docId, level)}
 						/>
-						<button
-							onClick={() => handleDelete(doc.id)}
-							className="w-5 h-5 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500 transition-colors"
-							title="Delete"
-						>
-							<Trash2 className="w-3 h-3" />
-						</button>
+						{/* ⋮ context menu */}
+						<div className="relative" ref={menuRef}>
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setMenuOpen((v) => !v);
+								}}
+								className="w-5 h-5 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-surface-container-high transition-colors"
+								title="More options"
+							>
+								<MoreVertical className="w-3 h-3" />
+							</button>
+							{menuOpen && (
+								<div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-md shadow-lg z-40 py-1 w-44 animate-in fade-in zoom-in-95 duration-150">
+									<button
+										type="button"
+										onClick={() => {
+											setMenuOpen(false);
+											setWatermarkOpen((v) => !v);
+										}}
+										className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
+									>
+										<Droplets className="w-3.5 h-3.5 shrink-0" />
+										{hasWatermark ? "Edit Watermark" : "Add Watermark"}
+									</button>
+									<div className="my-0.5 border-t border-border" />
+									<button
+										type="button"
+										onClick={() => {
+											setMenuOpen(false);
+											handleDelete(doc.id);
+										}}
+										className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+									>
+										<Trash2 className="w-3.5 h-3.5 shrink-0" />
+										Delete
+									</button>
+								</div>
+							)}
+						</div>
 					</>
 				)}
 			</div>
+
+			{/* Watermark indicator badge */}
+			{hasWatermark && (
+				<div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-blue-600/80 backdrop-blur-sm text-white text-[9px] font-medium px-1.5 py-0.5 rounded pointer-events-none">
+					<Droplets className="w-2.5 h-2.5" />
+					WM
+				</div>
+			)}
+
+			{/* Inline watermark config panel */}
+			{watermarkOpen && isOwner && (
+				<div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-md shadow-xl z-50 p-3 animate-in fade-in slide-in-from-top-1 duration-150">
+					<p className="text-[11px] font-semibold text-on-surface mb-2 font-headline uppercase tracking-wider flex items-center gap-1.5">
+						<Droplets className="w-3.5 h-3.5 text-blue-500" />
+						Watermark
+					</p>
+
+					{/* Type */}
+					<label className="block text-badge text-on-surface-variant mb-1">
+						Type
+					</label>
+					<select
+						value={watermarkDraft.type}
+						onChange={(e) =>
+							setWatermarkDraft((d) => ({
+								...d,
+								type: e.target.value as WatermarkType,
+							}))
+						}
+						className="w-full text-[11px] bg-surface-container border border-border rounded-md px-2 py-1 text-on-surface mb-2 focus:outline-none"
+					>
+						<option value={WatermarkType.PLATFORM}>Plotfolio branding</option>
+						<option value={WatermarkType.TEXT}>Custom text</option>
+						<option value={WatermarkType.SEAL}>My seal</option>
+					</select>
+
+					{/* Text input if type=TEXT */}
+					{watermarkDraft.type === WatermarkType.TEXT && (
+						<>
+							<label className="block text-badge text-on-surface-variant mb-1">
+								Text
+							</label>
+							<input
+								type="text"
+								value={watermarkDraft.text ?? ""}
+								onChange={(e) =>
+									setWatermarkDraft((d) => ({ ...d, text: e.target.value }))
+								}
+								placeholder="e.g. CONFIDENTIAL"
+								className="w-full text-[11px] bg-surface-container border border-border rounded-md px-2 py-1 text-on-surface mb-2 focus:outline-none"
+							/>
+						</>
+					)}
+
+					{/* Position */}
+					<label className="block text-badge text-on-surface-variant mb-1">
+						Position
+					</label>
+					<select
+						value={watermarkDraft.position ?? "bottom-right"}
+						onChange={(e) =>
+							setWatermarkDraft((d) => ({
+								...d,
+								position: e.target.value as WatermarkConfig["position"],
+							}))
+						}
+						className="w-full text-[11px] bg-surface-container border border-border rounded-md px-2 py-1 text-on-surface mb-2 focus:outline-none"
+					>
+						<option value="bottom-right">Bottom right</option>
+						<option value="bottom-left">Bottom left</option>
+						<option value="center">Center</option>
+						<option value="tiled">Tiled</option>
+					</select>
+
+					{/* Opacity */}
+					<label className="block text-badge text-on-surface-variant mb-1">
+						Opacity — {Math.round((watermarkDraft.opacity ?? 0.15) * 100)}%
+					</label>
+					<input
+						type="range"
+						min={5}
+						max={60}
+						step={5}
+						value={Math.round((watermarkDraft.opacity ?? 0.15) * 100)}
+						onChange={(e) =>
+							setWatermarkDraft((d) => ({
+								...d,
+								opacity: Number(e.target.value) / 100,
+							}))
+						}
+						className="w-full mb-3 accent-blue-600"
+					/>
+
+					<div className="flex gap-1.5">
+						<button
+							type="button"
+							disabled={savingWatermark}
+							onClick={handleSaveWatermark}
+							className="flex-1 text-badge font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-md py-1.5 transition-colors disabled:opacity-50"
+						>
+							{savingWatermark ? "Saving…" : "Save"}
+						</button>
+						{hasWatermark && (
+							<button
+								type="button"
+								disabled={savingWatermark}
+								onClick={handleClearWatermark}
+								className="text-badge font-medium text-red-500 hover:text-red-600 px-2 py-1.5 rounded-md hover:bg-surface-container transition-colors"
+							>
+								Clear
+							</button>
+						)}
+						<button
+							type="button"
+							onClick={() => setWatermarkOpen(false)}
+							className="text-badge font-medium text-on-surface-variant hover:text-on-surface px-2 py-1.5 rounded-md hover:bg-surface-container transition-colors"
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			)}
 
 			{/* Info row */}
 			<div className="px-2.5 py-2">
@@ -614,10 +855,12 @@ export function DocumentsGrid({
 	return (
 		<>
 			{previewDoc && (
-				<DocumentPreview
-					remoteUrl={getDocViewUrl(propertyId, previewDoc.id)}
-					remoteName={previewDoc.name}
-					remoteSize={previewDoc.size}
+				<UnifiedMediaViewer
+					source={{
+						url: getDocViewUrl(propertyId, previewDoc.id),
+						name: previewDoc.name,
+						size: previewDoc.size,
+					}}
 					onClose={() => setPreviewDoc(null)}
 				/>
 			)}

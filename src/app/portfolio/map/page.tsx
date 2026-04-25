@@ -426,7 +426,7 @@ export default function Home() {
 				</div>
 				{/* Mobile sidebar overlay */}
 				{showMobileSidebar && (
-					<div className="md:hidden absolute inset-0 z-1100 flex">
+					<div className="md:hidden absolute inset-0 z-layer-overlay flex">
 						<div className="w-80 max-w-[85vw] h-full bg-card shadow-xl">
 							<MapPropertySidebar
 								properties={filteredProperties}
@@ -450,7 +450,7 @@ export default function Home() {
 					{/* Mobile property list toggle */}
 					<button
 						onClick={() => setShowMobileSidebar(true)}
-						className="md:hidden absolute top-3 left-3 z-1000 bg-card shadow-lg rounded-md px-3 py-2 flex items-center gap-2 text-sm font-medium text-on-surface border border-border"
+						className="md:hidden absolute top-3 left-3 z-layer-map bg-card shadow-lg rounded-md px-3 py-2 flex items-center gap-2 text-sm font-medium text-on-surface border border-border"
 					>
 						<List className="w-4 h-4" />
 						Properties
@@ -490,12 +490,12 @@ export default function Home() {
 					<MapSearchControl
 						onLocationSelect={handleSearchLocationSelect}
 						onLocateMe={handleLocateMe}
-						className="absolute top-3 right-3 z-1000"
+						className="absolute top-3 right-3 z-layer-map"
 					/>
 
 					{/* Climate Risk Overlay Indicator */}
 					{climateRisk !== "none" && (
-						<div className="absolute top-16 right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-1000">
+						<div className="absolute top-16 right-3 bg-glass backdrop-blur-md rounded-2xl shadow-xl p-4 z-layer-map">
 							<div className="flex items-center space-x-3">
 								<div className="flex items-center space-x-2">
 									{climateRisk === "flood" && (
@@ -529,7 +529,7 @@ export default function Home() {
 
 					{/* Map Options Panel */}
 					{showMapOptions && (
-						<div className="absolute top-6 left-4 right-4 sm:right-auto bg-glass backdrop-blur-sm rounded-lg shadow-lg border border-border/50 p-4 sm:w-64 z-1000">
+						<div className="absolute top-6 left-4 right-4 sm:right-auto bg-glass backdrop-blur-sm rounded-lg shadow-lg border border-border/50 p-4 sm:w-64 z-layer-map">
 							<div className="flex items-center justify-between mb-3">
 								<h3 className="text-sm font-semibold text-on-surface">
 									Map Options
@@ -705,7 +705,7 @@ export default function Home() {
 					)}
 
 					{/* Map Controls at Bottom */}
-					<div className="absolute bottom-18 md:bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 sm:space-x-3 z-1000">
+					<div className="absolute bottom-18 md:bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 sm:space-x-3 z-layer-map">
 						{/* Map Options Toggle */}
 						<button
 							onClick={() => setShowMapOptions(!showMapOptions)}
@@ -787,7 +787,7 @@ export default function Home() {
 
 					{/* Property Details Overlay */}
 					{selectedProperty && isPropertyCardVisible && (
-						<div className="absolute top-2 left-2 right-2 sm:right-auto sm:w-80 max-h-[calc(100%-1rem)] bg-card backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-999 transition-all duration-300 flex flex-col">
+						<div className="absolute top-2 left-2 right-2 sm:right-auto sm:w-80 max-h-[calc(100%-1rem)] bg-card backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-layer-map transition-all duration-300 flex flex-col">
 							{/* Header with Controls */}
 							<div className="flex items-center justify-between p-4 pb-0 shrink-0">
 								<h2 className="text-lg font-semibold text-on-surface truncate flex-1 mr-3">
@@ -849,7 +849,7 @@ export default function Home() {
 
 					{/* Minimized Property Indicator */}
 					{selectedProperty && !isPropertyCardVisible && (
-						<div className="absolute top-6 left-2 z-999">
+						<div className="absolute top-6 left-2 z-layer-map">
 							<button
 								onClick={() => setIsPropertyCardVisible(true)}
 								className="bg-black/80 backdrop-blur text-white px-3 py-1.5 rounded-full text-xs font-medium hover:bg-black/90 transition-colors flex items-center space-x-1"

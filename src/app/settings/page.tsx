@@ -619,51 +619,63 @@ function SecuritySection() {
 		<>
 			<Section
 				title="Change password"
-				description="Update the password for your account."
+				description="Update your account password. If your account was created with Google sign-in, you can set a new password without entering a current one."
 			>
 				<form
 					onSubmit={handleChangePassword}
 					className="grid grid-cols-1 sm:grid-cols-2 gap-4"
 				>
-					<div className="relative">
-						<SettingsInput
-							label="Current password"
-							value={currentPw}
-							onChange={setCurrentPw}
-							type={showCurrent ? "text" : "password"}
-						/>
-						<button
-							type="button"
-							onClick={() => setShowCurrent((s) => !s)}
-							className="absolute right-2 top-[30px] text-outline hover:text-on-surface-variant cursor-pointer"
-						>
-							{showCurrent ? (
-								<EyeOff className="w-4 h-4" />
-							) : (
-								<Eye className="w-4 h-4" />
-							)}
-						</button>
-					</div>
-					<div className="relative">
-						<SettingsInput
-							label="New password"
-							value={newPw}
-							onChange={setNewPw}
-							type={showNew ? "text" : "password"}
-							note="Minimum 8 characters."
-						/>
-						<button
-							type="button"
-							onClick={() => setShowNew((s) => !s)}
-							className="absolute right-2 top-[30px] text-outline hover:text-on-surface-variant cursor-pointer"
-						>
-							{showNew ? (
-								<EyeOff className="w-4 h-4" />
-							) : (
-								<Eye className="w-4 h-4" />
-							)}
-						</button>
-					</div>
+					<label className="block">
+						<span className="typo-body-sm font-medium text-on-surface-variant mb-1.5 block">
+							Current password (optional for Google sign-in accounts)
+						</span>
+						<div className="relative">
+							<input
+								type={showCurrent ? "text" : "password"}
+								value={currentPw}
+								onChange={(e) => setCurrentPw(e.target.value)}
+								className="w-full typo-body bg-input border border-outline-variant sz-radius-md px-3 py-2 pr-8 text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
+							/>
+							<button
+								type="button"
+								onClick={() => setShowCurrent((s) => !s)}
+								className="absolute right-2 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface-variant cursor-pointer"
+							>
+								{showCurrent ? (
+									<EyeOff className="w-4 h-4" />
+								) : (
+									<Eye className="w-4 h-4" />
+								)}
+							</button>
+						</div>
+					</label>
+					<label className="block">
+						<span className="typo-body-sm font-medium text-on-surface-variant mb-1.5 block">
+							New password
+						</span>
+						<div className="relative">
+							<input
+								type={showNew ? "text" : "password"}
+								value={newPw}
+								onChange={(e) => setNewPw(e.target.value)}
+								className="w-full typo-body bg-input border border-outline-variant sz-radius-md px-3 py-2 pr-8 text-on-surface placeholder:text-outline focus:outline-none focus:border-primary transition-colors"
+							/>
+							<button
+								type="button"
+								onClick={() => setShowNew((s) => !s)}
+								className="absolute right-2 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface-variant cursor-pointer"
+							>
+								{showNew ? (
+									<EyeOff className="w-4 h-4" />
+								) : (
+									<Eye className="w-4 h-4" />
+								)}
+							</button>
+						</div>
+						<span className="typo-caption text-outline mt-1 block">
+							Minimum 8 characters.
+						</span>
+					</label>
 					<SettingsInput
 						label="Confirm new password"
 						value={confirmPw}

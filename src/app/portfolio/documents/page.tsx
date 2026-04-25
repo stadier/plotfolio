@@ -6,6 +6,7 @@ import { usePortfolio } from "@/components/PortfolioContext";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import PrimaryButton from "@/components/ui/PrimaryButton";
+import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { PropertyAPI } from "@/lib/api";
 import { AIDocument, AIDocumentType } from "@/types/document";
@@ -342,7 +343,7 @@ function UploadDocumentModal({
 	}
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+		<div className="fixed inset-0 z-layer-modal flex items-center justify-center bg-black/40 backdrop-blur-sm">
 			<div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
 				<div className="flex items-center justify-between mb-5">
 					<h2 className="text-lg font-bold text-on-surface">Upload Document</h2>
@@ -611,117 +612,61 @@ function DocumentPreviewModal({
 	}
 
 	return (
-		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-			onClick={onClose}
-		>
-			<div
-				className="bg-card border border-border rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col"
-				onClick={(e) => e.stopPropagation()}
-			>
-				<div className="flex items-center justify-between px-5 py-3 border-b border-border">
-					<div className="min-w-0 flex-1">
-						<h3 className="text-sm font-semibold text-on-surface truncate">
-							{doc.fileName}
-						</h3>
-						<p className="text-xs text-outline">
-							{getDocTypeLabel(doc.documentType)} &middot;{" "}
-							{formatFileSize(doc.fileSize)} &middot;{" "}
-							{formatDate(doc.createdAt)}
-						</p>
-					</div>
-					<div className="flex items-center gap-1.5 shrink-0 ml-3">
-						{/* Export dropdown */}
-						<div className="relative">
-							<button
-								onClick={() => setExportOpen(!exportOpen)}
-								className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md text-on-surface-variant hover:bg-surface-container-high transition-colors border border-border"
-							>
-								<Download className="w-3.5 h-3.5" />
-								Export
-								<ChevronDown className="w-3 h-3" />
-							</button>
-							{exportOpen && (
-								<div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-10 min-w-[140px] py-1">
-									<a
-										href={viewUrl}
-										download={doc.fileName}
-										className="block px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
-										onClick={() => setExportOpen(false)}
-									>
-										Original ({doc.fileName.split(".").pop()?.toUpperCase()})
-									</a>
-									<button
-										onClick={() => exportAs("txt")}
-										className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
-									>
-										Plain Text (.txt)
-									</button>
-									<button
-										onClick={() => exportAs("pdf")}
-										className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
-									>
-										PDF (.pdf)
-									</button>
-									{kind !== "html" && (
-										<button
-											onClick={() => exportAs("html")}
-											className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
-										>
-											HTML (.html)
-										</button>
-									)}
-								</div>
-							)}
-						</div>
-						<button
-							onClick={onClose}
-							className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
-						>
-							<X className="w-5 h-5" />
-						</button>
-					</div>
-				</div>
-				<div className="flex-1 overflow-auto p-4">
-					{kind === "image" ? (
-						// eslint-disable-next-line @next/next/no-img-element
-						<img
-							src={viewUrl}
-							alt={doc.fileName}
-							className="max-w-full max-h-[70vh] mx-auto rounded-lg"
-						/>
-					) : kind === "pdf" ? (
-						<iframe
-							src={viewUrl}
-							className="w-full h-[70vh] rounded-lg border border-border"
-							title={doc.fileName}
-						/>
-					) : kind === "html" ? (
-						<iframe
-							src={viewUrl}
-							sandbox="allow-same-origin allow-popups allow-forms"
-							className="w-full h-[70vh] rounded-lg border border-border bg-white"
-							title={doc.fileName}
-						/>
-					) : (
-						<div className="flex flex-col items-center justify-center py-16 text-outline">
-							<FileText className="w-16 h-16 mb-4" />
-							<p className="text-sm">
-								Preview not available for this file type.
-							</p>
+		<UnifiedMediaViewer
+			source={{
+				url: viewUrl,
+				name: doc.fileName,
+				size: doc.fileSize,
+				mimeType: doc.mimeType,
+				kind,
+			}}
+			subtitle={`${getDocTypeLabel(doc.documentType)} · ${formatFileSize(doc.fileSize)} · ${formatDate(doc.createdAt)}`}
+			headerActions={
+				<div className="relative">
+					<button
+						onClick={() => setExportOpen(!exportOpen)}
+						className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md text-white/90 hover:bg-white/10 transition-colors border border-white/20"
+					>
+						<Download className="w-3.5 h-3.5" />
+						Export
+						<ChevronDown className="w-3 h-3" />
+					</button>
+					{exportOpen && (
+						<div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-layer-dropdown min-w-[140px] py-1">
 							<a
 								href={viewUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="mt-3 text-sm text-primary hover:underline"
+								download={doc.fileName}
+								className="block px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+								onClick={() => setExportOpen(false)}
 							>
-								Download file
+								Original ({doc.fileName.split(".").pop()?.toUpperCase()})
 							</a>
+							<button
+								onClick={() => exportAs("txt")}
+								className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+							>
+								Plain Text (.txt)
+							</button>
+							<button
+								onClick={() => exportAs("pdf")}
+								className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+							>
+								PDF (.pdf)
+							</button>
+							{kind !== "html" && (
+								<button
+									onClick={() => exportAs("html")}
+									className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+								>
+									HTML (.html)
+								</button>
+							)}
 						</div>
 					)}
 				</div>
-			</div>
-		</div>
+			}
+			onClose={onClose}
+		/>
 	);
 }
 
@@ -904,7 +849,7 @@ ${signatureHtml}
 	];
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm overflow-y-auto p-4">
+		<div className="fixed inset-0 z-layer-modal flex items-center justify-center bg-black/40 backdrop-blur-sm overflow-y-auto p-4">
 			<div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-4xl my-auto flex flex-col max-h-[calc(100vh-2rem)]">
 				{/* Header */}
 				<div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">

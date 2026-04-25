@@ -1,5 +1,6 @@
 "use client";
 
+import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
 import type { PropertyDocument, PropertyMedia } from "@/types/property";
 import {
 	Eye,
@@ -14,7 +15,6 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import DocumentPreview from "./DocumentPreview";
 
 /* ── helpers ──────────────────────────────────────────── */
 
@@ -229,10 +229,10 @@ function FileCard({
 
 	return (
 		<div
-			className={`group relative rounded-xl overflow-hidden transition-all cursor-pointer ${
+			className={`group relative rounded-xl overflow-hidden transition-all cursor-pointer bg-card border border-border ${
 				uploading
 					? "opacity-50 animate-pulse pointer-events-none"
-					: "bg-card hover:shadow-md"
+					: "hover:shadow-md"
 			}`}
 			onClick={uploading ? undefined : onPreview}
 			onContextMenu={(e) => {
@@ -268,7 +268,7 @@ function FileCard({
 					</div>
 				) : (
 					<p className="text-badge text-on-surface-variant mt-0.5 font-body">
-						{kindLabel(kind)} &middot; {formatSize(file.size)}
+						{formatSize(file.size)}
 					</p>
 				)}
 			</div>
@@ -369,7 +369,7 @@ function ExistingDocCard({
 		: doc.url;
 
 	return (
-		<div className="group relative rounded-xl overflow-hidden transition-all bg-card hover:shadow-md">
+		<div className="group relative rounded-xl overflow-hidden transition-all bg-card border border-border hover:shadow-md">
 			{kind === "image" ? (
 				<RemoteImageThumbnail url={viewUrl} name={doc.name} />
 			) : kind === "pdf" ? (
@@ -386,7 +386,6 @@ function ExistingDocCard({
 					{doc.name}
 				</p>
 				<p className="text-badge text-on-surface-variant mt-0.5 font-body">
-					{kindLabel(kind)} &middot;{" "}
 					{doc.size
 						? formatSize(doc.size)
 						: new Date(doc.uploadDate).toLocaleDateString("en-US", {
@@ -429,28 +428,27 @@ function ExistingMediaCard({
 	item: PropertyMedia;
 	onRemove: () => void;
 }) {
-	const ext =
-		item.url.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
+	const ext = item.url.split("?")[0].split(".").pop()?.toLowerCase() ?? "jpg";
 	const videoExts = new Set(["mp4", "webm", "mov", "avi"]);
 	const audioExts = new Set(["mp3", "wav", "ogg", "m4a", "aac"]);
 	const isVideo = item.type === "video" || videoExts.has(ext);
 	const isAudio = item.type === "audio" || audioExts.has(ext);
+	const fileName = item.url.split("?")[0].split("/").pop() ?? "";
 
 	return (
-		<div className="group relative rounded-xl overflow-hidden bg-card hover:shadow-md transition-all">
+		<div className="group relative rounded-xl overflow-hidden bg-card border border-border hover:shadow-md transition-all">
 			{isVideo ? (
 				<RemoteVideoThumbnail />
 			) : isAudio ? (
 				<AudioThumbnail />
 			) : (
-				<RemoteImageThumbnail url={item.url} name={item.caption ?? "Media"} />
+				<RemoteImageThumbnail url={item.url} name={item.caption ?? fileName} />
 			)}
 			<div className="px-2.5 py-2">
 				<p className="text-[11px] font-medium text-on-surface truncate font-body leading-tight">
-					{item.caption ?? (isVideo ? "Video" : isAudio ? "Audio" : "Photo")}
-				</p>
-				<p className="text-badge text-on-surface-variant mt-0.5 font-body capitalize">
-					{item.type}
+					{item.caption ||
+						fileName ||
+						(isVideo ? "Video" : isAudio ? "Audio" : "Photo")}
 				</p>
 			</div>
 			<div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -508,7 +506,11 @@ export default function DocumentSidebar({
 	extracting,
 	defaultTab,
 }: DocumentSidebarProps) {
-	const [previewFile, setPreviewFile] = useState<File | null>(null);
+	const [previewFile, setPreviewFile] = useState<{
+		url: string;
+		name: string;
+		size: number;
+	} | null>(null);
 	const [previewRemote, setPreviewRemote] = useState<PropertyDocument | null>(
 		null,
 	);
@@ -556,20 +558,23 @@ export default function DocumentSidebar({
 	return (
 		<>
 			{previewFile && (
-				<DocumentPreview
-					file={previewFile}
-					onClose={() => setPreviewFile(null)}
+				<UnifiedMediaViewer
+					source={previewFile}
+					onClose={() => {
+						URL.revokeObjectURL(previewFile.url);
+						setPreviewFile(null);
+					}}
 				/>
 			)}
 			{previewRemote && (
-				<DocumentPreview
-					remoteUrl={
-						propertyId
+				<UnifiedMediaViewer
+					source={{
+						url: propertyId
 							? `/api/properties/${propertyId}/documents/${previewRemote.id}/view`
-							: previewRemote.url
-					}
-					remoteName={previewRemote.name}
-					remoteSize={previewRemote.size}
+							: previewRemote.url,
+						name: previewRemote.name,
+						size: previewRemote.size,
+					}}
 					onClose={() => setPreviewRemote(null)}
 				/>
 			)}
@@ -667,7 +672,13 @@ export default function DocumentSidebar({
 									file={file}
 									uploading={!readyMediaIndices.has(i)}
 									onRemove={() => onRemoveMediaFile?.(i)}
-									onPreview={() => setPreviewFile(file)}
+									onPreview={() =>
+										setPreviewFile({
+											url: URL.createObjectURL(file),
+											name: file.name,
+											size: file.size,
+										})
+									}
 									onExtract={() => {}}
 									extracting={false}
 									showExtract={false}
@@ -703,7 +714,13 @@ export default function DocumentSidebar({
 									file={file}
 									uploading={!readyDocIndices.has(i)}
 									onRemove={() => onRemoveFile(i)}
-									onPreview={() => setPreviewFile(file)}
+									onPreview={() =>
+										setPreviewFile({
+											url: URL.createObjectURL(file),
+											name: file.name,
+											size: file.size,
+										})
+									}
 									onExtract={() => onExtract(file)}
 									extracting={extracting}
 									showExtract={true}

@@ -2,6 +2,7 @@
 
 import { useRequireAuth } from "@/components/AuthContext";
 import CalendarWidget from "@/components/dashboard/CalendarWidget";
+import EngagementWidgets from "@/components/dashboard/EngagementWidgets";
 import MiniMapWidget from "@/components/dashboard/MiniMapWidget";
 import PortfolioHealthWidget from "@/components/dashboard/PortfolioHealthWidget";
 import PropertySlideshowWidget from "@/components/dashboard/PropertySlideshowWidget";
@@ -15,7 +16,14 @@ import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties, useOwnerBookings } from "@/hooks/usePropertyQueries";
 import { PropertyAPI } from "@/lib/api";
 import { formatCurrencyCompact } from "@/lib/utils";
-import { Building2, FileText, Loader2, MapPin, Wallet } from "lucide-react";
+import {
+	Building2,
+	FileText,
+	Loader2,
+	MapPin,
+	TrendingUp,
+	Wallet,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 // ── Stat card used only in this dashboard ─────────────────────────────────────
@@ -29,7 +37,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, accent }: StatCardProps) {
 	return (
-		<div className="bg-card sz-card border border-border flex items-center gap-3 max-w-xs widget-card animate-fade-in-up !py-3">
+		<div className="bg-card sz-card border border-border flex items-center gap-3 max-w-xs widget-card animate-fade-in-up py-3!">
 			<div
 				className={`sz-icon-box-lg rounded-full ${accent} flex items-center justify-center shrink-0 max-sm:hidden`}
 			>
@@ -84,6 +92,28 @@ export default function DashboardV2Page() {
 		(sum, p) => sum + (p.currentValue || p.purchasePrice || 0),
 		0,
 	);
+	const roiSummary = properties.reduce(
+		(acc, p) => {
+			if (!p.purchasePrice || p.purchasePrice <= 0) return acc;
+			const referenceValue = p.soldPrice ?? p.currentValue ?? p.purchasePrice;
+			return {
+				invested: acc.invested + p.purchasePrice,
+				reference: acc.reference + referenceValue,
+			};
+		},
+		{ invested: 0, reference: 0 },
+	);
+	const roiPct =
+		roiSummary.invested > 0
+			? ((roiSummary.reference - roiSummary.invested) / roiSummary.invested) *
+				100
+			: null;
+	const roiValue =
+		roiPct == null ? "N/A" : `${roiPct >= 0 ? "+" : ""}${roiPct.toFixed(1)}%`;
+	const roiAccent =
+		roiPct != null && roiPct < 0
+			? "bg-rose-50 dark:bg-rose-500/20"
+			: "bg-emerald-50 dark:bg-emerald-500/20";
 	const totalArea = properties.reduce((s, p) => s + (p.area || 0), 0);
 	const docCount =
 		properties.reduce((s, p) => s + (p.documents?.length ?? 0), 0) + aiDocCount;
@@ -160,7 +190,7 @@ export default function DashboardV2Page() {
 									)}
 								</div>
 
-								<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+								<div className="flex flex-wrap items-stretch gap-3">
 									<StatCard
 										label="Portfolio Value"
 										value={formatCurrencyCompact(totalWorth)}
@@ -168,6 +198,16 @@ export default function DashboardV2Page() {
 											<Wallet className="sz-icon text-blue-600 dark:text-blue-400" />
 										}
 										accent="bg-blue-50 dark:bg-blue-500/20"
+									/>
+									<StatCard
+										label="ROI"
+										value={roiValue}
+										icon={
+											<TrendingUp
+												className={`sz-icon ${roiPct != null && roiPct < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}
+											/>
+										}
+										accent={roiAccent}
 									/>
 									<StatCard
 										label="Properties"
@@ -214,11 +254,8 @@ export default function DashboardV2Page() {
 
 							{/* ── First widget column ── */}
 							<div className="space-y-4">
+								<EngagementWidgets userId={user.id} bookings={bookings} />
 								<CalendarWidget properties={properties} bookings={bookings} />
-								<MiniMapWidget
-									properties={properties}
-									onSelect={setSelectedId}
-								/>
 							</div>
 
 							{/* ── Second widget column (stacks below first on lg, beside on xl) ── */}
@@ -226,6 +263,10 @@ export default function DashboardV2Page() {
 								<PortfolioHealthWidget properties={properties} />
 								<RecentDocumentsWidget properties={properties} />
 								<StatusDistributionWidget properties={properties} />
+								<MiniMapWidget
+									properties={properties}
+									onSelect={setSelectedId}
+								/>
 							</div>
 						</div>
 					</div>
