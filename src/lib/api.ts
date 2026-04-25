@@ -1,3 +1,4 @@
+import { cachedGetJSON, invalidateCachedGet } from "@/lib/clientCache";
 import type { Chat, ChatSummary } from "@/types/chat";
 import type {
 	AIDocument,
@@ -22,11 +23,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 export class PropertyAPI {
 	static async getAllProperties(): Promise<Property[]> {
 		try {
-			const response = await fetch(`${API_BASE_URL}/properties`);
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-			const data = await response.json();
+			const data = await cachedGetJSON<unknown>(`${API_BASE_URL}/properties`, {
+				ttlMs: 2 * 60 * 1000,
+			});
 			// API returns array directly, not wrapped in object
 			return Array.isArray(data) ? data : [];
 		} catch (error) {
@@ -50,13 +49,10 @@ export class PropertyAPI {
 			} else {
 				params.set("ownerId", ownerId);
 			}
-			const response = await fetch(
+			const data = await cachedGetJSON<unknown>(
 				`${API_BASE_URL}/properties?${params.toString()}`,
+				{ ttlMs: 2 * 60 * 1000 },
 			);
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-			const data = await response.json();
 			return Array.isArray(data) ? data : [];
 		} catch (error) {
 			console.error("Error fetching user properties:", error);
@@ -66,11 +62,9 @@ export class PropertyAPI {
 
 	static async getProperty(id: string): Promise<Property | null> {
 		try {
-			const response = await fetch(`${API_BASE_URL}/properties/${id}`);
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-			return await response.json();
+			return await cachedGetJSON<Property>(`${API_BASE_URL}/properties/${id}`, {
+				ttlMs: 2 * 60 * 1000,
+			});
 		} catch (error) {
 			console.error("Error fetching property:", error);
 			return null;
@@ -93,7 +87,9 @@ export class PropertyAPI {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
-			return await response.json();
+			const created = await response.json();
+			invalidateCachedGet(`${API_BASE_URL}/properties`);
+			return created;
 		} catch (error) {
 			console.error("Error creating property:", error);
 			return null;
@@ -117,7 +113,10 @@ export class PropertyAPI {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
-			return await response.json();
+			const updated = await response.json();
+			invalidateCachedGet(`${API_BASE_URL}/properties`);
+			invalidateCachedGet(`${API_BASE_URL}/properties/${id}`);
+			return updated;
 		} catch (error) {
 			console.error("Error updating property:", error);
 			return null;
@@ -129,7 +128,10 @@ export class PropertyAPI {
 			const response = await fetch(`${API_BASE_URL}/properties/${id}`, {
 				method: "DELETE",
 			});
-
+			if (response.ok) {
+				invalidateCachedGet(`${API_BASE_URL}/properties`);
+				invalidateCachedGet(`${API_BASE_URL}/properties/${id}`);
+			}
 			return response.ok;
 		} catch (error) {
 			console.error("Error deleting property:", error);
@@ -139,13 +141,10 @@ export class PropertyAPI {
 
 	static async getMarketplaceListings(): Promise<Property[]> {
 		try {
-			const response = await fetch(
+			const data = await cachedGetJSON<unknown>(
 				`${API_BASE_URL}/properties?status=for_sale,for_rent,for_lease&include=activeSale`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-			const data = await response.json();
 			return Array.isArray(data) ? data : [];
 		} catch (error) {
 			console.error("Error fetching marketplace listings:", error);
@@ -182,6 +181,11 @@ export class PropertyAPI {
 					body: JSON.stringify({ docId, accessLevel }),
 				},
 			);
+			if (response.ok) {
+				invalidateCachedGet(
+					`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents/access-requests`,
+				);
+			}
 			return response.ok;
 		} catch (error) {
 			console.error("Error updating document access level:", error);
@@ -210,7 +214,12 @@ export class PropertyAPI {
 				},
 			);
 			if (!response.ok) return null;
-			return await response.json();
+			const created = await response.json();
+			invalidateCachedGet(
+				`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents/access-requests`,
+			);
+			invalidateCachedGet(`${API_BASE_URL}/document-requests`);
+			return created;
 		} catch (error) {
 			console.error("Error requesting document access:", error);
 			return null;
@@ -226,11 +235,10 @@ export class PropertyAPI {
 			if (params.requesterId)
 				searchParams.set("requesterId", params.requesterId);
 			if (params.ownerId) searchParams.set("ownerId", params.ownerId);
-			const response = await fetch(
+			return await cachedGetJSON<DocumentAccessRequest[]>(
 				`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents/access-requests?${searchParams}`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!response.ok) return [];
-			return await response.json();
 		} catch (error) {
 			console.error("Error fetching access requests:", error);
 			return [];
@@ -256,7 +264,12 @@ export class PropertyAPI {
 				},
 			);
 			if (!response.ok) return null;
-			return await response.json();
+			const updated = await response.json();
+			invalidateCachedGet(
+				`${API_BASE_URL}/properties/${encodeURIComponent(propertyId)}/documents/access-requests`,
+			);
+			invalidateCachedGet(`${API_BASE_URL}/document-requests`);
+			return updated;
 		} catch (error) {
 			console.error("Error responding to access request:", error);
 			return null;
@@ -267,11 +280,10 @@ export class PropertyAPI {
 		ownerId: string,
 	): Promise<DocumentAccessRequest[]> {
 		try {
-			const response = await fetch(
+			return await cachedGetJSON<DocumentAccessRequest[]>(
 				`${API_BASE_URL}/document-requests?ownerId=${encodeURIComponent(ownerId)}`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!response.ok) return [];
-			return await response.json();
 		} catch (error) {
 			console.error("Error fetching owner access requests:", error);
 			return [];
@@ -321,6 +333,10 @@ export class PropertyAPI {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(updates),
 			});
+			if (response.ok) {
+				invalidateCachedGet(`${API_BASE_URL}/documents/${id}`);
+				invalidateCachedGet(`${API_BASE_URL}/documents?`);
+			}
 			return response.ok;
 		} catch (error) {
 			console.error("Error updating document:", error);
@@ -340,9 +356,10 @@ export class PropertyAPI {
 			if (filters?.documentType)
 				params.set("documentType", filters.documentType);
 
-			const response = await fetch(`${API_BASE_URL}/documents?${params}`);
-			if (!response.ok) return [];
-			const data = await response.json();
+			const data = await cachedGetJSON<{ documents?: AIDocument[] }>(
+				`${API_BASE_URL}/documents?${params}`,
+				{ ttlMs: 2 * 60 * 1000 },
+			);
 			return data.documents ?? [];
 		} catch (error) {
 			console.error("Error listing documents:", error);
@@ -354,9 +371,10 @@ export class PropertyAPI {
 		id: string,
 	): Promise<{ document: AIDocument; images: DocumentImage[] } | null> {
 		try {
-			const response = await fetch(`${API_BASE_URL}/documents/${id}`);
-			if (!response.ok) return null;
-			return await response.json();
+			return await cachedGetJSON<{
+				document: AIDocument;
+				images: DocumentImage[];
+			}>(`${API_BASE_URL}/documents/${id}`, { ttlMs: 2 * 60 * 1000 });
 		} catch (error) {
 			console.error("Error fetching document:", error);
 			return null;
@@ -368,6 +386,10 @@ export class PropertyAPI {
 			const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
 				method: "DELETE",
 			});
+			if (response.ok) {
+				invalidateCachedGet(`${API_BASE_URL}/documents/${id}`);
+				invalidateCachedGet(`${API_BASE_URL}/documents?`);
+			}
 			return response.ok;
 		} catch (error) {
 			console.error("Error deleting document:", error);
@@ -412,11 +434,10 @@ export class PropertyAPI {
 
 	static async getDocumentImages(documentId: string): Promise<DocumentImage[]> {
 		try {
-			const response = await fetch(
+			const data = await cachedGetJSON<{ images?: DocumentImage[] }>(
 				`${API_BASE_URL}/documents/${documentId}/images`,
+				{ ttlMs: 10 * 60 * 1000 },
 			);
-			if (!response.ok) return [];
-			const data = await response.json();
 			return data.images ?? [];
 		} catch (error) {
 			console.error("Error fetching document images:", error);
@@ -430,11 +451,10 @@ export class PropertyAPI {
 export class TransferAPI {
 	static async getMyTransfers(userId: string): Promise<OwnershipTransfer[]> {
 		try {
-			const res = await fetch(
+			return await cachedGetJSON<OwnershipTransfer[]>(
 				`${API_BASE_URL}/transfers?userId=${encodeURIComponent(userId)}`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!res.ok) return [];
-			return await res.json();
 		} catch {
 			return [];
 		}
@@ -455,11 +475,21 @@ export class TransferAPI {
 		try {
 			const clean = username.replace(/^@/, "").trim();
 			if (!clean) return { found: false };
-			const res = await fetch(
+			return await cachedGetJSON<{
+				found: boolean;
+				user?: {
+					id: string;
+					name: string;
+					username: string;
+					displayName: string;
+					email: string;
+					avatar?: string;
+					type: string;
+				};
+			}>(
 				`${API_BASE_URL}/profile/lookup?username=${encodeURIComponent(clean)}`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!res.ok) return { found: false };
-			return await res.json();
 		} catch {
 			return { found: false };
 		}
@@ -472,11 +502,10 @@ export class TransferAPI {
 		try {
 			const params = new URLSearchParams();
 			if (userId) params.set("userId", userId);
-			const res = await fetch(
+			return await cachedGetJSON<OwnershipTransfer[]>(
 				`${API_BASE_URL}/properties/${propertyId}/transfers?${params}`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!res.ok) return [];
-			return await res.json();
 		} catch {
 			return [];
 		}
@@ -506,6 +535,8 @@ export class TransferAPI {
 			const result = await res.json();
 			if (!res.ok)
 				return { error: result.error || "Failed to initiate transfer" };
+			invalidateCachedGet(`${API_BASE_URL}/transfers`);
+			invalidateCachedGet(`${API_BASE_URL}/properties/${propertyId}/transfers`);
 			return { transfer: result };
 		} catch {
 			return { error: "Network error" };
@@ -533,6 +564,8 @@ export class TransferAPI {
 			const result = await res.json();
 			if (!res.ok)
 				return { error: result.error || "Failed to update transfer" };
+			invalidateCachedGet(`${API_BASE_URL}/transfers`);
+			invalidateCachedGet(`${API_BASE_URL}/properties/${propertyId}/transfers`);
 			return { transfer: result };
 		} catch {
 			return { error: "Network error" };
@@ -545,11 +578,10 @@ export class TransferAPI {
 export class OwnershipHistoryAPI {
 	static async getHistory(propertyId: string): Promise<OwnershipRecord[]> {
 		try {
-			const res = await fetch(
+			return await cachedGetJSON<OwnershipRecord[]>(
 				`${API_BASE_URL}/properties/${propertyId}/ownership-history`,
+				{ ttlMs: 2 * 60 * 1000 },
 			);
-			if (!res.ok) return [];
-			return await res.json();
 		} catch {
 			return [];
 		}
@@ -579,6 +611,9 @@ export class OwnershipHistoryAPI {
 			);
 			const result = await res.json();
 			if (!res.ok) return { error: result.error || "Failed to add record" };
+			invalidateCachedGet(
+				`${API_BASE_URL}/properties/${propertyId}/ownership-history`,
+			);
 			return { record: result };
 		} catch {
 			return { error: "Network error" };
@@ -601,6 +636,9 @@ export class OwnershipHistoryAPI {
 			);
 			const result = await res.json();
 			if (!res.ok) return { error: result.error || "Failed to update record" };
+			invalidateCachedGet(
+				`${API_BASE_URL}/properties/${propertyId}/ownership-history`,
+			);
 			return { record: result };
 		} catch {
 			return { error: "Network error" };
@@ -620,6 +658,9 @@ export class OwnershipHistoryAPI {
 				const result = await res.json().catch(() => ({}));
 				return { error: result.error || "Failed to delete record" };
 			}
+			invalidateCachedGet(
+				`${API_BASE_URL}/properties/${propertyId}/ownership-history`,
+			);
 			return {};
 		} catch {
 			return { error: "Network error" };
@@ -642,6 +683,7 @@ export class BookingAPI {
 			const data = await response.json();
 			if (!response.ok)
 				return { error: data.error || "Failed to create booking" };
+			invalidateCachedGet(`${API_BASE_URL}/bookings`);
 			return { booking: data.booking };
 		} catch {
 			return { error: "Network error" };
@@ -656,11 +698,10 @@ export class BookingAPI {
 			const search = new URLSearchParams();
 			if (params.ownerId) search.set("ownerId", params.ownerId);
 			if (params.requesterId) search.set("requesterId", params.requesterId);
-			const response = await fetch(
+			const data = await cachedGetJSON<{ bookings?: Booking[] }>(
 				`${API_BASE_URL}/bookings?${search.toString()}`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!response.ok) return [];
-			const data = await response.json();
 			return data.bookings ?? [];
 		} catch {
 			return [];
@@ -685,6 +726,7 @@ export class BookingAPI {
 			const data = await response.json();
 			if (!response.ok)
 				return { error: data.error || "Failed to update booking" };
+			invalidateCachedGet(`${API_BASE_URL}/bookings`);
 			return { booking: data.booking };
 		} catch {
 			return { error: "Network error" };
@@ -721,9 +763,10 @@ export interface PortfolioMemberWithUser extends PortfolioMember {
 export class PortfolioAPI {
 	static async list(): Promise<PortfolioWithRole[]> {
 		try {
-			const res = await fetch(`${API_BASE_URL}/portfolios`);
-			if (!res.ok) return [];
-			return await res.json();
+			return await cachedGetJSON<PortfolioWithRole[]>(
+				`${API_BASE_URL}/portfolios`,
+				{ ttlMs: 2 * 60 * 1000 },
+			);
 		} catch {
 			return [];
 		}
@@ -733,9 +776,10 @@ export class PortfolioAPI {
 		id: string,
 	): Promise<(Portfolio & { memberCount: number }) | null> {
 		try {
-			const res = await fetch(`${API_BASE_URL}/portfolios/${id}`);
-			if (!res.ok) return null;
-			return await res.json();
+			return await cachedGetJSON<Portfolio & { memberCount: number }>(
+				`${API_BASE_URL}/portfolios/${id}`,
+				{ ttlMs: 2 * 60 * 1000 },
+			);
 		} catch {
 			return null;
 		}
@@ -756,7 +800,9 @@ export class PortfolioAPI {
 				const err = await res.json().catch(() => ({}));
 				throw new Error(err.error || "Failed to create portfolio");
 			}
-			return await res.json();
+			const created = await res.json();
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
+			return created;
 		} catch (error) {
 			console.error("Error creating portfolio:", error);
 			return null;
@@ -774,7 +820,10 @@ export class PortfolioAPI {
 				body: JSON.stringify(data),
 			});
 			if (!res.ok) return null;
-			return await res.json();
+			const updated = await res.json();
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
+			invalidateCachedGet(`${API_BASE_URL}/portfolios/${id}`);
+			return updated;
 		} catch {
 			return null;
 		}
@@ -787,6 +836,8 @@ export class PortfolioAPI {
 			});
 			const data = await res.json();
 			if (!res.ok) return { error: data.error || "Failed to delete" };
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
+			invalidateCachedGet(`${API_BASE_URL}/portfolios/${id}`);
 			return {};
 		} catch {
 			return { error: "Network error" };
@@ -806,6 +857,8 @@ export class PortfolioAPI {
 			});
 			const data = await res.json();
 			if (!res.ok) return { error: data.error || "Upload failed" };
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
+			invalidateCachedGet(`${API_BASE_URL}/portfolios/${id}`);
 			return { avatar: data.avatar };
 		} catch {
 			return { error: "Network error" };
@@ -818,11 +871,10 @@ export class PortfolioAPI {
 		portfolioId: string,
 	): Promise<PortfolioMemberWithUser[]> {
 		try {
-			const res = await fetch(
+			return await cachedGetJSON<PortfolioMemberWithUser[]>(
 				`${API_BASE_URL}/portfolios/${portfolioId}/members`,
+				{ ttlMs: 60 * 1000 },
 			);
-			if (!res.ok) return [];
-			return await res.json();
 		} catch {
 			return [];
 		}
@@ -843,6 +895,8 @@ export class PortfolioAPI {
 			);
 			const result = await res.json();
 			if (!res.ok) return { error: result.error || "Failed to invite" };
+			invalidateCachedGet(`${API_BASE_URL}/portfolios/${portfolioId}/members`);
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
 			return { member: result };
 		} catch {
 			return { error: "Network error" };
@@ -871,6 +925,8 @@ export class PortfolioAPI {
 				const result = await res.json().catch(() => ({}));
 				return { error: result.error || "Failed to update" };
 			}
+			invalidateCachedGet(`${API_BASE_URL}/portfolios/${portfolioId}/members`);
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
 			return {};
 		} catch {
 			return { error: "Network error" };
@@ -890,6 +946,8 @@ export class PortfolioAPI {
 				const result = await res.json().catch(() => ({}));
 				return { error: result.error || "Failed to remove" };
 			}
+			invalidateCachedGet(`${API_BASE_URL}/portfolios/${portfolioId}/members`);
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
 			return {};
 		} catch {
 			return { error: "Network error" };
@@ -909,6 +967,7 @@ export class PortfolioAPI {
 				const result = await res.json().catch(() => ({}));
 				return { error: result.error || "Failed to cancel invitation" };
 			}
+			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
 			return {};
 		} catch {
 			return { error: "Network error" };
@@ -921,9 +980,10 @@ export class PortfolioAPI {
 export class ChatAPI {
 	static async getChats(): Promise<ChatSummary[]> {
 		try {
-			const res = await fetch(`${API_BASE_URL}/chat`);
-			if (!res.ok) return [];
-			const data = await res.json();
+			const data = await cachedGetJSON<{ chats?: ChatSummary[] }>(
+				`${API_BASE_URL}/chat`,
+				{ ttlMs: 15 * 1000 },
+			);
 			return data.chats ?? [];
 		} catch {
 			return [];
@@ -932,9 +992,10 @@ export class ChatAPI {
 
 	static async getChat(id: string): Promise<Chat | null> {
 		try {
-			const res = await fetch(`${API_BASE_URL}/chat/${id}`);
-			if (!res.ok) return null;
-			const data = await res.json();
+			const data = await cachedGetJSON<{ chat?: Chat | null }>(
+				`${API_BASE_URL}/chat/${id}`,
+				{ ttlMs: 10 * 1000 },
+			);
 			return data.chat ?? null;
 		} catch {
 			return null;
@@ -956,6 +1017,7 @@ export class ChatAPI {
 			});
 			const data = await res.json();
 			if (!res.ok) return { error: data.error || "Failed to start chat" };
+			invalidateCachedGet(`${API_BASE_URL}/chat`);
 			return { chat: data.chat };
 		} catch {
 			return { error: "Network error" };
@@ -976,6 +1038,8 @@ export class ChatAPI {
 				const data = await res.json().catch(() => ({}));
 				return { error: data.error || "Failed to send message" };
 			}
+			invalidateCachedGet(`${API_BASE_URL}/chat`);
+			invalidateCachedGet(`${API_BASE_URL}/chat/${chatId}`);
 			return {};
 		} catch {
 			return { error: "Network error" };

@@ -1,5 +1,6 @@
 "use client";
 
+import { cachedGetJSON, invalidateCachedGet } from "@/lib/clientCache";
 import {
 	FeatureKey,
 	isWithinLimit,
@@ -73,12 +74,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 			return;
 		}
 		try {
-			const res = await fetch("/api/subscriptions");
-			if (res.ok) {
-				const data = await res.json();
-				setSubscription(data.subscription ?? null);
-				if (data.tiers) setTiers(data.tiers);
-			}
+			const data = await cachedGetJSON<{
+				subscription?: SubscriptionState | null;
+				tiers?: TierConfig[];
+			}>("/api/subscriptions", {
+				ttlMs: 60 * 1000,
+			});
+			setSubscription(data.subscription ?? null);
+			if (data.tiers) setTiers(data.tiers);
 		} catch {
 			// Silently fail — user keeps free tier
 		} finally {
@@ -110,6 +113,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 			billingInterval: "monthly" | "yearly" = "monthly",
 			gateway?: "stripe" | "paystack",
 		) => {
+			invalidateCachedGet("/api/subscriptions");
 			const res = await fetch("/api/subscriptions", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -128,6 +132,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 	);
 
 	const cancel = useCallback(async () => {
+		invalidateCachedGet("/api/subscriptions");
 		await fetch("/api/subscriptions", {
 			method: "PUT",
 			headers: { "Content-Type": "application/json" },
@@ -137,6 +142,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 	}, [refresh]);
 
 	const resume = useCallback(async () => {
+		invalidateCachedGet("/api/subscriptions");
 		await fetch("/api/subscriptions", {
 			method: "PUT",
 			headers: { "Content-Type": "application/json" },
@@ -146,6 +152,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 	}, [refresh]);
 
 	const openPortal = useCallback(async () => {
+		invalidateCachedGet("/api/subscriptions");
 		const res = await fetch("/api/subscriptions", {
 			method: "PUT",
 			headers: { "Content-Type": "application/json" },

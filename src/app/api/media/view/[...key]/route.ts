@@ -1,4 +1,5 @@
 import { b2, B2_BUCKET } from "@/lib/b2";
+import { CacheControl } from "@/lib/httpCache";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -40,7 +41,7 @@ export async function GET(
 		if (response.ContentType) headers.set("Content-Type", response.ContentType);
 		if (response.ContentLength !== undefined)
 			headers.set("Content-Length", String(response.ContentLength));
-		headers.set("Cache-Control", "private, max-age=86400");
+		headers.set("Cache-Control", CacheControl.privateLong);
 
 		return new NextResponse(
 			response.Body.transformToWebStream() as ReadableStream,

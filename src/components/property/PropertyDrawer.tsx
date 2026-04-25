@@ -1,10 +1,11 @@
 "use client";
 
 import { useCurrencyConverter } from "@/hooks/useCurrencyConverter";
+import { cachedGetJSON } from "@/lib/clientCache";
 import { Property } from "@/types/property";
 import { Maximize2, Pencil, Users, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PropertyFullView from "./PropertyFullView";
 import { getStatusColor } from "./propertyDisplayHelpers";
 
@@ -28,35 +29,70 @@ export default function PropertyDrawer({
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 	const panelRef = useRef<HTMLDivElement>(null);
+	const propertyCacheRef = useRef<Record<string, Property>>({});
 	const { format: formatPrice } = useCurrencyConverter();
+
+	const fetchProperty = useCallback(
+		async (
+			id: string,
+			options?: { force?: boolean; showSkeleton?: boolean },
+		) => {
+			const showSkeleton = options?.showSkeleton ?? false;
+			if (showSkeleton) setLoading(true);
+			setError(null);
+
+			try {
+				const data = await cachedGetJSON<Property>(`/api/properties/${id}`, {
+					ttlMs: 2 * 60 * 1000,
+					force: options?.force,
+				});
+				propertyCacheRef.current[id] = data;
+				setProperty(data);
+			} catch (e) {
+				const fallback = propertyCacheRef.current[id];
+				if (fallback) {
+					setProperty(fallback);
+				} else {
+					setError(e instanceof Error ? e.message : "Failed to load property");
+				}
+			} finally {
+				if (showSkeleton) setLoading(false);
+			}
+		},
+		[],
+	);
 
 	// Fetch when a property is selected
 	useEffect(() => {
 		if (!propertyId) {
-			setProperty(null);
+			setLoading(false);
+			setError(null);
 			return;
 		}
+
 		let cancelled = false;
-		setLoading(true);
-		setError(null);
-		fetch(`/api/properties/${propertyId}`)
-			.then((r) => {
-				if (!r.ok) throw new Error("Failed to load property");
-				return r.json();
-			})
-			.then((data) => {
-				if (!cancelled) setProperty(data);
-			})
-			.catch((e) => {
-				if (!cancelled) setError(e.message);
-			})
-			.finally(() => {
-				if (!cancelled) setLoading(false);
-			});
+
+		const cached = propertyCacheRef.current[propertyId];
+		if (cached) {
+			setProperty(cached);
+			setLoading(false);
+			setError(null);
+		} else {
+			setProperty(null);
+			setLoading(true);
+			setError(null);
+		}
+
+		fetchProperty(propertyId, {
+			showSkeleton: !cached,
+		}).then(() => {
+			if (cancelled) return;
+		});
+
 		return () => {
 			cancelled = true;
 		};
-	}, [propertyId]);
+	}, [propertyId, fetchProperty]);
 
 	// Close on Escape
 	useEffect(() => {
@@ -183,7 +219,13 @@ export default function PropertyDrawer({
 						<div className="flex flex-col items-center justify-center h-48 text-center px-6">
 							<p className="text-red-500 text-sm mb-3">{error}</p>
 							<button
-								onClick={() => propertyId && setLoading(true)}
+								onClick={() =>
+									propertyId &&
+									fetchProperty(propertyId, {
+										force: true,
+										showSkeleton: true,
+									})
+								}
 								className="text-sm text-outline underline"
 							>
 								Try again

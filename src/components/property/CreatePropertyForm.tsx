@@ -8,7 +8,11 @@ import WitnessTagInput, {
 	type WitnessEntry,
 } from "@/components/ui/WitnessTagInput";
 import { queryKeys, useProviderSettings } from "@/hooks/usePropertyQueries";
-import { extractFieldsFromDocument } from "@/lib/documentExtractor";
+import { invalidateCachedGet } from "@/lib/clientCache";
+import {
+	extractFieldsFromDocument,
+	readTextFromFile,
+} from "@/lib/documentExtractor";
 import { getPropertyMedia } from "@/lib/utils";
 import {
 	DocumentType,
@@ -23,7 +27,14 @@ import {
 } from "@/types/property";
 import { PROVIDER_DEFAULTS } from "@/types/providers";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, FileText, Loader2, MapPin, Save } from "lucide-react";
+import {
+	Camera,
+	FileText,
+	Loader2,
+	MapPin,
+	Save,
+	Sparkles,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -662,6 +673,9 @@ export default function CreatePropertyForm({
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	/* generate description state */
+	const [generatingDesc, setGeneratingDesc] = useState(false);
+
 	/* document upload state */
 	const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 	const [existingDocs, setExistingDocs] = useState<PropertyDocument[]>(
@@ -681,6 +695,76 @@ export default function CreatePropertyForm({
 	const [existingMedia, setExistingMedia] = useState(() =>
 		initialProperty ? getPropertyMedia(initialProperty) : [],
 	);
+
+	const handleGenerateDescription = useCallback(async () => {
+		setGeneratingDesc(true);
+		try {
+			// Extract text from pending document files (PDFs / doc images)
+			const docTexts = await Promise.all(
+				uploadedFiles
+					.slice(0, 3)
+					.map((f) => readTextFromFile(f).catch(() => "")),
+			);
+			const text = docTexts
+				.filter((t) => t.trim().length > 30)
+				.join("\n\n---\n\n")
+				.slice(0, 8000);
+
+			// Base64-encode property photo images for vision (max 4)
+			const imageFiles = uploadedMedia
+				.filter((f) => f.type.startsWith("image/"))
+				.slice(0, 4);
+			const imageDataUrls = await Promise.all(
+				imageFiles.map(
+					(f) =>
+						new Promise<string>((resolve) => {
+							const reader = new FileReader();
+							reader.onload = (e) => resolve(e.target?.result as string);
+							reader.readAsDataURL(f);
+						}),
+				),
+			);
+
+			const metadata: Record<string, string> = {};
+			if (name) metadata["Name"] = name;
+			if (address) metadata["Address"] = address;
+			if (propertyType) metadata["Type"] = propertyType;
+			if (area) metadata["Area"] = `${area} sqm`;
+			if (zoning) metadata["Zoning"] = zoning;
+			if (conditions.length) metadata["Condition"] = conditions.join(", ");
+			if (structureBedrooms) metadata["Bedrooms"] = structureBedrooms;
+			if (structureBathrooms) metadata["Bathrooms"] = structureBathrooms;
+			if (city) metadata["City"] = city;
+			if (propertyState) metadata["State"] = propertyState;
+			if (country) metadata["Country"] = country;
+
+			const res = await fetch("/api/generate-description", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ text, imageDataUrls, metadata }),
+			});
+			if (res.ok) {
+				const { description: generated } = await res.json();
+				if (generated) setDescription(generated);
+			}
+		} finally {
+			setGeneratingDesc(false);
+		}
+	}, [
+		uploadedFiles,
+		uploadedMedia,
+		name,
+		address,
+		propertyType,
+		area,
+		zoning,
+		conditions,
+		structureBedrooms,
+		structureBathrooms,
+		city,
+		propertyState,
+		country,
+	]);
 
 	// Fetch portfolio owner info when current user is a team member (not the portfolio owner)
 	useEffect(() => {
@@ -1041,6 +1125,12 @@ export default function CreatePropertyForm({
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.all,
 			});
+			if (isEdit) {
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.properties.detail(id),
+				});
+			}
+			invalidateCachedGet(/\/api\/properties(?:\/|\?|$)/);
 
 			router.push(
 				isEdit ? `/portfolio/properties/${id}` : "/portfolio/properties",
@@ -1062,7 +1152,7 @@ export default function CreatePropertyForm({
 
 	return (
 		<div
-			className={`flex flex-col h-screen ${isEdit ? "px-4 sm:px-8 py-6" : ""}`}
+			className={`flex h-full min-h-0 flex-col ${isEdit ? "px-4 sm:px-8 py-6" : ""}`}
 		>
 			<form
 				onSubmit={handleSubmit}
@@ -1137,7 +1227,7 @@ export default function CreatePropertyForm({
 					</div>
 
 					{/* ── Masonry grid + Document sidebar row ── */}
-					<div className="flex items-start gap-5">
+					<div className="flex flex-col items-start gap-5 lg:flex-row">
 						<div className="flex-1 min-w-0">
 							<MasonryGrid minColWidth={320} maxCols={3} gap={20}>
 								{/* ── Basic Info ──────────────────────────── */}
@@ -1164,7 +1254,25 @@ export default function CreatePropertyForm({
 											/>
 										</Field>
 
-										<Field label="Description">
+										<div className="flex flex-col gap-1.5">
+											<div className="flex items-center justify-between">
+												<span className="text-xs font-medium text-on-surface-variant font-label">
+													Description
+												</span>
+												<button
+													type="button"
+													onClick={handleGenerateDescription}
+													disabled={generatingDesc}
+													className="flex items-center gap-1 text-[11px] text-primary font-medium hover:underline disabled:opacity-50"
+												>
+													{generatingDesc ? (
+														<Loader2 className="w-3 h-3 animate-spin" />
+													) : (
+														<Sparkles className="w-3 h-3" />
+													)}
+													{generatingDesc ? "Generating…" : "Generate with AI"}
+												</button>
+											</div>
 											<textarea
 												className={`${inputCls} resize-none`}
 												rows={3}
@@ -1172,7 +1280,7 @@ export default function CreatePropertyForm({
 												value={description}
 												onChange={(e) => setDescription(e.target.value)}
 											/>
-										</Field>
+										</div>
 									</div>
 								</FormSection>
 

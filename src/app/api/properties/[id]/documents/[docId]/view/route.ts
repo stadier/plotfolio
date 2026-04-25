@@ -1,4 +1,5 @@
 import { b2, B2_BUCKET } from "@/lib/b2";
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import { PropertyModel } from "@/models/Property";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
@@ -57,7 +58,7 @@ export async function GET(
 			"Content-Disposition",
 			`inline; filename="${encodeURIComponent(doc.name)}"`,
 		);
-		headers.set("Cache-Control", "private, max-age=3600");
+		headers.set("Cache-Control", CacheControl.privateMedium);
 
 		// Stream the body from S3-compatible response
 		const bodyStream = response.Body.transformToWebStream();

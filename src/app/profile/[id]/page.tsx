@@ -3,6 +3,7 @@
 import AppShell from "@/components/layout/AppShell";
 import BackButton from "@/components/ui/BackButton";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { cachedGetJSON } from "@/lib/clientCache";
 import { formatArea, formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import {
 	Property,
@@ -138,7 +139,7 @@ function PublicPropertyCard({ property }: { property: Property }) {
 				)}
 				{/* Status badge */}
 				<span
-					className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold ${status.color}`}
+					className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-badge font-semibold ${status.color}`}
 				>
 					{status.label}
 				</span>
@@ -175,13 +176,13 @@ function PublicPropertyCard({ property }: { property: Property }) {
 
 				{/* Type + conditions */}
 				<div className="flex flex-wrap items-center gap-1.5 mt-2">
-					<span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-surface-container text-on-surface-variant">
+					<span className="px-1.5 py-0.5 rounded text-badge font-medium bg-gray-100 dark:bg-surface-container text-on-surface-variant">
 						{getTypeLabel(property.propertyType)}
 					</span>
 					{property.conditions?.slice(0, 2).map((cond) => (
 						<span
 							key={cond}
-							className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-surface-container text-on-surface-variant"
+							className="px-1.5 py-0.5 rounded text-badge font-medium bg-gray-100 dark:bg-surface-container text-on-surface-variant"
 						>
 							{conditionLabels[cond] || cond}
 						</span>
@@ -239,7 +240,7 @@ function ProfileSidebar({
 						<h1 className="text-base font-bold text-on-surface">
 							{owner.displayName || owner.name}
 						</h1>
-						<span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-primary/10 dark:bg-primary/20 text-primary">
+						<span className="px-2 py-0.5 rounded-full text-badge font-semibold uppercase tracking-wider bg-primary/10 dark:bg-primary/20 text-primary">
 							{owner.type}
 						</span>
 					</div>
@@ -347,15 +348,20 @@ export default function ProfilePage() {
 			try {
 				setLoading(true);
 				setError(null);
-				const res = await fetch(`/api/profile/${encodeURIComponent(id)}`);
-				if (!res.ok) {
-					throw new Error(
-						res.status === 404 ? "Owner not found" : "Failed to load profile",
-					);
-				}
-				setData(await res.json());
+				setData(
+					await cachedGetJSON<ProfileData>(
+						`/api/profile/${encodeURIComponent(id)}`,
+						{ ttlMs: 3 * 60 * 1000 },
+					),
+				);
 			} catch (err) {
-				setError(err instanceof Error ? err.message : "An error occurred");
+				const message =
+					err instanceof Error ? err.message : "An error occurred";
+				setError(
+					message.includes("404")
+						? "Owner not found"
+						: "Failed to load profile",
+				);
 			} finally {
 				setLoading(false);
 			}

@@ -579,7 +579,7 @@ export default function DocumentSidebar({
 				/>
 			)}
 
-			<aside className="w-[220px] shrink-0 flex flex-col self-stretch">
+			<aside className="w-full max-w-xl shrink-0 self-start lg:w-[220px] lg:self-stretch lg:max-w-none flex flex-col">
 				{/* header */}
 				<div className="flex items-center justify-between px-3 pt-3 pb-1">
 					<p className="text-badge text-on-surface-variant font-body">

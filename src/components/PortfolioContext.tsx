@@ -1,5 +1,6 @@
 "use client";
 
+import { cachedGetJSON } from "@/lib/clientCache";
 import {
 	DEFAULT_ROLE_PERMISSIONS,
 	Portfolio,
@@ -60,29 +61,26 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 		}
 
 		try {
-			const [portfolioRes, inviteRes] = await Promise.all([
-				fetch("/api/portfolios"),
-				fetch("/api/portfolios/invites"),
+			const [data, invites] = await Promise.all([
+				cachedGetJSON<PortfolioWithRole[]>("/api/portfolios", {
+					ttlMs: 60 * 1000,
+				}),
+				cachedGetJSON<PendingInvite[]>("/api/portfolios/invites", {
+					ttlMs: 60 * 1000,
+				}),
 			]);
+			setPortfolios(data);
 
-			if (portfolioRes.ok) {
-				const data: PortfolioWithRole[] = await portfolioRes.json();
-				setPortfolios(data);
-
-				// Restore saved active portfolio, or default to the first one
-				const saved = localStorage.getItem(ACTIVE_PORTFOLIO_KEY);
-				const match = data.find((p) => p.id === saved);
-				if (match) {
-					setActiveId(match.id);
-				} else if (data.length > 0) {
-					setActiveId(data[0].id);
-				}
+			// Restore saved active portfolio, or default to the first one
+			const saved = localStorage.getItem(ACTIVE_PORTFOLIO_KEY);
+			const match = data.find((p) => p.id === saved);
+			if (match) {
+				setActiveId(match.id);
+			} else if (data.length > 0) {
+				setActiveId(data[0].id);
 			}
 
-			if (inviteRes.ok) {
-				const invites: PendingInvite[] = await inviteRes.json();
-				setPendingInvites(invites);
-			}
+			setPendingInvites(invites);
 		} catch {
 			// silent
 		} finally {

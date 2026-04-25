@@ -1,3 +1,4 @@
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import { PortfolioMemberModel, PortfolioModel } from "@/models/Portfolio";
 import { PortfolioMemberStatus } from "@/types/property";
@@ -26,7 +27,13 @@ export async function GET() {
 			status: PortfolioMemberStatus.PENDING,
 		}).lean();
 
-		if (pending.length === 0) return NextResponse.json([]);
+		if (pending.length === 0) {
+			return NextResponse.json([], {
+				headers: {
+					"Cache-Control": CacheControl.privateShort,
+				},
+			});
+		}
 
 		// Enrich with portfolio info
 		const portfolioIds = pending.map((m: any) => m.portfolioId);
@@ -46,7 +53,11 @@ export async function GET() {
 			};
 		});
 
-		return NextResponse.json(invites);
+		return NextResponse.json(invites, {
+			headers: {
+				"Cache-Control": CacheControl.privateShort,
+			},
+		});
 	} catch (error) {
 		console.error("Error fetching invites:", error);
 		return NextResponse.json(

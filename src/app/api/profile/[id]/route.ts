@@ -1,3 +1,4 @@
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import { PropertyService } from "@/models/Property";
 import { PropertyStatus, PropertyVisibility } from "@/types/property";
@@ -46,18 +47,25 @@ export async function GET(
 			0,
 		);
 
-		return NextResponse.json({
-			owner,
-			stats: {
-				totalProperties: ownerProperties.length,
-				publicCount: publicProperties.length,
-				listedCount,
-				totalValue,
-				totalArea,
-				salesCount: owner.salesCount ?? 0,
+		return NextResponse.json(
+			{
+				owner,
+				stats: {
+					totalProperties: ownerProperties.length,
+					publicCount: publicProperties.length,
+					listedCount,
+					totalValue,
+					totalArea,
+					salesCount: owner.salesCount ?? 0,
+				},
+				properties: publicProperties,
 			},
-			properties: publicProperties,
-		});
+			{
+				headers: {
+					"Cache-Control": CacheControl.publicMedium,
+				},
+			},
+		);
 	} catch (error) {
 		console.error("Error fetching profile:", error);
 		return NextResponse.json(

@@ -1,4 +1,5 @@
 import { BookingAPI, PropertyAPI } from "@/lib/api";
+import { cachedGetJSON } from "@/lib/clientCache";
 import { Booking, Property } from "@/types/property";
 import {
 	useMutation,
@@ -103,9 +104,10 @@ export function useProviderSettings(enabled = true) {
 	return useQuery({
 		queryKey: queryKeys.settings.providers,
 		queryFn: async () => {
-			const res = await fetch("/api/settings/providers");
-			if (!res.ok) throw new Error("Failed to fetch providers");
-			const data = await res.json();
+			const data = await cachedGetJSON<{ providerSettings: unknown }>(
+				"/api/settings/providers",
+				{ ttlMs: 5 * 60 * 1000 },
+			);
 			return data.providerSettings;
 		},
 		enabled,

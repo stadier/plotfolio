@@ -1,3 +1,4 @@
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import {
 	createPersonalPortfolio,
@@ -42,9 +43,14 @@ export async function GET() {
 					userId,
 					(user as any).displayName,
 				);
-				return NextResponse.json([
-					{ ...portfolio, role: PortfolioRole.ADMIN, memberCount: 1 },
-				]);
+				return NextResponse.json(
+					[{ ...portfolio, role: PortfolioRole.ADMIN, memberCount: 1 }],
+					{
+						headers: {
+							"Cache-Control": CacheControl.privateShort,
+						},
+					},
+				);
 			}
 		}
 
@@ -67,7 +73,11 @@ export async function GET() {
 			memberCount: countMap.get(p.id) ?? 0,
 		}));
 
-		return NextResponse.json(withCounts);
+		return NextResponse.json(withCounts, {
+			headers: {
+				"Cache-Control": CacheControl.privateShort,
+			},
+		});
 	} catch (error) {
 		console.error("Error fetching portfolios:", error);
 		return NextResponse.json(

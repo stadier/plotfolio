@@ -1,4 +1,5 @@
 import { b2, B2_BUCKET } from "@/lib/b2";
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import { AIDocumentModel } from "@/models/AIDocument";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
@@ -68,7 +69,7 @@ export async function GET(
 			"Content-Disposition",
 			`inline; filename="${encodeURIComponent(doc.fileName || "document")}"`,
 		);
-		headers.set("Cache-Control", "private, max-age=3600");
+		headers.set("Cache-Control", CacheControl.privateMedium);
 
 		const bodyStream = response.Body.transformToWebStream();
 		return new NextResponse(bodyStream as ReadableStream, {

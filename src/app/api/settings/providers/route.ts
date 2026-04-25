@@ -1,3 +1,4 @@
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import { UserModel } from "@/models/User";
 import {
@@ -41,7 +42,14 @@ export async function GET() {
 		const saved = (auth.user as any).providerSettings ?? {};
 		const merged: ProviderSettings = { ...PROVIDER_DEFAULTS, ...saved };
 
-		return NextResponse.json({ providerSettings: merged });
+		return NextResponse.json(
+			{ providerSettings: merged },
+			{
+				headers: {
+					"Cache-Control": CacheControl.privateMedium,
+				},
+			},
+		);
 	} catch (error) {
 		console.error("Error fetching provider settings:", error);
 		return NextResponse.json(

@@ -1,4 +1,5 @@
 import { b2, B2_BUCKET } from "@/lib/b2";
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import { PropertyService } from "@/models/Property";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -73,7 +74,11 @@ export async function GET(
 			);
 		}
 
-		return NextResponse.json(property);
+		return NextResponse.json(property, {
+			headers: {
+				"Cache-Control": CacheControl.privateShort,
+			},
+		});
 	} catch (error) {
 		console.error("Error fetching property:", error);
 		return NextResponse.json(

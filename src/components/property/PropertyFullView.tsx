@@ -37,7 +37,6 @@ import {
 	Home,
 	ImagePlus,
 	Landmark,
-	Loader2,
 	Mail,
 	MapPin,
 	MessageCircle,
@@ -622,62 +621,16 @@ function TitleRow({
 
 /* ─── Description with See More ──────────────────────────────── */
 
-function DescriptionBlock({
-	text,
-	isOwner,
-	propertyId,
-	onGenerated,
-}: {
-	text: string;
-	isOwner?: boolean;
-	propertyId?: string;
-	onGenerated?: (description: string) => void;
-}) {
+function DescriptionBlock({ text }: { text: string }) {
 	const [expanded, setExpanded] = useState(false);
-	const [generating, setGenerating] = useState(false);
 	const isLong = text.length > 280;
 	const visible = expanded ? text : text.slice(0, 280);
 
-	async function handleGenerate() {
-		if (!propertyId) return;
-		setGenerating(true);
-		try {
-			const res = await fetch(
-				`/api/properties/${propertyId}/generate-description`,
-				{ method: "POST" },
-			);
-			if (res.ok) {
-				const { description } = await res.json();
-				onGenerated?.(description);
-			}
-		} finally {
-			setGenerating(false);
-		}
-	}
-
 	return (
 		<section>
-			<div className="flex items-center gap-2 mb-2">
-				<h2 className="font-headline text-base font-semibold text-on-surface">
-					Description
-				</h2>
-				{isOwner && propertyId && (
-					<button
-						type="button"
-						onClick={handleGenerate}
-						disabled={generating}
-						title="Generate description with AI"
-						className="flex items-center gap-1 text-[11px] text-primary font-medium hover:underline disabled:opacity-50"
-					>
-						{generating ? (
-							<Loader2 className="w-3 h-3 animate-spin" />
-						) : (
-							<Sparkles className="w-3 h-3" />
-						)}
-						{generating ? "Generating…" : "Generate with AI"}
-					</button>
-				)}
-			</div>
+			<h2 className="font-headline text-base font-semibold text-on-surface mb-2">
+				Description
+			</h2>
 			<p className="text-sm text-on-surface-variant leading-relaxed whitespace-pre-line">
 				{visible}
 				{isLong && !expanded && "… "}
@@ -795,23 +748,123 @@ function PropertyDetails({ property }: { property: Property }) {
 		cards.push({ icon: Sparkles, label: "Amenity", value: a });
 	});
 
-	if (cards.length === 0) return null;
+	// Structure detail cards
+	const s = property.structure;
+	const structureCards: {
+		icon: React.ComponentType<{ className?: string }>;
+		label: string;
+		value: string;
+	}[] = [];
+	if (s) {
+		if (s.name)
+			structureCards.push({ icon: Home, label: "Structure", value: s.name });
+		if (s.type)
+			structureCards.push({
+				icon: Building2,
+				label: "Structure Type",
+				value: s.type
+					.replace(/_/g, " ")
+					.replace(/\b\w/g, (c) => c.toUpperCase()),
+			});
+		if (s.floors != null)
+			structureCards.push({
+				icon: Building2,
+				label: "Floors",
+				value: `${s.floors}`,
+			});
+		if (s.area != null) {
+			const sqft = Math.round(s.area * 10.7639);
+			structureCards.push({
+				icon: Ruler,
+				label: "Structure Area",
+				value: `${sqft.toLocaleString()} sq ft`,
+			});
+		}
+		if (s.bedrooms != null)
+			structureCards.push({
+				icon: BedDouble,
+				label: "Bedrooms",
+				value: `${s.bedrooms}`,
+			});
+		if (s.bathrooms != null)
+			structureCards.push({
+				icon: Bath,
+				label: "Bathrooms",
+				value: `${s.bathrooms}`,
+			});
+		if (s.parkingSpaces != null)
+			structureCards.push({
+				icon: Car,
+				label: "Parking",
+				value: `${s.parkingSpaces} Spaces`,
+			});
+		if (s.yearBuilt != null)
+			structureCards.push({
+				icon: Landmark,
+				label: "Year Built",
+				value: `${s.yearBuilt}`,
+			});
+		if (s.condition)
+			structureCards.push({
+				icon: conditionIcon(s.condition),
+				label: "Condition",
+				value: s.condition
+					.replace(/_/g, " ")
+					.replace(/\b\w/g, (c) => c.toUpperCase()),
+			});
+		if (s.occupancyStatus)
+			structureCards.push({
+				icon: Shield,
+				label: "Occupancy",
+				value: s.occupancyStatus
+					.replace(/_/g, " ")
+					.replace(/\b\w/g, (c) => c.toUpperCase()),
+			});
+	}
+
+	if (cards.length === 0 && structureCards.length === 0) return null;
 
 	return (
-		<section>
-			<h2 className="font-headline text-base font-semibold text-on-surface mb-3">
-				Property Details
-			</h2>
-			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-				{cards.map((c, i) => (
-					<DetailCard
-						key={`${c.label}-${i}`}
-						icon={c.icon}
-						label={c.label}
-						value={c.value}
-					/>
-				))}
-			</div>
+		<section className="space-y-4">
+			{cards.length > 0 && (
+				<div>
+					<h2 className="font-headline text-base font-semibold text-on-surface mb-3">
+						Property Details
+					</h2>
+					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+						{cards.map((c, i) => (
+							<DetailCard
+								key={`${c.label}-${i}`}
+								icon={c.icon}
+								label={c.label}
+								value={c.value}
+							/>
+						))}
+					</div>
+				</div>
+			)}
+			{structureCards.length > 0 && (
+				<div>
+					<h2 className="font-headline text-base font-semibold text-on-surface mb-3">
+						Structure Details
+					</h2>
+					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+						{structureCards.map((c, i) => (
+							<DetailCard
+								key={`struct-${c.label}-${i}`}
+								icon={c.icon}
+								label={c.label}
+								value={c.value}
+							/>
+						))}
+					</div>
+					{s?.notes && (
+						<p className="mt-2 text-xs text-on-surface-variant px-1">
+							{s.notes}
+						</p>
+					)}
+				</div>
+			)}
 		</section>
 	);
 }
@@ -1601,6 +1654,11 @@ export default function PropertyFullView({
 		ownershipOpen &&
 		marketOpen &&
 		insightsOpen &&
+		settingsOpen &&
+		saleOpen &&
+		docsOpen &&
+		linkedDocsOpen &&
+		(mediaItems.length === 0 || mediaOpen) &&
 		(!hasCoordinates || mapOpen);
 
 	const setDetailSectionsOpen = (open: boolean) => {
@@ -1608,6 +1666,11 @@ export default function PropertyFullView({
 		setOwnershipOpen(open);
 		setMarketOpen(open);
 		setInsightsOpen(open);
+		setMediaOpen(open);
+		setSettingsOpen(open);
+		setSaleOpen(open);
+		setDocsOpen(open);
+		setLinkedDocsOpen(open);
 		if (hasCoordinates) {
 			setMapOpen(open);
 		}
@@ -1663,6 +1726,118 @@ export default function PropertyFullView({
 			<div
 				className={`${rightCol} overflow-y-auto p-0 space-y-0 border-border`}
 			>
+				{/* Overview (mobile accordion) — always first */}
+				<MobileAccordionSection
+					title="Overview"
+					open={overviewOpen}
+					onToggle={() => setOverviewOpen(!overviewOpen)}
+					className={mobileOnly}
+					rightAction={
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								setDetailSectionsOpen(!allDetailsOpen);
+							}}
+							className="text-xs text-on-surface-variant hover:text-primary transition-colors"
+						>
+							{allDetailsOpen ? "Collapse All" : "Expand All"}
+						</button>
+					}
+				>
+					<div className="space-y-6">
+						<div className="flex items-center gap-2 text-sm text-on-surface-variant">
+							<MapPin className="w-4 h-4 shrink-0" />
+							<span>{locationText || "Location not specified"}</span>
+							{property.country && (
+								<span className="text-base">
+									{countryFlag(property.country)}
+								</span>
+							)}
+						</div>
+
+						{hasCoordinates && (
+							<div className="flex items-center gap-2 text-sm">
+								<Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+								<span className="font-mono text-primary font-semibold tracking-wide">
+									{toPlotWords(
+										property.coordinates.lat,
+										property.coordinates.lng,
+									)}
+								</span>
+								<button
+									type="button"
+									className="text-outline hover:text-on-surface transition-colors"
+									title="Copy PlotWords code"
+									onClick={() => {
+										navigator.clipboard.writeText(
+											toPlotWords(
+												property.coordinates.lat,
+												property.coordinates.lng,
+											),
+										);
+									}}
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										className="w-3.5 h-3.5"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									>
+										<rect x="9" y="9" width="13" height="13" rx="2" />
+										<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+									</svg>
+								</button>
+							</div>
+						)}
+
+						{!hideHeader && <TitleRow property={property} actions={actions} />}
+						{property.description && (
+							<DescriptionBlock text={property.description} />
+						)}
+						<PropertyDetails property={property} />
+
+						{!hideHeader && (
+							<div className="text-xs text-outline space-y-1 px-1">
+								{property.createdAt && (
+									<p className="mb-4">
+										Listed:{" "}
+										<span className="text-on-surface font-medium">
+											{formatDate(property.createdAt)}
+										</span>
+									</p>
+								)}
+								{property.status && (
+									<div className="flex items-center gap-2">
+										{isOwner ? (
+											<StatusToggle
+												property={property}
+												onToggle={(newStatus) =>
+													updateProperty.mutate({
+														id: property.id,
+														updates: { status: newStatus },
+													})
+												}
+												isPending={updateProperty.isPending}
+											/>
+										) : (
+											<span
+												className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
+											>
+												{property.status.replace(/_/g, " ").toUpperCase()}
+											</span>
+										)}
+									</div>
+								)}
+							</div>
+						)}
+					</div>
+				</MobileAccordionSection>
+
 				{/* Active sale (auction / open offers) — visible to everyone */}
 				{hasSale ? (
 					<MobileAccordionSection
@@ -1768,128 +1943,6 @@ export default function PropertyFullView({
 						/>
 					</MobileAccordionSection>
 				)}
-
-				{/* Overview (mobile accordion) */}
-				<MobileAccordionSection
-					title="Overview"
-					open={overviewOpen}
-					onToggle={() => setOverviewOpen(!overviewOpen)}
-					className={mobileOnly}
-					rightAction={
-						<button
-							type="button"
-							onClick={(e) => {
-								e.stopPropagation();
-								setDetailSectionsOpen(!allDetailsOpen);
-							}}
-							className="text-xs text-on-surface-variant hover:text-primary transition-colors"
-						>
-							{allDetailsOpen ? "Collapse All" : "Expand All"}
-						</button>
-					}
-				>
-					<div className="space-y-6">
-						<div className="flex items-center gap-2 text-sm text-on-surface-variant">
-							<MapPin className="w-4 h-4 shrink-0" />
-							<span>{locationText || "Location not specified"}</span>
-							{property.country && (
-								<span className="text-base">
-									{countryFlag(property.country)}
-								</span>
-							)}
-						</div>
-
-						{hasCoordinates && (
-							<div className="flex items-center gap-2 text-sm">
-								<Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-								<span className="font-mono text-primary font-semibold tracking-wide">
-									{toPlotWords(
-										property.coordinates.lat,
-										property.coordinates.lng,
-									)}
-								</span>
-								<button
-									type="button"
-									className="text-outline hover:text-on-surface transition-colors"
-									title="Copy PlotWords code"
-									onClick={() => {
-										navigator.clipboard.writeText(
-											toPlotWords(
-												property.coordinates.lat,
-												property.coordinates.lng,
-											),
-										);
-									}}
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										className="w-3.5 h-3.5"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									>
-										<rect x="9" y="9" width="13" height="13" rx="2" />
-										<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-									</svg>
-								</button>
-							</div>
-						)}
-
-						{!hideHeader && <TitleRow property={property} actions={actions} />}
-						{(property.description || isOwner) && (
-							<DescriptionBlock
-								text={property.description ?? ""}
-								isOwner={isOwner}
-								propertyId={property.id}
-								onGenerated={(desc) =>
-									updateProperty.mutate({
-										id: property.id,
-										updates: { description: desc },
-									})
-								}
-							/>
-						)}
-						<PropertyDetails property={property} />
-
-						{!hideHeader && (
-							<div className="text-xs text-outline space-y-1 px-1">
-								{property.createdAt && (
-									<p className="mb-4">
-										Listed:{" "}
-										<span className="text-on-surface font-medium">
-											{formatDate(property.createdAt)}
-										</span>
-									</p>
-								)}
-								{property.status && (
-									<div className="flex items-center gap-2">
-										{isOwner ? (
-											<StatusToggle
-												property={property}
-												onToggle={(newStatus) =>
-													updateProperty.mutate({
-														id: property.id,
-														updates: { status: newStatus },
-													})
-												}
-												isPending={updateProperty.isPending}
-											/>
-										) : (
-											<span
-												className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}
-											>
-												{property.status.replace(/_/g, " ").toUpperCase()}
-											</span>
-										)}
-									</div>
-								)}
-							</div>
-						)}
-					</div>
-				</MobileAccordionSection>
 
 				{/* Map (mobile accordion) */}
 				{hasCoordinates && (
@@ -2051,18 +2104,8 @@ export default function PropertyFullView({
 							{!hideHeader && (
 								<TitleRow property={property} actions={actions} />
 							)}
-							{(property.description || isOwner) && (
-								<DescriptionBlock
-									text={property.description ?? ""}
-									isOwner={isOwner}
-									propertyId={property.id}
-									onGenerated={(desc) =>
-										updateProperty.mutate({
-											id: property.id,
-											updates: { description: desc },
-										})
-									}
-								/>
+							{property.description && (
+								<DescriptionBlock text={property.description} />
 							)}
 							<PropertyDetails property={property} />
 

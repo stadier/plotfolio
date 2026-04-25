@@ -18,7 +18,7 @@
 
 - [ ] **6. Pagination** — Cursor-based or offset pagination for property list, document list, and marketplace endpoints
 - [ ] **7. Image Optimization** — Thumbnail generation on upload, Next.js Image component, lazy-loading in grids
-- [ ] **8. Database Query Optimization** — Compound indexes, `.lean()` queries, React Query stale time caching
+- [x] **8. Database Query Optimization** — Compound indexes, `.lean()` queries, React Query stale time caching
 - [ ] **9. Map Performance** — Marker clustering, lazy-load tiles/boundaries, debounce viewport events
 
 ### User Experience

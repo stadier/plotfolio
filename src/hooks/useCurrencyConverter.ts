@@ -1,14 +1,15 @@
 "use client";
 
 import { useAuth } from "@/components/AuthContext";
+import { cachedGetJSON } from "@/lib/clientCache";
 import { convertAmount, type ExchangeRates } from "@/lib/exchangeRates";
 import { getCurrencyForCountry, getLocaleForCountry } from "@/lib/locale";
 import { useQuery } from "@tanstack/react-query";
 
 async function fetchRates(): Promise<ExchangeRates> {
-	const res = await fetch("/api/exchange-rates");
-	if (!res.ok) throw new Error("Failed to fetch exchange rates");
-	return res.json();
+	return cachedGetJSON<ExchangeRates>("/api/exchange-rates", {
+		ttlMs: 60 * 60 * 1000,
+	});
 }
 
 /**

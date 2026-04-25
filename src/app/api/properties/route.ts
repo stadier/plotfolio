@@ -1,3 +1,4 @@
+import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
 import { PropertyService } from "@/models/Property";
 import { BidModel, SaleModel } from "@/models/Sale";
@@ -88,10 +89,18 @@ export async function GET(request: NextRequest) {
 					activeSale: stats ? { ...sale, bidStats: stats } : sale,
 				};
 			});
-			return NextResponse.json(enriched);
+			return NextResponse.json(enriched, {
+				headers: {
+					"Cache-Control": CacheControl.privateShort,
+				},
+			});
 		}
 
-		return NextResponse.json(filtered);
+		return NextResponse.json(filtered, {
+			headers: {
+				"Cache-Control": CacheControl.privateShort,
+			},
+		});
 	} catch (error) {
 		console.error("Error fetching properties:", error);
 		return NextResponse.json(
