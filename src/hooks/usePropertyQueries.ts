@@ -1,6 +1,7 @@
 import { BookingAPI, PropertyAPI } from "@/lib/api";
-import { cachedGetJSON } from "@/lib/clientCache";
+import { cachedAuthGetJSON } from "@/lib/clientCache";
 import { Booking, Property } from "@/types/property";
+import type { ProviderSettings } from "@/types/providers";
 import {
 	useMutation,
 	useQuery,
@@ -51,6 +52,7 @@ export function useMyProperties(
 			return PropertyAPI.getMyProperties(ownerId, portfolioId, isOwnPortfolio);
 		},
 		enabled: !!ownerId,
+		refetchOnMount: "always",
 		...options,
 	});
 }
@@ -101,14 +103,13 @@ export function useOwnerBookings(ownerId: string | undefined) {
 // ── Settings queries ──────────────────────────────────────────────────────────
 
 export function useProviderSettings(enabled = true) {
-	return useQuery({
+	return useQuery<ProviderSettings | null>({
 		queryKey: queryKeys.settings.providers,
 		queryFn: async () => {
-			const data = await cachedGetJSON<{ providerSettings: unknown }>(
-				"/api/settings/providers",
-				{ ttlMs: 5 * 60 * 1000 },
-			);
-			return data.providerSettings;
+			const data = await cachedAuthGetJSON<{
+				providerSettings: ProviderSettings | null;
+			}>("/api/settings/providers", { ttlMs: 5 * 60 * 1000 });
+			return data.providerSettings ?? null;
 		},
 		enabled,
 	});

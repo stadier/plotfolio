@@ -5,7 +5,7 @@ import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
 	DocumentAccessRequest,
-	Property,
+	PropertyDocument,
 } from "@/types/property";
 import {
 	Check,
@@ -290,7 +290,7 @@ export function RestrictedDocumentRow({
 	existingRequests,
 	onRequested,
 }: {
-	doc: Property["documents"][0];
+	doc: PropertyDocument;
 	propertyId: string;
 	viewerId: string;
 	viewerName: string;
@@ -352,7 +352,7 @@ export function AccessRequestManager({
 }: {
 	propertyId: string;
 	ownerId: string;
-	documents: Property["documents"];
+	documents: PropertyDocument[];
 }) {
 	const [requests, setRequests] = useState<DocumentAccessRequest[]>([]);
 	const [loading, setLoading] = useState(true);

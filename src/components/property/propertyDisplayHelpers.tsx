@@ -3,23 +3,23 @@
 import { queryKeys } from "@/hooks/usePropertyQueries";
 import { useQueryClient } from "@tanstack/react-query";
 
+import FileUploader from "@/components/ui/FileUploader";
 import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
+import { invalidateCachedGet } from "@/lib/clientCache";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
 	DocumentAccessRequest,
 	DocumentType,
-	Property,
+	PropertyDocument,
 	PropertyStatus,
 } from "@/types/property";
 import { WatermarkConfig, WatermarkType } from "@/types/seal";
 import {
-	ChevronDown,
 	Droplets,
 	Eye,
 	FileText,
 	MoreVertical,
-	Plus,
 	Trash2,
 	Upload,
 } from "lucide-react";
@@ -123,7 +123,7 @@ function RemoteImageThumbnail({ url, name }: { url: string; name: string }) {
 		<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-surface-container">
 			{/* eslint-disable-next-line @next/next/no-img-element */}
 			<img src={url} alt={name} className="w-full h-full object-cover" />
-			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-badge font-medium px-1.5 py-0.5 rounded">
 				IMG
 			</span>
 		</div>
@@ -145,7 +145,7 @@ function RemotePdfThumbnail() {
 				<div className="absolute top-0 right-0 w-0 h-0 border-t-20 border-t-slate-100 border-l-20 border-l-transparent" />
 				<div className="absolute top-0 right-0 w-0 h-0 border-b-20 border-b-slate-200/60 border-l-20 border-l-transparent" />
 			</div>
-			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-red-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-red-500/90 text-white text-badge font-bold px-1.5 py-0.5 rounded">
 				<FileText className="w-2.5 h-2.5" />
 				PDF
 			</span>
@@ -170,7 +170,7 @@ function RemoteGenericThumbnail({
 				<div className="absolute top-0 right-0 w-0 h-0 border-t-20 border-t-slate-100 border-l-20 border-l-transparent" />
 				<div className="absolute top-0 right-0 w-0 h-0 border-b-20 border-b-slate-300/60 border-l-20 border-l-transparent" />
 			</div>
-			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-slate-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-slate-500/90 text-white text-badge font-bold px-1.5 py-0.5 rounded">
 				<FileText className="w-2.5 h-2.5" />
 				{extensionLabel}
 			</span>
@@ -194,7 +194,7 @@ function DocumentCard({
 	accessRequests = [],
 	onAccessRequested,
 }: {
-	doc: Property["documents"][0];
+	doc: PropertyDocument;
 	propertyId: string;
 	isOwner: boolean;
 	onDeleted: (docId: string) => void;
@@ -209,10 +209,10 @@ function DocumentCard({
 	onAccessRequested?: (req: DocumentAccessRequest) => void;
 }) {
 	const queryClient = useQueryClient();
-	const [typeOpen, setTypeOpen] = useState(false);
-	const typeRef = useRef<HTMLDivElement>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
+	const [classifyOpen, setClassifyOpen] = useState(false);
+	const [classifyDraft, setClassifyDraft] = useState<DocumentType>(doc.type);
 	const [watermarkOpen, setWatermarkOpen] = useState(false);
 	const [watermarkState, setWatermarkState] = useState<
 		WatermarkConfig | undefined
@@ -228,16 +228,6 @@ function DocumentCard({
 
 	useEffect(() => {
 		function handleClickOutside(e: MouseEvent) {
-			if (typeRef.current && !typeRef.current.contains(e.target as Node)) {
-				setTypeOpen(false);
-			}
-		}
-		if (typeOpen) document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, [typeOpen]);
-
-	useEffect(() => {
-		function handleClickOutside(e: MouseEvent) {
 			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
 				setMenuOpen(false);
 			}
@@ -245,6 +235,10 @@ function DocumentCard({
 		if (menuOpen) document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [menuOpen]);
+
+	useEffect(() => {
+		setClassifyDraft(doc.type);
+	}, [doc.type]);
 
 	const accessLevel = doc.accessLevel ?? DocumentAccessLevel.PUBLIC;
 	const kind = getFileKind(doc.name, doc.url);
@@ -353,6 +347,11 @@ function DocumentCard({
 
 	const hasWatermark = !!watermarkState;
 
+	function handleSaveClassification() {
+		onTypeChanged(doc.id, classifyDraft);
+		setClassifyOpen(false);
+	}
+
 	return (
 		<div className="w-44 flex flex-col rounded-xl bg-card border border-border group relative shrink-0 hover:shadow-md transition-all">
 			{/* Rich thumbnail */}
@@ -410,6 +409,17 @@ function DocumentCard({
 										<Droplets className="w-3.5 h-3.5 shrink-0" />
 										{hasWatermark ? "Edit Watermark" : "Add Watermark"}
 									</button>
+									<button
+										type="button"
+										onClick={() => {
+											setMenuOpen(false);
+											setClassifyOpen((v) => !v);
+										}}
+										className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
+									>
+										<FileText className="w-3.5 h-3.5 shrink-0" />
+										Classify Document
+									</button>
 									<div className="my-0.5 border-t border-border" />
 									<button
 										type="button"
@@ -434,6 +444,49 @@ function DocumentCard({
 				<div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-blue-600/80 backdrop-blur-sm text-white text-[9px] font-medium px-1.5 py-0.5 rounded pointer-events-none">
 					<Droplets className="w-2.5 h-2.5" />
 					WM
+				</div>
+			)}
+
+			{/* Inline classification panel */}
+			{classifyOpen && isOwner && (
+				<div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-md shadow-xl z-50 p-3 animate-in fade-in slide-in-from-top-1 duration-150">
+					<p className="text-[11px] font-semibold text-on-surface mb-2 font-headline uppercase tracking-wider flex items-center gap-1.5">
+						<FileText className="w-3.5 h-3.5 text-primary" />
+						Classify Document
+					</p>
+					<label className="block text-badge text-on-surface-variant mb-1">
+						Type
+					</label>
+					<select
+						value={classifyDraft}
+						onChange={(e) => setClassifyDraft(e.target.value as DocumentType)}
+						className="w-full text-[11px] bg-surface-container border border-border rounded-md px-2 py-1 text-on-surface mb-3 focus:outline-none"
+					>
+						{DOCUMENT_CATEGORIES.map((cat) => (
+							<option key={cat.type} value={cat.type}>
+								{cat.label}
+							</option>
+						))}
+					</select>
+					<div className="flex gap-1.5">
+						<button
+							type="button"
+							onClick={handleSaveClassification}
+							className="flex-1 text-badge font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-md py-1.5 transition-colors"
+						>
+							Save
+						</button>
+						<button
+							type="button"
+							onClick={() => {
+								setClassifyDraft(doc.type);
+								setClassifyOpen(false);
+							}}
+							className="text-badge font-medium text-on-surface-variant hover:text-on-surface px-2 py-1.5 rounded-md hover:bg-surface-container transition-colors"
+						>
+							Cancel
+						</button>
+					</div>
 				</div>
 			)}
 
@@ -559,7 +612,7 @@ function DocumentCard({
 				>
 					{doc.name}
 				</p>
-				<p className="text-[10px] text-on-surface-variant mt-0.5 font-body">
+				<p className="text-badge text-on-surface-variant mt-0.5 font-body">
 					{extensionLabel} &middot;{" "}
 					{new Date(doc.uploadDate).toLocaleDateString("en-US", {
 						month: "short",
@@ -568,33 +621,14 @@ function DocumentCard({
 				</p>
 			</div>
 
-			{/* Type at bottom — clickable to change */}
-			<div className="px-2.5 pb-2 mt-auto relative" ref={typeRef}>
-				<button
-					onClick={() => isOwner && setTypeOpen(!typeOpen)}
-					className={`text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-surface-container-highest cursor-pointer" : ""}`}
-					title={
-						isOwner ? "Click to change type" : getDocumentTypeLabel(doc.type)
-					}
+			{/* Type at bottom */}
+			<div className="px-2.5 pb-2 mt-auto">
+				<span
+					className="inline-flex text-badge uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant truncate max-w-full"
+					title={getDocumentTypeLabel(doc.type)}
 				>
 					{getDocumentTypeLabel(doc.type)}
-				</button>
-				{typeOpen && (
-					<div className="absolute bottom-full left-0 mb-1 bg-card border border-border rounded-lg shadow-lg z-30 py-1 w-48">
-						{DOCUMENT_CATEGORIES.map((cat) => (
-							<button
-								key={cat.type}
-								onClick={() => {
-									onTypeChanged(doc.id, cat.type);
-									setTypeOpen(false);
-								}}
-								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container ${doc.type === cat.type ? "font-semibold text-on-surface" : "text-on-surface-variant"}`}
-							>
-								{cat.label}
-							</button>
-						))}
-					</div>
-				)}
+				</span>
 			</div>
 		</div>
 	);
@@ -605,7 +639,6 @@ function DocumentCard({
 interface PendingDoc {
 	id: number;
 	file: File;
-	type: DocumentType;
 	status: "uploading" | "failed";
 	error?: string;
 }
@@ -627,7 +660,7 @@ function LocalImageThumbnail({ file }: { file: File }) {
 				alt={file.name}
 				className="w-full h-full object-cover opacity-60"
 			/>
-			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-badge font-medium px-1.5 py-0.5 rounded">
 				IMG
 			</span>
 		</div>
@@ -700,81 +733,6 @@ function DocUploadPlaceholder({
 	);
 }
 
-// ----- Document upload button (with type picker) -----
-function DocumentUploadButton({
-	onFilePicked,
-}: {
-	onFilePicked: (file: File, type: DocumentType) => void;
-}) {
-	const [selectedType, setSelectedType] = useState<DocumentType>(
-		DocumentType.OTHER,
-	);
-	const [typeOpen, setTypeOpen] = useState(false);
-	const inputRef = useRef<HTMLInputElement>(null);
-	const dropdownRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		function handleClickOutside(e: MouseEvent) {
-			if (
-				dropdownRef.current &&
-				!dropdownRef.current.contains(e.target as Node)
-			) {
-				setTypeOpen(false);
-			}
-		}
-		if (typeOpen) document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, [typeOpen]);
-
-	return (
-		<div className="w-32 shrink-0 flex flex-col items-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 hover:bg-surface-container-high transition-colors">
-			{/* Type selector */}
-			<div className="relative mt-3 px-2 w-full" ref={dropdownRef}>
-				<button
-					onClick={() => setTypeOpen(!typeOpen)}
-					className="w-full flex items-center justify-center gap-1 text-badge text-outline hover:text-on-surface-variant uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border"
-				>
-					<span className="truncate">{getDocumentTypeLabel(selectedType)}</span>
-					<ChevronDown className="w-3 h-3 shrink-0" />
-				</button>
-				{typeOpen && (
-					<div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-30 py-1 w-48">
-						{DOCUMENT_CATEGORIES.map((cat) => (
-							<button
-								key={cat.type}
-								onClick={() => {
-									setSelectedType(cat.type);
-									setTypeOpen(false);
-								}}
-								className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-container ${selectedType === cat.type ? "font-semibold text-on-surface" : "text-on-surface-variant"}`}
-							>
-								{cat.label}
-							</button>
-						))}
-					</div>
-				)}
-			</div>
-			{/* Upload trigger */}
-			<label className="flex-1 flex flex-col items-center justify-center cursor-pointer py-6 w-full">
-				<Plus className="w-5 h-5 text-outline" />
-				<span className="text-badge text-outline mt-1">Upload</span>
-				<input
-					ref={inputRef}
-					type="file"
-					className="hidden"
-					onChange={(e) => {
-						const file = e.target.files?.[0];
-						if (file) {
-							onFilePicked(file, selectedType);
-							if (inputRef.current) inputRef.current.value = "";
-						}
-					}}
-				/>
-			</label>
-		</div>
-	);
-}
-
 // ----- Documents grid (only shows when docs exist or owner) -----
 export function DocumentsGrid({
 	documents,
@@ -791,9 +749,9 @@ export function DocumentsGrid({
 	accessRequests = [],
 	onAccessRequested,
 }: {
-	documents: Property["documents"];
+	documents: PropertyDocument[];
 	propertyId: string;
-	onUploaded: (doc: Property["documents"][0]) => void;
+	onUploaded: (doc: PropertyDocument) => void;
 	onDeleted: (docId: string) => void;
 	onTypeChanged: (docId: string, newType: DocumentType) => void;
 	isOwner?: boolean;
@@ -809,21 +767,23 @@ export function DocumentsGrid({
 	const [pendingDocs, setPendingDocs] = useState<PendingDoc[]>([]);
 	const pendingIdRef = useRef(0);
 	const hasDocuments = documents.length > 0;
-	const [previewDoc, setPreviewDoc] = useState<Property["documents"][0] | null>(
-		null,
-	);
+	const [previewDoc, setPreviewDoc] = useState<PropertyDocument | null>(null);
+	const showEmptyUpload = isOwner && !hasDocuments && pendingDocs.length === 0;
 
 	if (!hasDocuments && !isOwner && pendingDocs.length === 0) return null;
 
-	async function uploadDoc(id: number, file: File, type: DocumentType) {
+	async function uploadDoc(id: number, file: File) {
 		try {
 			const formData = new FormData();
 			formData.append("file", file);
-			formData.append("type", type);
+			formData.append("type", DocumentType.OTHER);
 			formData.append("name", file.name);
 			const res = await fetch(
 				`${API_BASE}/properties/${propertyId}/documents`,
-				{ method: "POST", body: formData },
+				{
+					method: "POST",
+					body: formData,
+				},
 			);
 			if (!res.ok) {
 				const err = await res.json();
@@ -832,6 +792,7 @@ export function DocumentsGrid({
 			const { document } = await res.json();
 			onUploaded(document);
 			setPendingDocs((prev) => prev.filter((p) => p.id !== id));
+			invalidateCachedGet(`/api/properties/${propertyId}`);
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.detail(propertyId),
 			});
@@ -843,13 +804,12 @@ export function DocumentsGrid({
 		}
 	}
 
-	function handleFilePicked(file: File, type: DocumentType) {
-		const id = ++pendingIdRef.current;
-		setPendingDocs((prev) => [
-			...prev,
-			{ id, file, type, status: "uploading" },
-		]);
-		uploadDoc(id, file, type);
+	function handleFilesPicked(files: File[]) {
+		for (const file of files) {
+			const id = ++pendingIdRef.current;
+			setPendingDocs((prev) => [...prev, { id, file, status: "uploading" }]);
+			uploadDoc(id, file);
+		}
 	}
 
 	return (
@@ -864,47 +824,55 @@ export function DocumentsGrid({
 					onClose={() => setPreviewDoc(null)}
 				/>
 			)}
-			<div className="flex flex-wrap gap-3 items-start">
-				{documents.map((doc) => (
-					<DocumentCard
-						key={doc.id}
-						doc={doc}
-						propertyId={propertyId}
-						isOwner={isOwner}
-						onDeleted={onDeleted}
-						onTypeChanged={onTypeChanged}
-						onAccessLevelChanged={onAccessLevelChanged}
-						onPreview={() => setPreviewDoc(doc)}
-						viewerId={viewerId}
-						viewerName={viewerName}
-						viewerEmail={viewerEmail}
-						viewerAvatar={viewerAvatar}
-						accessRequests={accessRequests}
-						onAccessRequested={onAccessRequested}
-					/>
-				))}
-				{/* Upload placeholders — one card per pending file */}
-				{pendingDocs.map((item) => (
-					<DocUploadPlaceholder
-						key={item.id}
-						item={item}
-						onRetry={() => {
-							setPendingDocs((prev) =>
-								prev.map((p) =>
-									p.id === item.id
-										? { ...p, status: "uploading", error: undefined }
-										: p,
-								),
-							);
-							uploadDoc(item.id, item.file, item.type);
-						}}
-						onDismiss={() =>
-							setPendingDocs((prev) => prev.filter((p) => p.id !== item.id))
-						}
-					/>
-				))}
-				{isOwner && <DocumentUploadButton onFilePicked={handleFilePicked} />}
-			</div>
+			{showEmptyUpload ? (
+				<FileUploader
+					onFiles={handleFilesPicked}
+					empty
+					emptyLabel="Drag & drop documents here"
+				/>
+			) : (
+				<div className="flex flex-wrap gap-3 items-start">
+					{documents.map((doc) => (
+						<DocumentCard
+							key={doc.id}
+							doc={doc}
+							propertyId={propertyId}
+							isOwner={isOwner}
+							onDeleted={onDeleted}
+							onTypeChanged={onTypeChanged}
+							onAccessLevelChanged={onAccessLevelChanged}
+							onPreview={() => setPreviewDoc(doc)}
+							viewerId={viewerId}
+							viewerName={viewerName}
+							viewerEmail={viewerEmail}
+							viewerAvatar={viewerAvatar}
+							accessRequests={accessRequests}
+							onAccessRequested={onAccessRequested}
+						/>
+					))}
+					{/* Upload placeholders — one card per pending file */}
+					{pendingDocs.map((item) => (
+						<DocUploadPlaceholder
+							key={item.id}
+							item={item}
+							onRetry={() => {
+								setPendingDocs((prev) =>
+									prev.map((p) =>
+										p.id === item.id
+											? { ...p, status: "uploading", error: undefined }
+											: p,
+									),
+								);
+								uploadDoc(item.id, item.file);
+							}}
+							onDismiss={() =>
+								setPendingDocs((prev) => prev.filter((p) => p.id !== item.id))
+							}
+						/>
+					))}
+					{isOwner && <FileUploader onFiles={handleFilesPicked} />}
+				</div>
+			)}
 		</>
 	);
 }

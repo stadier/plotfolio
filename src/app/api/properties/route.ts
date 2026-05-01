@@ -1,7 +1,10 @@
 import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
+import { getSessionUser } from "@/lib/session";
+import { checkPortfolioAccess } from "@/models/Portfolio";
 import { PropertyService } from "@/models/Property";
 import { BidModel, SaleModel } from "@/models/Sale";
+import { PortfolioRole } from "@/types/property";
 import { SaleStatus } from "@/types/sale";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -20,6 +23,30 @@ export async function GET(request: NextRequest) {
 		const include = (searchParams.get("include") ?? "")
 			.split(",")
 			.map((s) => s.trim());
+
+		// Require authentication when filtering by portfolio or owner
+		if (ownerId || portfolioId) {
+			const sessionUser = await getSessionUser();
+			if (!sessionUser) {
+				return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+			}
+			// If portfolioId supplied, verify the caller is a member
+			if (portfolioId) {
+				const hasAccess = await checkPortfolioAccess(
+					sessionUser.id,
+					portfolioId,
+					PortfolioRole.VIEWER,
+				);
+				if (!hasAccess) {
+					return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+				}
+			}
+			// If only ownerId supplied, it must match the authenticated user
+			if (ownerId && !portfolioId && ownerId !== sessionUser.id) {
+				return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+			}
+		}
+
 		let properties = await PropertyService.getAllProperties();
 		if (ownerId && portfolioId) {
 			// Own portfolio: match by portfolio OR by ownership (handles stale portfolioId)

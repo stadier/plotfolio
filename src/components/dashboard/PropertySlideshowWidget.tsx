@@ -32,13 +32,17 @@ function MediaTile({
 	if (type === MediaType.VIDEO) {
 		return (
 			<div className={`relative overflow-hidden ${className}`}>
-				<Image
-					src={thumbnail || url}
-					alt={caption || "Video"}
-					fill
-					className="object-cover"
-					sizes="(max-width: 768px) 100vw, 50vw"
-				/>
+				{thumbnail ? (
+					<Image
+						src={thumbnail}
+						alt={caption || "Video"}
+						fill
+						className="object-cover"
+						sizes="(max-width: 768px) 100vw, 50vw"
+					/>
+				) : (
+					<div className="absolute inset-0 bg-linear-to-br from-slate-700 to-slate-900" />
+				)}
 				<div className="absolute inset-0 bg-black/35 flex items-center justify-center">
 					<div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center">
 						<Play className="w-4 h-4 text-white fill-white" />

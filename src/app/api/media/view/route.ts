@@ -2,6 +2,7 @@ import { b2, B2_BUCKET } from "@/lib/b2";
 import { CacheControl } from "@/lib/httpCache";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
+import { Readable } from "node:stream";
 
 const ALLOWED_HOSTNAME = `${B2_BUCKET}.s3.us-east-005.backblazeb2.com`;
 
@@ -34,11 +35,13 @@ export async function GET(request: NextRequest) {
 		}
 
 		const key = decodeURIComponent(parsed.pathname.slice(1)); // strip leading /
+		const range = request.headers.get("range") ?? undefined;
 
 		const response = await b2.send(
 			new GetObjectCommand({
 				Bucket: B2_BUCKET,
 				Key: key,
+				...(range ? { Range: range } : {}),
 			}),
 		);
 
@@ -53,15 +56,25 @@ export async function GET(request: NextRequest) {
 		if (response.ContentType) headers.set("Content-Type", response.ContentType);
 		if (response.ContentLength !== undefined)
 			headers.set("Content-Length", String(response.ContentLength));
+		if (response.ContentRange)
+			headers.set("Content-Range", response.ContentRange);
+		headers.set("Accept-Ranges", "bytes");
 		headers.set("Cache-Control", CacheControl.privateLong);
 
-		return new NextResponse(
-			response.Body.transformToWebStream() as ReadableStream,
-			{
-				status: 200,
-				headers,
-			},
-		);
+		const bodyAny = response.Body as {
+			transformToWebStream?: () => ReadableStream;
+		};
+		const body =
+			typeof bodyAny.transformToWebStream === "function"
+				? bodyAny.transformToWebStream()
+				: (Readable.toWeb(
+						response.Body as unknown as Readable,
+					) as ReadableStream);
+
+		return new NextResponse(body as ReadableStream, {
+			status: response.ContentRange ? 206 : 200,
+			headers,
+		});
 	} catch (error: unknown) {
 		const msg = error instanceof Error ? error.message : "Unknown error";
 		// Don't leak internal errors

@@ -10,22 +10,38 @@ import { cookies } from "next/headers";
 
 export const SESSION_COOKIE = "plotfolio_session";
 
-/** Parse the session cookie and return the userId, or null. */
-export async function getSessionUserId(): Promise<string | null> {
+/** Parse the session cookie and return { token, userId }, or null. */
+export async function parseSessionCookie(): Promise<{
+	token: string;
+	userId: string;
+} | null> {
 	const cookieStore = await cookies();
 	const session = cookieStore.get(SESSION_COOKIE)?.value;
 	if (!session) return null;
 	const [token, userId] = session.split(":");
 	if (!token || !userId) return null;
-	return userId;
+	return { token, userId };
 }
 
-/** Load the current authenticated user from the session, or null. */
+/** Parse the session cookie and return the userId, or null. */
+export async function getSessionUserId(): Promise<string | null> {
+	const parsed = await parseSessionCookie();
+	return parsed?.userId ?? null;
+}
+
+/** Load the current authenticated user from the session, validating the session token. Returns null if invalid. */
 export async function getSessionUser(): Promise<IUser | null> {
-	const userId = await getSessionUserId();
-	if (!userId) return null;
+	const parsed = await parseSessionCookie();
+	if (!parsed) return null;
+	const { token, userId } = parsed;
 	await connectDB();
 	const user = await UserModel.findOne({ id: userId }).lean<IUser | null>();
+	if (!user) return null;
+	// Validate session token to prevent stale/stolen cookies. Accept either
+	// inclusion in the multi-device sessionTokens array or the legacy single
+	// sessionToken field (kept for backward compatibility during migration).
+	const tokens = user.sessionTokens ?? [];
+	if (!tokens.includes(token) && user.sessionToken !== token) return null;
 	return user;
 }
 

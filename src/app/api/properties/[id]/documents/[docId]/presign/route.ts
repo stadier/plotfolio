@@ -1,12 +1,13 @@
 import { b2, B2_BUCKET } from "@/lib/b2";
 import connectDB from "@/lib/mongoose";
-import { PropertyModel } from "@/models/Property";
+import { AIDocumentModel } from "@/models/AIDocument";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/properties/[id]/documents/[docId]/presign
-// Returns a short-lived pre-signed URL for direct B2 access (used by Office Online Viewer)
+// Returns a short-lived pre-signed URL for direct B2 access (used by Office
+// Online Viewer). Documents live in the unified AIDocumentModel collection.
 export async function GET(
 	_request: NextRequest,
 	{ params }: { params: Promise<{ id: string; docId: string }> },
@@ -16,20 +17,18 @@ export async function GET(
 
 		await connectDB();
 
-		const property = (await PropertyModel.findOne(
-			{ id, "documents.id": docId },
-			{ "documents.$": 1 },
-		).lean()) as { documents?: Array<{ url: string; name: string }> } | null;
+		const doc = await AIDocumentModel.findById(docId)
+			.select("fileUrl fileName propertyIds")
+			.lean();
 
-		if (!property?.documents?.[0]) {
+		if (!doc || !(doc.propertyIds ?? []).includes(id)) {
 			return NextResponse.json(
 				{ error: "Document not found" },
 				{ status: 404 },
 			);
 		}
 
-		const doc = property.documents[0];
-		const url = new URL(doc.url);
+		const url = new URL(doc.fileUrl);
 		const key = decodeURIComponent(url.pathname.slice(1));
 
 		const signedUrl = await getSignedUrl(
@@ -37,9 +36,9 @@ export async function GET(
 			new GetObjectCommand({
 				Bucket: B2_BUCKET,
 				Key: key,
-				ResponseContentDisposition: `inline; filename="${encodeURIComponent(doc.name)}"`,
+				ResponseContentDisposition: `inline; filename="${encodeURIComponent(doc.fileName)}"`,
 			}),
-			{ expiresIn: 3600 }, // 1 hour
+			{ expiresIn: 3600 },
 		);
 
 		return NextResponse.json({ url: signedUrl });

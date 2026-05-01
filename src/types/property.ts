@@ -63,11 +63,18 @@ export interface Property {
 	currentValue?: number;
 	soldPrice?: number; // Actual transacted price — the true market value
 	soldDate?: Date; // Date of transaction/sale
-	documents: PropertyDocument[];
 	status: PropertyStatus;
 	description?: string;
 	images?: string[]; // legacy — prefer media[]
 	media?: PropertyMedia[];
+	/**
+	 * Documents linked to this property. The canonical store is the unified
+	 * DocumentModel collection (see `@/types/document`); property GET
+	 * endpoints hydrate this array by joining via `propertyIds`.
+	 * Optional because not every code path that constructs a Property
+	 * literal (e.g. seed scripts, client-side draft objects) populates it.
+	 */
+	documents?: PropertyDocument[];
 	zoning?: ZoningType;
 	taxId?: string;
 	owner: PropertyOwner;
@@ -166,15 +173,22 @@ export enum AccessRequestStatus {
 	DENIED = "denied",
 }
 
+/**
+ * Legacy document shape kept for the UI layer. The canonical, persisted
+ * record lives in the unified DocumentModel collection (see
+ * `@/types/document`.AIDocument). Property GET endpoints hydrate this
+ * `documents[]` field by joining with DocumentModel via propertyIds.
+ */
 export interface PropertyDocument {
-	id: string;
-	type: DocumentType;
+	id: string; // DocumentModel _id (ObjectId string)
 	name: string;
+	type: DocumentType;
 	url: string;
-	uploadDate: Date;
+	uploadDate: string | Date;
 	size: number;
 	accessLevel: DocumentAccessLevel;
-	watermark?: import("@/types/seal").WatermarkConfig;
+	watermark?: import("@/types/seal").WatermarkConfig | null;
+	aiProcessed?: boolean;
 }
 
 export interface DocumentAccessRequest {

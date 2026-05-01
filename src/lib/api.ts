@@ -1,4 +1,8 @@
-import { cachedGetJSON, invalidateCachedGet } from "@/lib/clientCache";
+import {
+	cachedAuthGetJSON,
+	cachedGetJSON,
+	invalidateCachedGet,
+} from "@/lib/clientCache";
 import type { Chat, ChatSummary } from "@/types/chat";
 import type {
 	AIDocument,
@@ -49,7 +53,7 @@ export class PropertyAPI {
 			} else {
 				params.set("ownerId", ownerId);
 			}
-			const data = await cachedGetJSON<unknown>(
+			const data = await cachedAuthGetJSON<unknown>(
 				`${API_BASE_URL}/properties?${params.toString()}`,
 				{ ttlMs: 2 * 60 * 1000 },
 			);
@@ -299,6 +303,7 @@ export class PropertyAPI {
 			propertyIds?: string[];
 			documentType?: AIDocumentType;
 			skipIndexing?: boolean;
+			forceUpload?: boolean;
 		},
 	): Promise<DocumentProcessingResult | null> {
 		try {
@@ -310,6 +315,7 @@ export class PropertyAPI {
 			if (options?.documentType)
 				formData.append("documentType", options.documentType);
 			if (options?.skipIndexing) formData.append("skipIndexing", "true");
+			if (options?.forceUpload) formData.append("forceUpload", "true");
 
 			const response = await fetch(`${API_BASE_URL}/documents/upload`, {
 				method: "POST",
@@ -323,9 +329,33 @@ export class PropertyAPI {
 		}
 	}
 
+	static async reextractDocument(id: string): Promise<AIDocument | null> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ reextract: true }),
+			});
+			if (!response.ok) return null;
+			const data = (await response.json()) as { document?: AIDocument };
+			if (!data.document) return null;
+			invalidateCachedGet(`${API_BASE_URL}/documents/${id}`);
+			invalidateCachedGet(`${API_BASE_URL}/documents?`);
+			return data.document;
+		} catch (error) {
+			console.error("Error re-extracting document:", error);
+			return null;
+		}
+	}
+
 	static async updateDocument(
 		id: string,
-		updates: { propertyIds?: string[]; documentType?: string },
+		updates: {
+			propertyIds?: string[];
+			documentType?: string;
+			htmlContent?: string;
+			fileName?: string;
+		},
 	): Promise<boolean> {
 		try {
 			const response = await fetch(`${API_BASE_URL}/documents/${id}`, {

@@ -1,6 +1,6 @@
 "use client";
 
-import { cachedGetJSON } from "@/lib/clientCache";
+import { cachedAuthGetJSON } from "@/lib/clientCache";
 import {
 	DEFAULT_ROLE_PERMISSIONS,
 	Portfolio,
@@ -13,6 +13,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
 import { useAuth } from "./AuthContext";
@@ -51,6 +52,19 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 
+	// Clear saved active portfolio when user changes to prevent cross-user bleed
+	const prevUserIdRef = useRef<string | null | undefined>(undefined);
+	useEffect(() => {
+		if (
+			prevUserIdRef.current !== undefined &&
+			prevUserIdRef.current !== (user?.id ?? null)
+		) {
+			localStorage.removeItem(ACTIVE_PORTFOLIO_KEY);
+			setActiveId(null);
+		}
+		prevUserIdRef.current = user?.id ?? null;
+	}, [user?.id]);
+
 	const refresh = useCallback(async () => {
 		if (!user) {
 			setPortfolios([]);
@@ -62,10 +76,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 
 		try {
 			const [data, invites] = await Promise.all([
-				cachedGetJSON<PortfolioWithRole[]>("/api/portfolios", {
+				cachedAuthGetJSON<PortfolioWithRole[]>("/api/portfolios", {
 					ttlMs: 60 * 1000,
 				}),
-				cachedGetJSON<PendingInvite[]>("/api/portfolios/invites", {
+				cachedAuthGetJSON<PendingInvite[]>("/api/portfolios/invites", {
 					ttlMs: 60 * 1000,
 				}),
 			]);

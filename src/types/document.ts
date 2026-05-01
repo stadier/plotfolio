@@ -41,6 +41,11 @@ export enum AIDocumentType {
 	OTHER = "other",
 }
 
+/**
+ * Unified document record. Every file in the system — whether attached to a
+ * property, processed with AI, or completely standalone — is represented by
+ * one of these.
+ */
 export interface AIDocument {
 	id: string;
 	userId: string;
@@ -50,6 +55,11 @@ export interface AIDocument {
 	fileSize: number;
 	mimeType: string;
 	documentType: AIDocumentType;
+	// Access control — applies to every document
+	accessLevel: import("@/types/property").DocumentAccessLevel;
+	watermark?: import("@/types/seal").WatermarkConfig | null;
+	// AI processing — only populated after extraction has run
+	aiProcessed: boolean;
 	ocrText?: string;
 	extractedData?: ExtractedPropertyData;
 	confidence?: number; // 0-1 confidence score for extracted fields
@@ -57,6 +67,9 @@ export interface AIDocument {
 	createdAt: string;
 	updatedAt: string;
 }
+
+/** @deprecated Use AIDocument. Kept as an alias during the unification refactor. */
+export type PlotfolioDocument = AIDocument;
 
 export interface DocumentChunk {
 	id: string;
@@ -102,4 +115,6 @@ export interface DocumentProcessingResult {
 	document: AIDocument;
 	images: DocumentImage[];
 	chunksCreated: number;
+	duplicate?: boolean;
+	duplicateOf?: string;
 }

@@ -8,22 +8,10 @@
  * 4. Returns answer with source references
  */
 
+import { getChatClient, getChatModel } from "@/lib/aiProvider";
 import { AIDocumentModel } from "@/models/AIDocument";
 import type { DocumentQueryResponse } from "@/types/document";
-import OpenAI from "openai";
 import { vectorSearch } from "./indexing";
-
-let openaiClient: OpenAI | null = null;
-
-function getOpenAI(): OpenAI {
-	if (!openaiClient) {
-		if (!process.env.OPENAI_API_KEY) {
-			throw new Error("OPENAI_API_KEY not configured");
-		}
-		openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-	}
-	return openaiClient;
-}
 
 const QA_SYSTEM_PROMPT = `You are a helpful assistant that answers questions about real estate and property documents. You are given context from relevant document chunks that were retrieved via vector search.
 
@@ -64,9 +52,9 @@ export async function answerQuestion(
 	const context = contextParts.join("\n\n");
 
 	// Step 3: Generate answer
-	const openai = getOpenAI();
+	const openai = getChatClient();
 	const completion = await openai.chat.completions.create({
-		model: "gpt-4o-mini",
+		model: getChatModel(),
 		temperature: 0.2,
 		messages: [
 			{ role: "system", content: QA_SYSTEM_PROMPT },

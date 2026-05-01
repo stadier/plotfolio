@@ -29,6 +29,10 @@ export interface IUser {
 	seals?: UserSealDoc[];
 	defaultWatermark?: WatermarkConfig;
 	letterhead?: LetterheadConfig;
+	/** Legacy single session token (kept for backward compat — see sessionTokens). */
+	sessionToken?: string;
+	/** Active session tokens (one per device/browser). */
+	sessionTokens?: string[];
 	/** Platform admin — can access /admin backoffice */
 	isAdmin?: boolean;
 	/** User verification status (for trust/badging on sales) */
@@ -140,6 +144,8 @@ const UserSchema = new Schema<IUser & Document>(
 				showFooter: { type: Boolean, default: true },
 			},
 		},
+		sessionToken: { type: String },
+		sessionTokens: { type: [String], default: [] },
 		isAdmin: { type: Boolean, default: false },
 		verificationStatus: {
 			type: String,

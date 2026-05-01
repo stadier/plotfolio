@@ -6,7 +6,7 @@ import {
 	DocumentAccessLevel,
 	DocumentAccessRequest,
 	DocumentType,
-	Property,
+	PropertyDocument,
 	PropertyStatus,
 } from "@/types/property";
 import {
@@ -118,7 +118,7 @@ function RemoteImageThumbnail({ url, name }: { url: string; name: string }) {
 		<div className="relative w-full aspect-4/3 rounded-t-xl overflow-hidden bg-surface-container">
 			{/* eslint-disable-next-line @next/next/no-img-element */}
 			<img src={url} alt={name} className="w-full h-full object-cover" />
-			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-badge font-medium px-1.5 py-0.5 rounded">
 				IMG
 			</span>
 		</div>
@@ -140,7 +140,7 @@ function RemotePdfThumbnail() {
 				<div className="absolute top-0 right-0 w-0 h-0 border-t-20 border-t-slate-100 border-l-20 border-l-transparent" />
 				<div className="absolute top-0 right-0 w-0 h-0 border-b-20 border-b-slate-200/60 border-l-20 border-l-transparent" />
 			</div>
-			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-red-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-red-500/90 text-white text-badge font-bold px-1.5 py-0.5 rounded">
 				<FileText className="w-2.5 h-2.5" />
 				PDF
 			</span>
@@ -165,7 +165,7 @@ function RemoteGenericThumbnail({
 				<div className="absolute top-0 right-0 w-0 h-0 border-t-20 border-t-slate-100 border-l-20 border-l-transparent" />
 				<div className="absolute top-0 right-0 w-0 h-0 border-b-20 border-b-slate-300/60 border-l-20 border-l-transparent" />
 			</div>
-			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-slate-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+			<span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-slate-500/90 text-white text-badge font-bold px-1.5 py-0.5 rounded">
 				<FileText className="w-2.5 h-2.5" />
 				{extensionLabel}
 			</span>
@@ -189,7 +189,7 @@ function DocumentCard({
 	accessRequests = [],
 	onAccessRequested,
 }: {
-	doc: Property["documents"][0];
+	doc: PropertyDocument;
 	propertyId: string;
 	isOwner: boolean;
 	onDeleted: (docId: string) => void;
@@ -323,7 +323,7 @@ function DocumentCard({
 				>
 					{doc.name}
 				</p>
-				<p className="text-[10px] text-on-surface-variant mt-0.5 font-body">
+				<p className="text-badge text-on-surface-variant mt-0.5 font-body">
 					{extensionLabel} &middot;{" "}
 					{new Date(doc.uploadDate).toLocaleDateString("en-US", {
 						month: "short",
@@ -336,7 +336,7 @@ function DocumentCard({
 			<div className="px-2.5 pb-2 mt-auto relative" ref={typeRef}>
 				<button
 					onClick={() => isOwner && setTypeOpen(!typeOpen)}
-					className={`text-[10px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-surface-container-highest cursor-pointer" : ""}`}
+					className={`text-badge uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant truncate max-w-full ${isOwner ? "hover:bg-surface-container-highest cursor-pointer" : ""}`}
 					title={
 						isOwner ? "Click to change type" : getDocumentTypeLabel(doc.type)
 					}
@@ -370,7 +370,7 @@ function DocumentUploadButton({
 	onUploaded,
 }: {
 	propertyId: string;
-	onUploaded: (doc: Property["documents"][0]) => void;
+	onUploaded: (doc: PropertyDocument) => void;
 }) {
 	const [selectedType, setSelectedType] = useState<DocumentType>(
 		DocumentType.OTHER,
@@ -447,7 +447,7 @@ function DocumentUploadButton({
 			<div className="relative mt-3 px-2 w-full" ref={dropdownRef}>
 				<button
 					onClick={() => setTypeOpen(!typeOpen)}
-					className="w-full flex items-center justify-center gap-1 text-[10px] text-outline dark:text-on-surface-variant hover:text-on-surface-variant dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border"
+					className="w-full flex items-center justify-center gap-1 text-badge text-outline dark:text-on-surface-variant hover:text-on-surface-variant dark:hover:text-on-surface uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-card border border-border"
 				>
 					<span className="truncate">{getDocumentTypeLabel(selectedType)}</span>
 					<ChevronDown className="w-3 h-3 shrink-0" />
@@ -473,12 +473,12 @@ function DocumentUploadButton({
 			{uploadDone ? (
 				<div className="flex-1 flex flex-col items-center justify-center py-6 w-full gap-2">
 					<Check className="w-5 h-5 text-green-500" />
-					<span className="text-[10px] text-green-500 font-medium">
+					<span className="text-badge text-green-500 font-medium">
 						Uploaded
 					</span>
 					<button
 						onClick={() => setUploadDone(false)}
-						className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline mt-1"
+						className="flex items-center gap-1 text-badge font-medium text-primary hover:underline mt-1"
 					>
 						<Plus className="w-3.5 h-3.5" />
 						Add another
@@ -488,7 +488,7 @@ function DocumentUploadButton({
 				<div className="flex-1 flex flex-col items-center justify-center py-4 w-full gap-1.5 px-2">
 					<Upload className="w-5 h-5 text-red-400" />
 					<p
-						className="text-[10px] text-on-surface font-medium text-center truncate w-full"
+						className="text-badge text-on-surface font-medium text-center truncate w-full"
 						title={failedFile.name}
 					>
 						{failedFile.name}
@@ -499,7 +499,7 @@ function DocumentUploadButton({
 					<button
 						onClick={handleRetry}
 						disabled={uploading}
-						className="flex items-center gap-1 text-[10px] font-medium text-primary hover:underline mt-0.5"
+						className="flex items-center gap-1 text-badge font-medium text-primary hover:underline mt-0.5"
 					>
 						<Upload className="w-3 h-3" />
 						{uploading ? "Retrying…" : "Retry"}
@@ -516,14 +516,14 @@ function DocumentUploadButton({
 					{uploading ? (
 						<>
 							<Upload className="w-5 h-5 text-outline dark:text-on-surface-variant animate-pulse" />
-							<span className="text-[10px] text-outline dark:text-on-surface-variant mt-1">
+							<span className="text-badge text-outline dark:text-on-surface-variant mt-1">
 								Uploading…
 							</span>
 						</>
 					) : (
 						<>
 							<Plus className="w-5 h-5 text-outline dark:text-on-surface-variant" />
-							<span className="text-[10px] text-outline dark:text-on-surface-variant mt-1">
+							<span className="text-badge text-outline dark:text-on-surface-variant mt-1">
 								Upload
 							</span>
 						</>
@@ -557,9 +557,9 @@ export function DocumentsGrid({
 	accessRequests = [],
 	onAccessRequested,
 }: {
-	documents: Property["documents"];
+	documents: PropertyDocument[];
 	propertyId: string;
-	onUploaded: (doc: Property["documents"][0]) => void;
+	onUploaded: (doc: PropertyDocument) => void;
 	onDeleted: (docId: string) => void;
 	onTypeChanged: (docId: string, newType: DocumentType) => void;
 	isOwner?: boolean;
@@ -572,9 +572,7 @@ export function DocumentsGrid({
 	onAccessRequested?: (req: DocumentAccessRequest) => void;
 }) {
 	const hasDocuments = documents.length > 0;
-	const [previewDoc, setPreviewDoc] = useState<Property["documents"][0] | null>(
-		null,
-	);
+	const [previewDoc, setPreviewDoc] = useState<PropertyDocument | null>(null);
 	if (!hasDocuments && !isOwner) return null;
 
 	return (

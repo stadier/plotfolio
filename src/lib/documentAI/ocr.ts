@@ -1,76 +1,84 @@
 /**
- * OCR service: Google Vision API (primary) with Tesseract.js fallback.
+ * OCR service: pdf-parse (text PDFs) → vision LLM (images/scanned) → Tesseract.js (fallback).
  *
- * Extracts raw text from PDF and image files.
- * Caches the OCR result on the document record to avoid reprocessing.
+ * Strategy:
+ * 1. PDFs with embedded text → pdf-parse (free, instant)
+ * 2. Image files or scanned PDFs → OpenAI/Kimi vision model (layout-aware, handles diagrams)
+ * 3. No vision model configured → Tesseract.js (free, text-only)
  */
 
-import { ImageAnnotatorClient } from "@google-cloud/vision";
+import {
+	getChatClient,
+	getChatModel,
+	providerSupportsVision,
+} from "@/lib/aiProvider";
+import path from "path";
 
-let visionClient: ImageAnnotatorClient | null = null;
+/* ── Vision LLM OCR ──────────────────────────────────── */
 
-function getVisionClient(): ImageAnnotatorClient | null {
-	if (visionClient) return visionClient;
-	if (
-		!process.env.GOOGLE_VISION_API_KEY &&
-		!process.env.GOOGLE_APPLICATION_CREDENTIALS
-	) {
-		return null;
-	}
-	visionClient = new ImageAnnotatorClient(
-		process.env.GOOGLE_VISION_API_KEY
-			? { apiKey: process.env.GOOGLE_VISION_API_KEY }
-			: undefined,
-	);
-	return visionClient;
-}
-
-/* ── Google Vision OCR ───────────────────────────────── */
-
-async function extractTextWithVision(
+async function extractTextWithVisionLLM(
 	buffer: Buffer,
 	mimeType: string,
 ): Promise<string> {
-	const client = getVisionClient();
-	if (!client) throw new Error("Google Vision not configured");
+	if (!providerSupportsVision())
+		throw new Error("Vision not supported by active provider");
 
-	const [result] = await client.documentTextDetection({
-		image: { content: buffer.toString("base64") },
-		imageContext: {
-			languageHints: ["en"],
-		},
+	const client = getChatClient();
+	const base64 = buffer.toString("base64");
+	const dataUrl = `data:${mimeType};base64,${base64}`;
+
+	const response = await client.chat.completions.create({
+		model: getChatModel(true),
+		temperature: 0,
+		messages: [
+			{
+				role: "user",
+				content: [
+					{
+						type: "text",
+						text: "Extract all text from this document image exactly as it appears. Include all labels, measurements, numbers, names, dates, and annotations. Preserve the logical reading order.",
+					},
+					{ type: "image_url", image_url: { url: dataUrl, detail: "high" } },
+				],
+			},
+		],
 	});
 
-	return result.fullTextAnnotation?.text ?? "";
+	return response.choices[0]?.message?.content ?? "";
 }
 
-/* ── PDF text extraction via pdfjs-dist (server-side) ── */
+/* ── PDF text extraction via pdf-parse (server-side, no worker needed) ── */
 
 async function extractTextFromPDFBuffer(buffer: Buffer): Promise<string> {
-	const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-
-	const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) })
-		.promise;
-
-	const pages: string[] = [];
-	for (let i = 1; i <= pdf.numPages; i++) {
-		const page = await pdf.getPage(i);
-		const content = await page.getTextContent();
-		const strings = content.items
-			.filter((item: Record<string, unknown>) => "str" in item)
-			.map((item: Record<string, unknown>) => item.str as string);
-		pages.push(strings.join(" "));
-	}
-
-	return pages.join("\n");
+	// Import from the lib path to skip pdf-parse v1's index.js test-file side-effect.
+	// This path uses a standalone pre-bundled pdfjs with no worker thread requirement.
+	const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default;
+	const result = await pdfParse(buffer);
+	return result.text ?? "";
 }
 
 /* ── Tesseract.js fallback (server-side) ─────────────── */
 
 async function extractTextWithTesseract(buffer: Buffer): Promise<string> {
-	const Tesseract = await import("tesseract.js");
-	const { data } = await Tesseract.recognize(buffer, "eng");
-	return data.text;
+	const { createWorker } = await import("tesseract.js");
+	const worker = await createWorker("eng", 1, {
+		workerPath: path.join(
+			process.cwd(),
+			"node_modules/tesseract.js/src/worker-script/node/index.js",
+		),
+	});
+
+	try {
+		const { data } = await worker.recognize(buffer);
+		return data.text;
+	} finally {
+		await worker.terminate();
+	}
+}
+
+/** Local-only OCR for image buffers (no external AI provider calls). */
+export async function extractTextWithLocalOcr(buffer: Buffer): Promise<string> {
+	return extractTextWithTesseract(buffer);
 }
 
 /* ── Detect file kind ────────────────────────────────── */
@@ -93,10 +101,9 @@ function detectFileKind(mimeType: string, fileName: string): FileKind {
  * Extract text from a document file (PDF or image).
  *
  * Strategy:
- * 1. For PDFs: try pdfjs-dist text extraction first (free, fast).
- *    If the PDF has minimal text (scanned), fall through to OCR.
- * 2. For images or scanned PDFs: try Google Vision API.
- *    If Vision not configured, fall back to Tesseract.js.
+ * 1. PDFs with embedded text: pdfjs-dist (free, instant).
+ * 2. Image files or scanned PDFs: vision LLM (layout-aware, handles diagrams).
+ * 3. No vision model available: Tesseract.js (free, text-only fallback).
  */
 export async function extractText(
 	buffer: Buffer,
@@ -105,36 +112,46 @@ export async function extractText(
 ): Promise<string> {
 	const kind = detectFileKind(mimeType, fileName);
 
-	// Try native PDF text extraction first (cheapest)
+	// 1. Try native PDF text extraction first (cheapest)
 	if (kind === "pdf") {
-		const pdfText = await extractTextFromPDFBuffer(buffer).catch(() => "");
-		// If we got meaningful text (>50 chars), use it
+		const pdfText = await extractTextFromPDFBuffer(buffer).catch((err) => {
+			console.error("[OCR] pdf-parse failed:", err);
+			return "";
+		});
+		console.log(`[OCR] pdf-parse extracted ${pdfText.trim().length} chars`);
 		if (pdfText.trim().length > 50) {
 			return pdfText;
 		}
-		// Otherwise, the PDF is likely scanned — fall through to OCR
+		// PDF has minimal text — likely scanned, fall through to vision/OCR
 	}
 
-	// Try Google Vision (primary OCR)
-	const visionAvailable = getVisionClient() !== null;
-	if (visionAvailable) {
-		try {
-			// For PDFs, Vision supports up to 5 pages in a single sync request.
-			// For longer PDFs, we'd need to use async batch annotation (not implemented here).
-			const text = await extractTextWithVision(buffer, mimeType);
-			if (text.trim().length > 0) return text;
-		} catch (err) {
-			console.warn(
-				"[OCR] Google Vision failed, falling back to Tesseract:",
-				err,
-			);
-		}
-	}
-
-	// Fallback: Tesseract.js (free, runs locally)
+	// 2. Vision LLM (handles diagrams, stamps, layout — much better than Tesseract)
 	if (kind === "image" || kind === "pdf") {
-		const text = await extractTextWithTesseract(buffer);
-		return text;
+		// For scanned PDFs, vision models expect an image. This module does not yet
+		// rasterize PDF pages, so local OCR fallback is only safe for actual image files.
+		const isImageFile = kind === "image";
+		if (isImageFile && providerSupportsVision()) {
+			try {
+				const text = await extractTextWithVisionLLM(buffer, mimeType);
+				if (text.trim().length > 0) return text;
+			} catch (err) {
+				console.warn(
+					"[OCR] Vision LLM failed, falling back to Tesseract:",
+					err,
+				);
+			}
+		}
+
+		// 3. Tesseract.js fallback for image files only
+		if (isImageFile) {
+			try {
+				return await extractTextWithTesseract(buffer);
+			} catch (err) {
+				console.warn("[OCR] Tesseract fallback unavailable:", err);
+			}
+		}
+
+		return "";
 	}
 
 	return "";

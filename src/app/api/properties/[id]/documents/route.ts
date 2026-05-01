@@ -1,12 +1,25 @@
+/**
+ * Property document endpoints — thin wrapper around the unified DocumentModel.
+ *
+ * Documents are no longer stored on the property record. They live in the
+ * `aidocuments` collection and are linked to properties via `propertyIds[]`.
+ * These endpoints exist for backward compatibility with the property page UI.
+ */
+
 import { b2, B2_BUCKET } from "@/lib/b2";
 import connectDB from "@/lib/mongoose";
+import {
+	AIDocumentModel,
+	DocumentChunkModel,
+	DocumentImageModel,
+} from "@/models/AIDocument";
 import { PropertyModel } from "@/models/Property";
 import { DocumentAccessLevel, DocumentType } from "@/types/property";
 import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 
 // POST /api/properties/[id]/documents
-// Accepts multipart/form-data with: file, type, name
+// Accepts multipart/form-data with: file, type, name, [accessLevel]
 export async function POST(
 	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
@@ -18,6 +31,9 @@ export async function POST(
 		const file = formData.get("file") as File | null;
 		const type = formData.get("type") as DocumentType | null;
 		const name = formData.get("name") as string | null;
+		const accessLevel =
+			(formData.get("accessLevel") as DocumentAccessLevel | null) ||
+			DocumentAccessLevel.PUBLIC;
 
 		if (!file || !type || !name) {
 			return NextResponse.json(
@@ -26,7 +42,6 @@ export async function POST(
 			);
 		}
 
-		// Validate document type
 		if (!Object.values(DocumentType).includes(type)) {
 			return NextResponse.json(
 				{ error: "Invalid document type" },
@@ -34,13 +49,25 @@ export async function POST(
 			);
 		}
 
-		// Sanitize filename to prevent path traversal
+		await connectDB();
+
+		// Resolve owner of the property so we can set userId on the document.
+		const property = await PropertyModel.findOne({ id }).select("owner").lean();
+		if (!property) {
+			return NextResponse.json(
+				{ error: "Property not found" },
+				{ status: 404 },
+			);
+		}
+		const ownerId =
+			(property as { owner?: { id?: string } }).owner?.id ?? "unknown";
+
+		// Sanitize filename and upload to B2.
 		const safeName = name.replace(/[^a-zA-Z0-9._\- ]/g, "_");
 		const timestamp = Date.now();
 		const fileName = `${timestamp}_${safeName}`;
 		const key = `uploads/${id}/${fileName}`;
 
-		// Upload to Backblaze B2
 		const buffer = Buffer.from(await file.arrayBuffer());
 		await b2.send(
 			new PutObjectCommand({
@@ -53,22 +80,38 @@ export async function POST(
 
 		const url = `https://${B2_BUCKET}.s3.us-east-005.backblazeb2.com/${key}`;
 
-		const docId = crypto.randomUUID();
-		const document = {
-			id: docId,
-			name: safeName,
-			type,
-			url,
-			uploadDate: new Date(),
-			size: file.size,
-			accessLevel: DocumentAccessLevel.PUBLIC,
-		};
+		// Create the unified document record. AI processing is NOT triggered
+		// from this path — the user can opt in later via "Process with AI".
+		const doc = await AIDocumentModel.create({
+			userId: ownerId,
+			propertyIds: [id],
+			fileUrl: url,
+			fileName: safeName,
+			fileSize: file.size,
+			mimeType: file.type || "application/octet-stream",
+			documentType: type,
+			accessLevel,
+			aiProcessed: false,
+			indexed: false,
+		});
 
-		// Append document to property in DB
-		await connectDB();
-		await PropertyModel.updateOne({ id }, { $push: { documents: document } });
-
-		return NextResponse.json({ document }, { status: 201 });
+		// Return shape mirrors the legacy PropertyDocument response so the
+		// existing UI continues to work without changes.
+		return NextResponse.json(
+			{
+				document: {
+					id: String(doc._id),
+					name: doc.fileName,
+					type: doc.documentType,
+					url: doc.fileUrl,
+					uploadDate: doc.createdAt,
+					size: doc.fileSize,
+					accessLevel: doc.accessLevel,
+					aiProcessed: doc.aiProcessed,
+				},
+			},
+			{ status: 201 },
+		);
 	} catch (error) {
 		console.error("Error uploading document:", error);
 		return NextResponse.json(
@@ -94,23 +137,52 @@ export async function DELETE(
 
 		await connectDB();
 
-		// Find the document to get its URL/key before removing
-		const property = await PropertyModel.findOne(
-			{ id, "documents.id": docId },
-			{ "documents.$": 1 },
-		);
-		const doc = property?.documents?.[0];
-		if (doc?.url) {
-			// Extract the key from the B2 URL
-			const urlObj = new URL(doc.url);
-			const key = urlObj.pathname.slice(1); // remove leading /
-			await b2.send(new DeleteObjectCommand({ Bucket: B2_BUCKET, Key: key }));
+		const doc = await AIDocumentModel.findById(docId);
+		if (!doc) {
+			return NextResponse.json(
+				{ error: "Document not found" },
+				{ status: 404 },
+			);
 		}
 
-		await PropertyModel.updateOne(
-			{ id },
-			{ $pull: { documents: { id: docId } } },
-		);
+		// If the document is linked to multiple properties, just detach it
+		// from this one rather than deleting the file.
+		const linkedTo = doc.propertyIds ?? [];
+		if (linkedTo.length > 1) {
+			doc.propertyIds = linkedTo.filter((p) => p !== id);
+			await doc.save();
+			return NextResponse.json({ success: true, detached: true });
+		}
+
+		// Single-property document → fully delete file + DB records.
+		try {
+			const key = doc.fileUrl.split(".backblazeb2.com/")[1];
+			if (key) {
+				await b2.send(new DeleteObjectCommand({ Bucket: B2_BUCKET, Key: key }));
+			}
+		} catch (err) {
+			console.warn("[property-doc-delete] B2 cleanup failed:", err);
+		}
+
+		const images = await DocumentImageModel.find({ documentId: docId });
+		for (const img of images) {
+			try {
+				const imgKey = img.imageUrl.split(".backblazeb2.com/")[1];
+				if (imgKey) {
+					await b2.send(
+						new DeleteObjectCommand({ Bucket: B2_BUCKET, Key: imgKey }),
+					);
+				}
+			} catch {
+				// best-effort
+			}
+		}
+
+		await Promise.all([
+			AIDocumentModel.deleteOne({ _id: docId }),
+			DocumentChunkModel.deleteMany({ documentId: docId }),
+			DocumentImageModel.deleteMany({ documentId: docId }),
+		]);
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
@@ -122,7 +194,7 @@ export async function DELETE(
 	}
 }
 
-// PATCH /api/properties/[id]/documents - Update document access level or type
+// PATCH /api/properties/[id]/documents - Update accessLevel, type, or watermark
 export async function PATCH(
 	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
@@ -143,7 +215,15 @@ export async function PATCH(
 			);
 		}
 
-		const updates: Record<string, unknown> = {};
+		await connectDB();
+
+		const doc = await AIDocumentModel.findById(docId);
+		if (!doc || !(doc.propertyIds ?? []).includes(id)) {
+			return NextResponse.json(
+				{ error: "Document not found on property" },
+				{ status: 404 },
+			);
+		}
 
 		if (accessLevel) {
 			if (!Object.values(DocumentAccessLevel).includes(accessLevel)) {
@@ -152,7 +232,7 @@ export async function PATCH(
 					{ status: 400 },
 				);
 			}
-			updates["documents.$.accessLevel"] = accessLevel;
+			doc.accessLevel = accessLevel;
 		}
 
 		if (type) {
@@ -162,13 +242,12 @@ export async function PATCH(
 					{ status: 400 },
 				);
 			}
-			updates["documents.$.type"] = type;
+			doc.documentType = type;
 		}
 
-		// watermark: null clears it, object sets it
 		if (watermark !== undefined) {
 			if (watermark === null) {
-				updates["documents.$.watermark"] = null;
+				doc.watermark = null;
 			} else {
 				const allowed = ["seal", "platform", "text"];
 				if (watermark.type && !allowed.includes(watermark.type)) {
@@ -177,23 +256,11 @@ export async function PATCH(
 						{ status: 400 },
 					);
 				}
-				updates["documents.$.watermark"] = watermark;
+				doc.watermark = watermark;
 			}
 		}
 
-		await connectDB();
-
-		const result = await PropertyModel.updateOne(
-			{ id, "documents.id": docId },
-			{ $set: updates },
-		);
-
-		if (result.matchedCount === 0) {
-			return NextResponse.json(
-				{ error: "Property or document not found" },
-				{ status: 404 },
-			);
-		}
+		await doc.save();
 
 		return NextResponse.json({ success: true, accessLevel, type, watermark });
 	} catch (error) {

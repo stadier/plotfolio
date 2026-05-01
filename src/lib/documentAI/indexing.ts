@@ -6,24 +6,11 @@
  * vector search retrieval.
  */
 
+import { EMBEDDING_MODEL, getEmbeddingClient } from "@/lib/aiProvider";
 import { DocumentChunkModel } from "@/models/AIDocument";
-import OpenAI from "openai";
 
 const CHUNK_SIZE = 500; // characters per chunk
 const CHUNK_OVERLAP = 100; // overlap between chunks
-const EMBEDDING_MODEL = "text-embedding-3-small"; // cheapest embedding model
-
-let openaiClient: OpenAI | null = null;
-
-function getOpenAI(): OpenAI {
-	if (!openaiClient) {
-		if (!process.env.OPENAI_API_KEY) {
-			throw new Error("OPENAI_API_KEY not configured");
-		}
-		openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-	}
-	return openaiClient;
-}
 
 /* ── Text chunking ───────────────────────────────────── */
 
@@ -76,7 +63,7 @@ export async function generateEmbeddings(
 ): Promise<number[][]> {
 	if (chunks.length === 0) return [];
 
-	const openai = getOpenAI();
+	const openai = getEmbeddingClient();
 
 	// OpenAI supports batch embedding (up to ~8k tokens per request)
 	const response = await openai.embeddings.create({

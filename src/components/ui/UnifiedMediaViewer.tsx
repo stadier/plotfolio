@@ -225,7 +225,7 @@ export default function UnifiedMediaViewer({
 						<img
 							src={source.url}
 							alt={source.name}
-							className="max-w-none rounded-lg shadow-2xl transition-transform select-none pointer-events-none"
+							className="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform select-none pointer-events-none"
 							style={{
 								transform: `scale(${scale})`,
 								transformOrigin: "center",

@@ -43,7 +43,9 @@ export async function POST(request: NextRequest) {
 		const token = generateSessionToken();
 		await UserModel.updateOne(
 			{ id: (user as any).id },
-			{ $set: { sessionToken: token } },
+			{
+				$push: { sessionTokens: { $each: [token], $slice: -10 } },
+			},
 		);
 
 		const cookieStore = await cookies();

@@ -1,4 +1,5 @@
 import connectDB from "@/lib/mongoose";
+import { AIDocumentModel } from "@/models/AIDocument";
 import { DocumentAccessRequestModel, PropertyService } from "@/models/Property";
 import { AccessRequestStatus, DocumentAccessLevel } from "@/types/property";
 import { NextRequest, NextResponse } from "next/server";
@@ -90,8 +91,10 @@ export async function POST(
 			);
 		}
 
-		const document = property.documents?.find((d) => d.id === documentId);
-		if (!document) {
+		const document = await AIDocumentModel.findById(documentId)
+			.select("accessLevel propertyIds")
+			.lean();
+		if (!document || !(document.propertyIds ?? []).includes(propertyId)) {
 			return NextResponse.json(
 				{ error: "Document not found" },
 				{ status: 404 },

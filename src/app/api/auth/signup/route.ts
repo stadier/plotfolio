@@ -134,7 +134,9 @@ export async function POST(request: NextRequest) {
 		const token = generateSessionToken();
 		await UserModel.updateOne(
 			{ id: userId },
-			{ $set: { sessionToken: token } },
+			{
+				$push: { sessionTokens: { $each: [token], $slice: -10 } },
+			},
 		);
 
 		// Store token → userId mapping in a simple way: embed token in cookie as `token:userId`

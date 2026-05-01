@@ -2,6 +2,7 @@ import { b2, B2_BUCKET } from "@/lib/b2";
 import { CacheControl } from "@/lib/httpCache";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
+import { Readable } from "node:stream";
 
 /**
  * GET /api/media/view/uploads/<propertyId>/media/<filename>
@@ -11,12 +12,13 @@ import { NextRequest, NextResponse } from "next/server";
  * Only keys that begin with "uploads/" are allowed (SSRF guard).
  */
 export async function GET(
-	_request: NextRequest,
+	request: NextRequest,
 	{ params }: { params: Promise<{ key: string[] }> },
 ) {
 	try {
 		const { key } = await params;
 		const objectKey = key.join("/");
+		const range = request.headers.get("range") ?? undefined;
 
 		// SSRF guard: only allow access to keys under our uploads prefix
 		if (!objectKey.startsWith("uploads/")) {
@@ -27,6 +29,7 @@ export async function GET(
 			new GetObjectCommand({
 				Bucket: B2_BUCKET,
 				Key: objectKey,
+				...(range ? { Range: range } : {}),
 			}),
 		);
 
@@ -41,15 +44,25 @@ export async function GET(
 		if (response.ContentType) headers.set("Content-Type", response.ContentType);
 		if (response.ContentLength !== undefined)
 			headers.set("Content-Length", String(response.ContentLength));
+		if (response.ContentRange)
+			headers.set("Content-Range", response.ContentRange);
+		headers.set("Accept-Ranges", "bytes");
 		headers.set("Cache-Control", CacheControl.privateLong);
 
-		return new NextResponse(
-			response.Body.transformToWebStream() as ReadableStream,
-			{
-				status: 200,
-				headers,
-			},
-		);
+		const bodyAny = response.Body as {
+			transformToWebStream?: () => ReadableStream;
+		};
+		const body =
+			typeof bodyAny.transformToWebStream === "function"
+				? bodyAny.transformToWebStream()
+				: (Readable.toWeb(
+						response.Body as unknown as Readable,
+					) as ReadableStream);
+
+		return new NextResponse(body as ReadableStream, {
+			status: response.ContentRange ? 206 : 200,
+			headers,
+		});
 	} catch (error: unknown) {
 		const msg = error instanceof Error ? error.message : "Unknown error";
 		if (msg.includes("NoSuchKey") || msg.includes("NotFound")) {

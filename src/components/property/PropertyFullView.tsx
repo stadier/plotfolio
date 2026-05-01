@@ -7,9 +7,11 @@ import OwnershipPanel from "@/components/property/OwnershipPanel";
 import PropertySettingsPanel from "@/components/property/PropertySettingsPanel";
 import { DocumentsGrid } from "@/components/property/propertyDisplayHelpers";
 import ActiveSalePanel from "@/components/sales/ActiveSalePanel";
+import FileUploader from "@/components/ui/FileUploader";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { queryKeys, useUpdateProperty } from "@/hooks/usePropertyQueries";
+import { invalidateCachedGet } from "@/lib/clientCache";
 import { countryFlag } from "@/lib/locale";
 import { toPlotWords } from "@/lib/plotwords";
 import { formatCurrency, getPropertyMedia } from "@/lib/utils";
@@ -32,6 +34,7 @@ import {
 	ChevronRight,
 	ChevronUp,
 	Expand,
+	Eye,
 	Fence,
 	GripVertical,
 	Home,
@@ -43,12 +46,12 @@ import {
 	Mic,
 	Phone,
 	Play,
-	Plus,
 	Ruler,
 	Shield,
 	Sparkles,
 	Star,
 	Tag,
+	Trash2,
 	TreePine,
 	Upload,
 	X,
@@ -87,7 +90,9 @@ interface PendingMedia {
 	id: number;
 	file: File;
 	previewUrl: string;
-	status: "uploading" | "failed";
+	thumbnailFile?: File;
+	uploadedMedia?: PropertyMedia;
+	status: "uploading" | "uploaded" | "failed";
 	error?: string;
 }
 
@@ -102,12 +107,30 @@ function MediaGallery({
 	isOwner?: boolean;
 	propertyId?: string;
 }) {
+	function normalizeMediaUrl(url: string): string {
+		try {
+			if (url.startsWith("/api/media/view/")) {
+				return decodeURIComponent(url.replace("/api/media/view/", ""));
+			}
+			if (/\.backblazeb2\.com/i.test(url)) {
+				const parsed = new URL(url);
+				return decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+			}
+			const parsed = new URL(url, "http://localhost");
+			return decodeURIComponent(`${parsed.pathname}${parsed.search}`);
+		} catch {
+			return url;
+		}
+	}
+
+	function mediaUrlsMatch(left: string, right: string): boolean {
+		return normalizeMediaUrl(left) === normalizeMediaUrl(right);
+	}
+
 	const queryClient = useQueryClient();
 	const [lightbox, setLightbox] = useState<number | null>(null);
-	const [dragging, setDragging] = useState(false);
 	const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
 	const pendingIdRef = useRef(0);
-	const addInputRef = useRef<HTMLInputElement>(null);
 
 	// ── Reorder state ──────────────────────────────────────────
 	const [reorderMode, setReorderMode] = useState(false);
@@ -144,7 +167,35 @@ function MediaGallery({
 				const err = await res.json().catch(() => null);
 				throw new Error(err?.error ?? "Failed to save media order");
 			}
-			await queryClient.invalidateQueries({
+
+			// Optimistically reorder the cached property so the UI reflects the
+			// new order immediately. The server already accepted the change.
+			queryClient.setQueryData<Property | null>(
+				queryKeys.properties.detail(propertyId),
+				(current) => {
+					if (!current) return current;
+					const orderKeys = items.map((m) =>
+						m.url.startsWith("/api/media/view/")
+							? m.url.replace("/api/media/view/", "")
+							: m.url,
+					);
+					const indexFor = (url: string) => {
+						const idx = orderKeys.findIndex(
+							(k) => url === k || url.endsWith(k),
+						);
+						return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+					};
+					const sortedMedia = [...(current.media ?? [])].sort(
+						(a, b) => indexFor(a.url) - indexFor(b.url),
+					);
+					return { ...current, media: sortedMedia };
+				},
+			);
+			invalidateCachedGet(`/api/properties/${propertyId}`);
+
+			// Kick off a background refetch but don't block the UI on it —
+			// the property GET is heavy and made the save spinner feel slow.
+			void queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.detail(propertyId),
 			});
 		} finally {
@@ -194,12 +245,103 @@ function MediaGallery({
 		return "image";
 	}
 
-	async function uploadSingle(id: number, file: File) {
+	async function generateVideoThumbnail(file: File): Promise<File | null> {
+		const videoUrl = URL.createObjectURL(file);
+		try {
+			const video = document.createElement("video");
+			video.src = videoUrl;
+			video.muted = true;
+			video.playsInline = true;
+			video.preload = "metadata";
+
+			await new Promise<void>((resolve, reject) => {
+				video.addEventListener("loadeddata", () => resolve(), { once: true });
+				video.addEventListener(
+					"error",
+					() => reject(new Error("Failed to load video for thumbnail")),
+					{ once: true },
+				);
+			});
+
+			if (!video.videoWidth || !video.videoHeight) return null;
+
+			const canvas = document.createElement("canvas");
+			const maxWidth = 960;
+			const targetWidth = Math.min(video.videoWidth, maxWidth);
+			const targetHeight = Math.round(
+				(targetWidth / video.videoWidth) * video.videoHeight,
+			);
+			canvas.width = targetWidth;
+			canvas.height = targetHeight;
+
+			const ctx = canvas.getContext("2d");
+			if (!ctx) return null;
+			ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+
+			const blob = await new Promise<Blob | null>((resolve) => {
+				canvas.toBlob(resolve, "image/jpeg", 0.82);
+			});
+			if (!blob) return null;
+
+			const baseName = file.name.replace(/\.[^.]+$/, "") || "video";
+			return new File([blob], `${baseName}-thumbnail.jpg`, {
+				type: "image/jpeg",
+			});
+		} catch {
+			return null;
+		} finally {
+			URL.revokeObjectURL(videoUrl);
+		}
+	}
+
+	async function deleteMedia(item: PropertyMedia) {
+		if (!propertyId) return;
+		// Optimistic UI: remove immediately so the gallery feels snappy.
+		setOrderedMedia((prev) => prev.filter((m) => m.url !== item.url));
+		try {
+			const res = await fetch(
+				`/api/properties/${propertyId}/media?url=${encodeURIComponent(item.url)}`,
+				{ method: "DELETE" },
+			);
+			if (!res.ok) throw new Error("Failed to delete media");
+
+			queryClient.setQueryData<Property | null>(
+				queryKeys.properties.detail(propertyId),
+				(current) => {
+					if (!current) return current;
+					const matchKey = item.url.startsWith("/api/media/view/")
+						? item.url.replace("/api/media/view/", "")
+						: item.url;
+					const matches = (u: string) => u === item.url || u.endsWith(matchKey);
+					return {
+						...current,
+						media: (current.media ?? []).filter((m) => !matches(m.url)),
+						images: (current.images ?? []).filter((u) => !matches(u)),
+					};
+				},
+			);
+			invalidateCachedGet(`/api/properties/${propertyId}`);
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.detail(propertyId),
+			});
+		} catch (err) {
+			console.error("Failed to delete media:", err);
+			// Re-sync from server on failure so UI doesn't lie.
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.detail(propertyId),
+			});
+		}
+	}
+
+	async function uploadSingle(id: number, file: File, thumbnailFile?: File) {
 		if (!propertyId) return;
 		try {
 			const formData = new FormData();
 			formData.append("file", file);
 			formData.append("type", detectMediaType(file));
+			if (thumbnailFile) {
+				formData.append("thumbnail", thumbnailFile);
+			}
 			const res = await fetch(`/api/properties/${propertyId}/media`, {
 				method: "POST",
 				body: formData,
@@ -208,78 +350,134 @@ function MediaGallery({
 				const err = await res.json();
 				throw new Error(err.error ?? "Upload failed");
 			}
-			setPendingMedia((prev) => prev.filter((p) => p.id !== id));
+			const data = (await res.json()) as { media?: PropertyMedia };
+			if (!data.media) {
+				throw new Error("Upload response missing media payload");
+			}
+			const uploadedMedia = data.media;
+
+			// Proxy the B2 URL the same way getPropertyMedia does so the gallery
+			// can render it and the filter comparison uses consistent URL formats.
+			const toProxy = (url: string) => {
+				if (/\.backblazeb2\.com($|\/)/.test(url)) {
+					try {
+						const parsed = new URL(url);
+						return `/api/media/view/${decodeURIComponent(parsed.pathname.slice(1))}`;
+					} catch {
+						/* malformed — fall through */
+					}
+				}
+				return url;
+			};
+			const proxiedMedia: PropertyMedia = {
+				...uploadedMedia,
+				url: toProxy(uploadedMedia.url),
+				...(uploadedMedia.thumbnail
+					? { thumbnail: toProxy(uploadedMedia.thumbnail) }
+					: {}),
+			};
+
+			setOrderedMedia((prev) =>
+				prev.some((item) => item.url === proxiedMedia.url)
+					? prev
+					: [...prev, proxiedMedia],
+			);
+
+			queryClient.setQueryData<Property | null>(
+				queryKeys.properties.detail(propertyId),
+				(current) => {
+					if (!current) return current;
+					const nextMedia = [
+						...(current.media ?? []),
+						...((current.media ?? []).some(
+							(item) => item.url === uploadedMedia.url,
+						)
+							? []
+							: [uploadedMedia]),
+					];
+					const nextImages =
+						uploadedMedia.type === MediaType.IMAGE &&
+						!(current.images ?? []).includes(uploadedMedia.url)
+							? [...(current.images ?? []), uploadedMedia.url]
+							: current.images;
+
+					return {
+						...current,
+						media: nextMedia,
+						images: nextImages,
+					};
+				},
+			);
+			invalidateCachedGet(`/api/properties/${propertyId}`);
+			setPendingMedia((prev) =>
+				prev.map((p) =>
+					p.id === id
+						? {
+								...p,
+								status: "uploaded",
+								error: undefined,
+								uploadedMedia: proxiedMedia,
+							}
+						: p,
+				),
+			);
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.detail(propertyId),
 			});
 		} catch (err) {
 			const error = err instanceof Error ? err.message : "Upload failed";
 			setPendingMedia((prev) =>
-				prev.map((p) => (p.id === id ? { ...p, status: "failed", error } : p)),
+				prev.map((p) =>
+					p.id === id
+						? { ...p, status: "failed", error, uploadedMedia: undefined }
+						: p,
+				),
 			);
 		}
 	}
 
-	function queueUploads(files: File[]) {
+	async function queueUploads(files: File[]) {
 		if (!propertyId) return;
-		const newPending: PendingMedia[] = files.map((file) => ({
-			id: ++pendingIdRef.current,
-			file,
-			previewUrl: file.type.startsWith("image/")
-				? URL.createObjectURL(file)
-				: "",
-			status: "uploading" as const,
-		}));
+		const newPending: PendingMedia[] = await Promise.all(
+			files.map(async (file) => {
+				const isImage = file.type.startsWith("image/");
+				const isVideo = file.type.startsWith("video/");
+				const thumbnailFile = isVideo
+					? ((await generateVideoThumbnail(file)) ?? undefined)
+					: undefined;
+				return {
+					id: ++pendingIdRef.current,
+					file,
+					thumbnailFile,
+					previewUrl: isImage
+						? URL.createObjectURL(file)
+						: thumbnailFile
+							? URL.createObjectURL(thumbnailFile)
+							: "",
+					status: "uploading" as const,
+				};
+			}),
+		);
 		setPendingMedia((prev) => [...prev, ...newPending]);
-		if (addInputRef.current) addInputRef.current.value = "";
 		for (const item of newPending) {
-			uploadSingle(item.id, item.file);
+			uploadSingle(item.id, item.file, item.thumbnailFile);
 		}
 	}
-
-	const handleFileDrop = (e: React.DragEvent) => {
-		e.preventDefault();
-		setDragging(false);
-		if (e.dataTransfer.files.length)
-			queueUploads(Array.from(e.dataTransfer.files));
-	};
 
 	/* show empty-state only when nothing is pending either */
 	if (media.length === 0 && pendingMedia.length === 0) {
 		if (isOwner) {
 			return (
-				<label
-					onDragOver={(e) => {
-						e.preventDefault();
-						setDragging(true);
-					}}
-					onDragLeave={() => setDragging(false)}
-					onDrop={handleFileDrop}
-					className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center h-64 cursor-pointer transition-colors ${
-						dragging
-							? "border-primary bg-primary/10"
-							: "border-border bg-surface-container hover:border-primary/40"
-					}`}
-				>
-					<input
-						type="file"
-						accept="image/*,video/*,audio/*"
-						multiple
-						className="hidden"
-						onChange={(e) => {
-							if (e.target.files) queueUploads(Array.from(e.target.files));
-						}}
-					/>
-					<ImagePlus className="w-10 h-10 text-outline mb-3" />
-					<p className="text-sm font-medium text-on-surface-variant">
-						Drag &amp; drop media here
-					</p>
-					<p className="text-xs text-outline mt-1">or click to browse files</p>
-				</label>
+				<FileUploader
+					onFiles={(files) => void queueUploads(files)}
+					accept="image/*,video/*,audio/*"
+					empty
+					emptyLabel="Drag & drop media here"
+				/>
 			);
 		}
 		return (
-			<div className="rounded-xl bg-surface-container flex flex-col items-center justify-center h-64">
+			<div className="rounded-xl bg-surface-container flex flex-col items-center justify-center h-56">
 				<ImagePlus className="w-10 h-10 text-outline mb-3" />
 				<p className="text-on-surface-variant text-sm">No media available</p>
 			</div>
@@ -366,14 +564,27 @@ function MediaGallery({
 							</div>
 							{item.type === MediaType.VIDEO ? (
 								<div className="relative">
-									<video
-										src={item.url}
-										className={`w-full h-auto rounded-xl ${
-											activeDragIndex === idx ? "opacity-40" : "opacity-80"
-										}`}
-										muted
-										preload="metadata"
-									/>
+									{item.thumbnail ? (
+										/* eslint-disable-next-line @next/next/no-img-element */
+										<img
+											src={item.thumbnail}
+											alt={`${name} video ${idx + 1}`}
+											className={`w-full h-auto rounded-xl ${
+												activeDragIndex === idx ? "opacity-40" : "opacity-80"
+											}`}
+											loading="lazy"
+											draggable={false}
+										/>
+									) : (
+										<video
+											src={item.url}
+											className={`w-full h-auto rounded-xl ${
+												activeDragIndex === idx ? "opacity-40" : "opacity-80"
+											}`}
+											muted
+											preload="metadata"
+										/>
+									)}
 									<div className="absolute inset-0 flex items-center justify-center">
 										<div className="bg-black/50 rounded-full p-3">
 											<Play className="w-8 h-8 text-white fill-white" />
@@ -413,20 +624,38 @@ function MediaGallery({
 							)}
 						</div>
 					) : (
-						<button
+						<div
 							key={item.url}
-							type="button"
-							className="inline-block max-w-sm cursor-pointer group overflow-hidden rounded-xl"
+							role="button"
+							tabIndex={0}
 							onClick={() => setLightbox(idx)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault();
+									setLightbox(idx);
+								}
+							}}
+							className="relative inline-block max-w-sm cursor-pointer group overflow-hidden rounded-xl"
 						>
 							{item.type === MediaType.VIDEO ? (
 								<div className="relative">
-									<video
-										src={item.url}
-										className="w-full h-auto rounded-xl"
-										muted
-										preload="metadata"
-									/>
+									{item.thumbnail ? (
+										/* eslint-disable-next-line @next/next/no-img-element */
+										<img
+											src={item.thumbnail}
+											alt={`${name} video ${idx + 1}`}
+											className="w-full h-auto rounded-xl"
+											loading="lazy"
+											draggable={false}
+										/>
+									) : (
+										<video
+											src={item.url}
+											className="w-full h-auto rounded-xl"
+											muted
+											preload="metadata"
+										/>
+									)}
 									<div className="absolute inset-0 flex items-center justify-center">
 										<div className="bg-black/50 rounded-full p-3">
 											<Play className="w-8 h-8 text-white fill-white" />
@@ -457,81 +686,85 @@ function MediaGallery({
 									loading={idx < 2 ? "eager" : "lazy"}
 								/>
 							)}
-						</button>
+
+							{/* Hover actions — match the documents pattern */}
+							<div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex gap-1 z-10">
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										setLightbox(idx);
+									}}
+									className="w-5 h-5 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-blue-500 transition-colors"
+									title="View"
+								>
+									<Eye className="w-3 h-3" />
+								</button>
+								{isOwner && (
+									<button
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											if (
+												typeof window !== "undefined" &&
+												!window.confirm("Delete this item?")
+											) {
+												return;
+											}
+											void deleteMedia(item);
+										}}
+										className="w-5 h-5 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+										title="Delete"
+									>
+										<Trash2 className="w-3 h-3" />
+									</button>
+								)}
+							</div>
+						</div>
 					),
 				)}
 
 				{/* Upload placeholders — one card per pending file */}
 				{!reorderMode &&
-					pendingMedia.map((item) => (
-						<div
-							key={item.id}
-							className="relative w-32 h-32 shrink-0 rounded-xl overflow-hidden border border-border bg-surface-container"
-						>
-							{item.previewUrl ? (
-								/* eslint-disable-next-line @next/next/no-img-element */
-								<img
-									src={item.previewUrl}
-									alt={item.file.name}
-									className="w-full h-full object-cover opacity-60"
-								/>
-							) : item.file.type.startsWith("video/") ? (
-								<div className="w-full h-full flex items-center justify-center">
-									<Play className="w-8 h-8 text-outline" />
-								</div>
-							) : (
-								<div className="w-full h-full flex items-center justify-center">
-									<Mic className="w-8 h-8 text-outline" />
-								</div>
-							)}
-							<div className="absolute bottom-0 left-0 right-0 bg-card/90 backdrop-blur-sm px-2 py-1.5">
-								<p className="text-badge font-medium text-on-surface truncate leading-tight">
-									{item.file.name}
-								</p>
-								{item.status === "uploading" ? (
-									<div className="flex items-center gap-1.5 mt-1">
-										<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-											<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
-										</div>
-										<button
-											type="button"
-											onClick={() =>
-												setPendingMedia((prev) =>
-													prev.filter((p) => p.id !== item.id),
-												)
-											}
-											className="text-[9px] text-red-500 hover:text-red-600 font-medium shrink-0"
-										>
-											Cancel
-										</button>
+					pendingMedia
+						.filter(
+							(item) =>
+								item.status !== "uploaded" ||
+								!item.uploadedMedia ||
+								!orderedMedia.some(
+									(serverItem) => serverItem.url === item.uploadedMedia!.url,
+								),
+						)
+						.map((item) => (
+							<div
+								key={item.id}
+								className="relative w-32 h-32 shrink-0 rounded-xl overflow-hidden border border-border bg-surface-container"
+							>
+								{item.previewUrl ? (
+									/* eslint-disable-next-line @next/next/no-img-element */
+									<img
+										src={item.previewUrl}
+										alt={item.file.name}
+										className="w-full h-full object-cover opacity-60"
+									/>
+								) : item.file.type.startsWith("video/") ? (
+									<div className="w-full h-full flex items-center justify-center">
+										<Play className="w-8 h-8 text-outline" />
 									</div>
 								) : (
-									<>
-										<p className="text-[9px] text-red-500 leading-tight mt-0.5 truncate">
-											{item.error}
-										</p>
-										<div className="flex items-center gap-2 mt-0.5">
-											<button
-												type="button"
-												onClick={() => {
-													setPendingMedia((prev) =>
-														prev.map((p) =>
-															p.id === item.id
-																? {
-																		...p,
-																		status: "uploading",
-																		error: undefined,
-																	}
-																: p,
-														),
-													);
-													uploadSingle(item.id, item.file);
-												}}
-												className="text-[9px] text-primary font-medium hover:underline flex items-center gap-0.5 shrink-0"
-											>
-												<Upload className="w-2.5 h-2.5" />
-												Retry
-											</button>
+									<div className="w-full h-full flex items-center justify-center">
+										<Mic className="w-8 h-8 text-outline" />
+									</div>
+								)}
+								<div className="absolute bottom-0 left-0 right-0 bg-card/90 backdrop-blur-sm px-2 py-1.5">
+									<p className="text-badge font-medium text-on-surface truncate leading-tight">
+										{item.file.name}
+									</p>
+									{item.status === "uploading" ? (
+										<div className="flex items-center gap-1.5 mt-1">
+											<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+												<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
+											</div>
 											<button
 												type="button"
 												onClick={() =>
@@ -539,33 +772,73 @@ function MediaGallery({
 														prev.filter((p) => p.id !== item.id),
 													)
 												}
-												className="text-[9px] text-outline hover:text-on-surface-variant shrink-0"
+												className="text-[9px] text-red-500 hover:text-red-600 font-medium shrink-0"
 											>
-												Dismiss
+												Cancel
 											</button>
 										</div>
-									</>
-								)}
+									) : item.status === "uploaded" ? (
+										<div className="flex items-center justify-between gap-2 mt-1">
+											<span className="text-[9px] text-green-600 font-medium uppercase tracking-wide">
+												Uploaded
+											</span>
+											<span className="text-[9px] text-outline">Syncing…</span>
+										</div>
+									) : (
+										<>
+											<p className="text-[9px] text-red-500 leading-tight mt-0.5 truncate">
+												{item.error}
+											</p>
+											<div className="flex items-center gap-2 mt-0.5">
+												<button
+													type="button"
+													onClick={() => {
+														setPendingMedia((prev) =>
+															prev.map((p) =>
+																p.id === item.id
+																	? {
+																			...p,
+																			status: "uploading",
+																			error: undefined,
+																		}
+																	: p,
+															),
+														);
+														uploadSingle(
+															item.id,
+															item.file,
+															item.thumbnailFile,
+														);
+													}}
+													className="text-[9px] text-primary font-medium hover:underline flex items-center gap-0.5 shrink-0"
+												>
+													<Upload className="w-2.5 h-2.5" />
+													Retry
+												</button>
+												<button
+													type="button"
+													onClick={() =>
+														setPendingMedia((prev) =>
+															prev.filter((p) => p.id !== item.id),
+														)
+													}
+													className="text-[9px] text-outline hover:text-on-surface-variant shrink-0"
+												>
+													Dismiss
+												</button>
+											</div>
+										</>
+									)}
+								</div>
 							</div>
-						</div>
-					))}
+						))}
 
 				{/* Add media button — always visible for owner (hidden in reorder mode) */}
 				{isOwner && propertyId && !reorderMode && (
-					<label className="w-32 h-32 shrink-0 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-container/50 hover:bg-surface-container-high transition-colors cursor-pointer">
-						<Plus className="w-5 h-5 text-outline" />
-						<span className="text-badge text-outline mt-1">Add</span>
-						<input
-							ref={addInputRef}
-							type="file"
-							accept="image/*,video/*,audio/*"
-							multiple
-							className="hidden"
-							onChange={(e) => {
-								if (e.target.files) queueUploads(Array.from(e.target.files));
-							}}
-						/>
-					</label>
+					<FileUploader
+						onFiles={(files) => void queueUploads(files)}
+						accept="image/*,video/*,audio/*"
+					/>
 				)}
 			</div>
 
@@ -1481,8 +1754,34 @@ function DocumentsSection({
 	viewer?: { id: string; name: string; email: string };
 	isOwner?: boolean;
 }) {
-	const docCount = property.documents?.length ?? 0;
-	if (docCount === 0) return null;
+	const queryClient = useQueryClient();
+	// Own local state so uploads/deletes show immediately regardless of whether
+	// the parent uses React Query (detail page) or cachedGetJSON (PropertyDrawer).
+	const [documents, setDocuments] = useState<
+		NonNullable<Property["documents"]>
+	>(property.documents ?? []);
+	const docCount = documents.length;
+	if (docCount === 0 && !isOwner) return null;
+
+	function updateDocuments(
+		updater: (
+			documents: NonNullable<Property["documents"]>,
+		) => Property["documents"],
+	) {
+		// Update local state immediately so the UI reflects the change
+		// regardless of the parent's data source.
+		setDocuments((prev) => updater(prev) ?? []);
+		queryClient.setQueryData<Property | undefined>(
+			queryKeys.properties.detail(property.id),
+			(current) => {
+				if (!current) return current;
+				return {
+					...current,
+					documents: updater(current.documents ?? []),
+				};
+			},
+		);
+	}
 
 	return (
 		<section className="space-y-4">
@@ -1500,12 +1799,29 @@ function DocumentsSection({
 				</div>
 			)}
 			<DocumentsGrid
-				documents={property.documents ?? []}
+				documents={documents}
 				propertyId={property.id}
-				onUploaded={() => {}}
-				onDeleted={() => {}}
-				onTypeChanged={() => {}}
+				onUploaded={(document) => {
+					updateDocuments((prev) => [document, ...prev]);
+				}}
+				onDeleted={(docId) => {
+					updateDocuments((prev) => prev.filter((doc) => doc.id !== docId));
+				}}
+				onTypeChanged={(docId, newType) => {
+					updateDocuments((prev) =>
+						prev.map((doc) =>
+							doc.id === docId ? { ...doc, type: newType } : doc,
+						),
+					);
+				}}
 				isOwner={isOwner ?? false}
+				onAccessLevelChanged={(docId, level) => {
+					updateDocuments((prev) =>
+						prev.map((doc) =>
+							doc.id === docId ? { ...doc, accessLevel: level } : doc,
+						),
+					);
+				}}
 				viewerId={viewer?.id}
 				viewerName={viewer?.name}
 				viewerEmail={viewer?.email}
@@ -1590,7 +1906,7 @@ export default function PropertyFullView({
 	showContractGenerator = false,
 	onCloseContractGenerator,
 }: PropertyFullViewProps) {
-	const mediaItems = getPropertyMedia(property);
+	const mediaItems = useMemo(() => getPropertyMedia(property), [property]);
 	const hasCoordinates =
 		property.coordinates &&
 		(property.coordinates.lat !== 0 || property.coordinates.lng !== 0);
@@ -1876,12 +2192,23 @@ export default function PropertyFullView({
 							<div key={idx} className="rounded-lg overflow-hidden">
 								{item.type === MediaType.VIDEO ? (
 									<div className="relative">
-										<video
-											src={item.url}
-											className="w-full h-auto rounded-lg"
-											muted
-											preload="metadata"
-										/>
+										{item.thumbnail ? (
+											/* eslint-disable-next-line @next/next/no-img-element */
+											<img
+												src={item.thumbnail}
+												alt={`${property.name} video ${idx + 1}`}
+												className="w-full h-auto rounded-lg"
+												loading="lazy"
+												draggable={false}
+											/>
+										) : (
+											<video
+												src={item.url}
+												className="w-full h-auto rounded-lg"
+												muted
+												preload="metadata"
+											/>
+										)}
 										<div className="absolute inset-0 flex items-center justify-center">
 											<div className="bg-black/50 rounded-full p-2">
 												<Play className="w-5 h-5 text-white fill-white" />

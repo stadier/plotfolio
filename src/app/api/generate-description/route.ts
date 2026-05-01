@@ -1,7 +1,9 @@
+import {
+	getChatClient,
+	getChatModel,
+	providerSupportsVision,
+} from "@/lib/aiProvider";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const SYSTEM_PROMPT = `You are a professional real estate copywriter. Based on the property information and any provided materials (document text, photos), write a compelling, factual property description of 2–4 sentences. Focus on location, size, type, condition, and notable features. Be concise and professional. Return only the description text — no headings, no markdown, no quotation marks.`;
 
@@ -17,12 +19,7 @@ const SYSTEM_PROMPT = `You are a professional real estate copywriter. Based on t
  */
 export async function POST(req: NextRequest) {
 	try {
-		if (!process.env.OPENAI_API_KEY) {
-			return NextResponse.json(
-				{ error: "OpenAI API key not configured" },
-				{ status: 500 },
-			);
-		}
+		// API key validation is handled inside getChatClient()
 
 		const body = await req.json();
 		const {
@@ -47,7 +44,9 @@ export async function POST(req: NextRequest) {
 			.filter(Boolean)
 			.join("\n");
 
-		const images = (imageDataUrls ?? []).slice(0, 4);
+		const images = providerSupportsVision()
+			? (imageDataUrls ?? []).slice(0, 4)
+			: [];
 		const hasImages = images.length > 0;
 
 		// Build messages — use vision model if photos are provided
@@ -71,8 +70,8 @@ export async function POST(req: NextRequest) {
 				]
 			: userText || "Describe this property.";
 
-		const completion = await openai.chat.completions.create({
-			model: hasImages ? "gpt-4o" : "gpt-4o-mini",
+		const completion = await getChatClient().chat.completions.create({
+			model: getChatModel(hasImages),
 			temperature: 0.7,
 			max_tokens: 300,
 			messages: [

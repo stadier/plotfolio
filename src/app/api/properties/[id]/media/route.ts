@@ -3,9 +3,9 @@ import connectDB from "@/lib/mongoose";
 import { PropertyModel } from "@/models/Property";
 import { MediaType } from "@/types/property";
 import {
-    DeleteObjectCommand,
-    ListObjectsV2Command,
-    PutObjectCommand,
+	DeleteObjectCommand,
+	ListObjectsV2Command,
+	PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -22,6 +22,7 @@ export async function POST(
 		const file = formData.get("file") as File | null;
 		const type = formData.get("type") as MediaType | null;
 		const caption = formData.get("caption") as string | null;
+		const thumbnail = formData.get("thumbnail") as File | null;
 
 		if (!file || !type) {
 			return NextResponse.json(
@@ -56,9 +57,30 @@ export async function POST(
 
 		const url = `https://${B2_BUCKET}.s3.us-east-005.backblazeb2.com/${key}`;
 
+		let thumbnailUrl: string | undefined;
+		if (
+			thumbnail &&
+			thumbnail.size > 0 &&
+			thumbnail.type.startsWith("image/")
+		) {
+			const safeThumbName = thumbnail.name.replace(/[^a-zA-Z0-9._\- ]/g, "_");
+			const thumbKey = `uploads/${id}/media/${timestamp}_thumb_${safeThumbName}`;
+			const thumbnailBuffer = Buffer.from(await thumbnail.arrayBuffer());
+			await b2.send(
+				new PutObjectCommand({
+					Bucket: B2_BUCKET,
+					Key: thumbKey,
+					Body: thumbnailBuffer,
+					ContentType: thumbnail.type || "image/jpeg",
+				}),
+			);
+			thumbnailUrl = `https://${B2_BUCKET}.s3.us-east-005.backblazeb2.com/${thumbKey}`;
+		}
+
 		const mediaItem = {
 			url,
 			type,
+			...(thumbnailUrl ? { thumbnail: thumbnailUrl } : {}),
 			...(caption ? { caption } : {}),
 		};
 
@@ -162,7 +184,20 @@ export async function PATCH(
 		}
 
 		await connectDB();
-		const property = await PropertyModel.findOne({ id }).lean();
+		const tConnect = Date.now();
+		type MediaItem = {
+			url: string;
+			type: string;
+			thumbnail?: string;
+			caption?: string;
+		};
+		// Only project `media` — fetching the full property document (with
+		// boundaries, sales, ownership history, etc.) just to read this array
+		// was the bottleneck that made saving order feel slow.
+		const property = await PropertyModel.findOne({ id }, { media: 1 }).lean<{
+			media?: MediaItem[];
+		} | null>();
+		const tFind = Date.now();
 		if (!property) {
 			return NextResponse.json(
 				{ error: "Property not found" },
@@ -170,14 +205,7 @@ export async function PATCH(
 			);
 		}
 
-		type MediaItem = {
-			url: string;
-			type: string;
-			thumbnail?: string;
-			caption?: string;
-		};
-		const existingMedia: MediaItem[] =
-			(property as { media?: MediaItem[] }).media ?? [];
+		const existingMedia: MediaItem[] = property.media ?? [];
 
 		if ((urls as string[]).length === 0 && existingMedia.length > 0) {
 			return NextResponse.json(
@@ -242,6 +270,10 @@ export async function PATCH(
 		}
 
 		await PropertyModel.updateOne({ id }, { $set: { media: reordered } });
+		const tUpdate = Date.now();
+		console.log(
+			`[media PATCH] connect→find=${tFind - tConnect}ms find→update=${tUpdate - tFind}ms total=${tUpdate - tConnect}ms items=${reordered.length}`,
+		);
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
@@ -269,20 +301,59 @@ export async function DELETE(
 
 		await connectDB();
 
-		// Remove from B2 if it's a B2 URL we own
-		try {
-			const urlObj = new URL(url);
-			const key = urlObj.pathname.slice(1);
-			if (key.startsWith(`uploads/${id}/`)) {
-				await b2.send(new DeleteObjectCommand({ Bucket: B2_BUCKET, Key: key }));
+		// Extract the storage key from either a raw B2 URL or our proxied
+		// "/api/media/view/<key>" URL so we can match the DB entry regardless
+		// of which form the client sends.
+		function extractKey(input: string): string | null {
+			if (input.startsWith("/api/media/view/")) {
+				return decodeURIComponent(input.replace("/api/media/view/", ""));
 			}
-		} catch {
-			// Non-B2 or malformed URL — skip storage deletion, still remove from DB
+			try {
+				const parsed = new URL(input);
+				return decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+			} catch {
+				return null;
+			}
 		}
 
-		await PropertyModel.updateOne({ id }, { $pull: { media: { url } } });
-		// Also remove from legacy images array if present
-		await PropertyModel.updateOne({ id }, { $pull: { images: url } });
+		const key = extractKey(url);
+
+		// Remove from B2 if the key belongs to this property
+		if (key && key.startsWith(`uploads/${id}/`)) {
+			try {
+				await b2.send(new DeleteObjectCommand({ Bucket: B2_BUCKET, Key: key }));
+			} catch {
+				// Non-fatal: still remove from DB
+			}
+		}
+
+		// Find the property and locate the media entry whose URL ends with the
+		// extracted key — handles both proxied and raw URL forms in the DB.
+		const property = await PropertyModel.findOne({ id }).lean<{
+			media?: { url: string }[];
+			images?: string[];
+		} | null>();
+
+		const candidateUrls = new Set<string>();
+		candidateUrls.add(url);
+		if (key) {
+			for (const m of property?.media ?? []) {
+				if (m.url === url || m.url.endsWith(key)) candidateUrls.add(m.url);
+			}
+			for (const imgUrl of property?.images ?? []) {
+				if (imgUrl === url || imgUrl.endsWith(key)) candidateUrls.add(imgUrl);
+			}
+		}
+
+		await PropertyModel.updateOne(
+			{ id },
+			{
+				$pull: {
+					media: { url: { $in: Array.from(candidateUrls) } },
+					images: { $in: Array.from(candidateUrls) },
+				},
+			},
+		);
 
 		return NextResponse.json({ success: true });
 	} catch (error) {

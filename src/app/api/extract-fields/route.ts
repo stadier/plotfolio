@@ -1,7 +1,5 @@
+import { getChatClient, getChatModel } from "@/lib/aiProvider";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const SYSTEM_PROMPT = `You are a document parser specializing in real estate and property documents from any country (title deeds, survey plans, certificates of occupancy, contracts of sale, allocation letters, building permits, etc.).
 
@@ -42,15 +40,8 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		if (!process.env.OPENAI_API_KEY) {
-			return NextResponse.json(
-				{ error: "OpenAI API key not configured" },
-				{ status: 500 },
-			);
-		}
-
-		const completion = await openai.chat.completions.create({
-			model: "gpt-4o-mini",
+		const completion = await getChatClient().chat.completions.create({
+			model: getChatModel(),
 			temperature: 0,
 			response_format: { type: "json_object" },
 			messages: [

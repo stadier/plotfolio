@@ -6,7 +6,11 @@
  */
 
 export { extractImagesFromPDF, uploadExtractedImages } from "./diagrams";
-export { classifyDocumentType, extractStructuredData } from "./extraction";
+export {
+	classifyDocumentType,
+	extractStructuredData,
+	extractStructuredDataFromImage,
+} from "./extraction";
 export { chunkText, indexDocument, vectorSearch } from "./indexing";
 export { extractText } from "./ocr";
 export { answerQuestion } from "./query";

@@ -23,10 +23,11 @@ async function getAuthContext() {
 	const user = await UserModel.findOne({ id: userId }).lean();
 	if (!user) return null;
 
-	// Keep behavior aligned with login/auth flows by requiring the current session token.
-	if ((user as any).sessionToken && (user as any).sessionToken !== token) {
-		return null;
-	}
+	// Keep behavior aligned with login/auth flows by requiring a known session token.
+	const tokens = (user as any).sessionTokens ?? [];
+	const legacyToken = (user as any).sessionToken;
+	const tokenKnown = tokens.includes(token) || legacyToken === token;
+	if (!tokenKnown) return null;
 
 	return { user, userId };
 }

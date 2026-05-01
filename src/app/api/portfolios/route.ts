@@ -1,5 +1,6 @@
 import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
+import { getSessionUser } from "@/lib/session";
 import {
 	createPersonalPortfolio,
 	generateUniqueSlug,
@@ -10,26 +11,16 @@ import {
 import { UserModel } from "@/models/User";
 import { PortfolioMemberStatus, PortfolioRole } from "@/types/property";
 import crypto from "crypto";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-
-const SESSION_COOKIE = "plotfolio_session";
-
-async function getAuthUser(): Promise<string | null> {
-	const cookieStore = await cookies();
-	const session = cookieStore.get(SESSION_COOKIE)?.value;
-	if (!session) return null;
-	const [, userId] = session.split(":");
-	return userId || null;
-}
 
 /** GET /api/portfolios — list user's portfolios */
 export async function GET() {
 	try {
-		const userId = await getAuthUser();
-		if (!userId) {
+		const sessionUser = await getSessionUser();
+		if (!sessionUser) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+		const userId = sessionUser.id;
 
 		await connectDB();
 
@@ -90,10 +81,11 @@ export async function GET() {
 /** POST /api/portfolios — create a new portfolio */
 export async function POST(request: NextRequest) {
 	try {
-		const userId = await getAuthUser();
-		if (!userId) {
+		const sessionUser = await getSessionUser();
+		if (!sessionUser) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+		const userId = sessionUser.id;
 
 		await connectDB();
 

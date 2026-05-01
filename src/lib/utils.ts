@@ -140,7 +140,8 @@ export function getPropertyMedia(property: Property): PropertyMedia[] {
 	}
 
 	// Fallback: pick up image/video/audio files that were historically uploaded
-	// via the documents upload before the media/documents split.
+	// via the documents upload before the media/documents split. Documents
+	// are now hydrated server-side from the unified DocumentModel collection.
 	for (const doc of property.documents ?? []) {
 		if (!doc.url || existingUrls.has(doc.url)) continue;
 		const ext = doc.url;
@@ -159,7 +160,11 @@ export function getPropertyMedia(property: Property): PropertyMedia[] {
 	}
 
 	// Rewrite all B2 private URLs to go through the internal proxy
-	return rawItems.map((item) => ({ ...item, url: toProxyUrl(item.url) }));
+	return rawItems.map((item) => ({
+		...item,
+		url: toProxyUrl(item.url),
+		...(item.thumbnail ? { thumbnail: toProxyUrl(item.thumbnail) } : {}),
+	}));
 }
 
 /** Get only image-type media for contexts that only display images (map popups, etc.) */

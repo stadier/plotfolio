@@ -9,7 +9,9 @@
 
 import { b2, B2_BUCKET } from "@/lib/b2";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import path from "path";
 import sharp from "sharp";
+import { pathToFileURL } from "url";
 
 interface ExtractedImage {
 	imageBuffer: Buffer;
@@ -19,20 +21,48 @@ interface ExtractedImage {
 	height: number;
 }
 
+interface ExtractImageOptions {
+	maxPages?: number;
+	maxImages?: number;
+}
+
+function configurePdfJsWorker(pdfjsLib: {
+	GlobalWorkerOptions?: { workerSrc: string };
+}) {
+	if (!pdfjsLib.GlobalWorkerOptions) return;
+	pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(
+		path.join(
+			process.cwd(),
+			"node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+		),
+	).href;
+}
+
 /**
  * Extract embedded images from a PDF buffer.
  * Uses pdfjs-dist to iterate pages and pull out image objects.
  */
 export async function extractImagesFromPDF(
 	buffer: Buffer,
+	options: ExtractImageOptions = {},
 ): Promise<ExtractedImage[]> {
 	const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+	configurePdfJsWorker(pdfjsLib);
 	const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) })
 		.promise;
 
 	const images: ExtractedImage[] = [];
+	const maxPages =
+		typeof options.maxPages === "number" && options.maxPages > 0
+			? options.maxPages
+			: pdf.numPages;
+	const maxImages =
+		typeof options.maxImages === "number" && options.maxImages > 0
+			? options.maxImages
+			: Number.POSITIVE_INFINITY;
+	const pagesToScan = Math.min(pdf.numPages, maxPages);
 
-	for (let i = 1; i <= pdf.numPages; i++) {
+	for (let i = 1; i <= pagesToScan; i++) {
 		const page = await pdf.getPage(i);
 		const ops = await page.getOperatorList();
 
@@ -68,6 +98,10 @@ export async function extractImagesFromPDF(
 						width: img.width,
 						height: img.height,
 					});
+
+					if (images.length >= maxImages) {
+						return images;
+					}
 				} catch {
 					// Skip images that can't be processed
 				}

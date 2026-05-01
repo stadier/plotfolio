@@ -1,3 +1,5 @@
+import { getScopedCacheKey } from "@/lib/cacheScope";
+
 const STORAGE_PREFIX = "plotfolio:get-cache:";
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 
@@ -121,7 +123,12 @@ export async function cachedGetJSON<T>(
 	const request = fetch(url, {
 		...options?.fetchInit,
 		method: "GET",
-		cache: options?.fetchInit?.cache ?? "force-cache",
+		// Use "no-store" so the browser's HTTP cache doesn't override our
+		// own localStorage-based TTL cache. With "force-cache", the browser
+		// would keep serving stale responses even after we call
+		// invalidateCachedGet(), causing uploaded media/docs to be invisible
+		// on subsequent fetches until the HTTP cache entry happens to expire.
+		cache: options?.fetchInit?.cache ?? "no-store",
 	}).then(async (response) => {
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);
@@ -142,4 +149,25 @@ export async function cachedGetJSON<T>(
 	} finally {
 		inFlight.delete(cacheKey);
 	}
+}
+
+export async function cachedAuthGetJSON<T>(
+	url: string,
+	options?: {
+		ttlMs?: number;
+		cacheKey?: string;
+		force?: boolean;
+		scope?: string | null;
+		fetchInit?: Omit<RequestInit, "method">;
+	},
+): Promise<T> {
+	return cachedGetJSON<T>(url, {
+		...options,
+		cacheKey: getScopedCacheKey(options?.cacheKey ?? url, options?.scope),
+		fetchInit: {
+			...options?.fetchInit,
+			credentials: options?.fetchInit?.credentials ?? "same-origin",
+			cache: options?.fetchInit?.cache ?? "no-store",
+		},
+	});
 }

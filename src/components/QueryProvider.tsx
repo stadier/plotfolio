@@ -1,5 +1,6 @@
 "use client";
 
+import { getReactQueryCacheStorageKey } from "@/lib/cacheScope";
 import {
 	dehydrate,
 	hydrate,
@@ -8,7 +9,6 @@ import {
 } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-const QUERY_CACHE_STORAGE_KEY = "plotfolio:react-query-cache";
 const CACHE_PERSIST_THROTTLE_MS = 1500;
 
 export default function QueryProvider({
@@ -32,7 +32,7 @@ export default function QueryProvider({
 
 		if (typeof window !== "undefined") {
 			try {
-				const raw = localStorage.getItem(QUERY_CACHE_STORAGE_KEY);
+				const raw = localStorage.getItem(getReactQueryCacheStorageKey());
 				if (raw) {
 					hydrate(client, JSON.parse(raw));
 				}
@@ -56,7 +56,7 @@ export default function QueryProvider({
 						shouldDehydrateQuery: (query) => query.state.status === "success",
 					});
 					localStorage.setItem(
-						QUERY_CACHE_STORAGE_KEY,
+						getReactQueryCacheStorageKey(),
 						JSON.stringify(snapshot),
 					);
 				} catch {

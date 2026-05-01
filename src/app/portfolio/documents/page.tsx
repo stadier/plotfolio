@@ -6,12 +6,14 @@ import { usePortfolio } from "@/components/PortfolioContext";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import PrimaryButton from "@/components/ui/PrimaryButton";
+import SignaturePad from "@/components/ui/SignaturePad";
 import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { PropertyAPI } from "@/lib/api";
 import { AIDocument, AIDocumentType } from "@/types/document";
 import { Property } from "@/types/property";
 import type { LetterheadConfig } from "@/types/seal";
+import { asBlob } from "html-docx-js-typescript";
 import {
 	ArrowUpDown,
 	Bold,
@@ -31,10 +33,12 @@ import {
 	Link2,
 	List as ListIcon,
 	ListOrdered,
+	Loader2,
 	Minus,
 	PenLine,
 	Plus,
 	Printer,
+	RefreshCcw,
 	Search,
 	Stamp,
 	Trash2,
@@ -179,6 +183,9 @@ function AIDocumentCard({
 	doc,
 	propertyNames,
 	onPreview,
+	onEdit,
+	onRescan,
+	rescanning,
 	onDelete,
 	onLinkProperties,
 	properties,
@@ -186,11 +193,15 @@ function AIDocumentCard({
 	doc: AIDocument;
 	propertyNames?: string[];
 	onPreview: () => void;
+	onEdit?: () => void;
+	onRescan: () => void;
+	rescanning?: boolean;
 	onDelete: () => void;
 	onLinkProperties: (propertyIds: string[]) => void;
 	properties: Property[];
 }) {
 	const kind = getFileKind(doc.mimeType, doc.fileName);
+	const canEdit = kind === "html";
 
 	return (
 		<div className="w-full max-w-xs flex flex-col rounded-xl bg-card border border-border group relative hover:shadow-md transition-all">
@@ -205,6 +216,29 @@ function AIDocumentCard({
 					title="View"
 				>
 					<Eye className="w-3.5 h-3.5" />
+				</button>
+				{canEdit && onEdit && (
+					<button
+						type="button"
+						onClick={onEdit}
+						className="w-6 h-6 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-emerald-500 transition-colors"
+						title="Edit"
+					>
+						<PenLine className="w-3.5 h-3.5" />
+					</button>
+				)}
+				<button
+					type="button"
+					onClick={onRescan}
+					disabled={rescanning}
+					className="w-6 h-6 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-amber-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+					title="Re-scan"
+				>
+					{rescanning ? (
+						<Loader2 className="w-3.5 h-3.5 animate-spin" />
+					) : (
+						<RefreshCcw className="w-3.5 h-3.5" />
+					)}
 				</button>
 				<button
 					type="button"
@@ -549,7 +583,7 @@ function DocumentPreviewModal({
 		URL.revokeObjectURL(url);
 	}
 
-	async function exportAs(format: "txt" | "pdf" | "html") {
+	async function exportAs(format: "txt" | "pdf" | "html" | "docx") {
 		const base = stripBaseName(doc.fileName);
 
 		try {
@@ -602,6 +636,21 @@ function DocumentPreviewModal({
 					new Blob([content], { type: "text/html" }),
 					`${base}.html`,
 				);
+			} else if (format === "docx") {
+				const content = await readHtmlContent();
+				if (!content) {
+					window.open(viewUrl, "_blank", "noopener,noreferrer");
+					setExportOpen(false);
+					return;
+				}
+				const docxResult = await Promise.resolve(asBlob(content));
+				const docxBlob =
+					docxResult instanceof Blob
+						? docxResult
+						: new Blob([new Uint8Array(docxResult)], {
+								type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+							});
+				downloadBlob(docxBlob, `${base}.docx`);
 			}
 		} catch (error) {
 			console.error("[documents] export failed", error);
@@ -648,6 +697,12 @@ function DocumentPreviewModal({
 								Plain Text (.txt)
 							</button>
 							<button
+								onClick={() => exportAs("docx")}
+								className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
+							>
+								Word (.docx)
+							</button>
+							<button
 								onClick={() => exportAs("pdf")}
 								className="w-full text-left px-3 py-1.5 text-xs text-on-surface hover:bg-surface-container-high transition-colors"
 							>
@@ -681,16 +736,25 @@ interface LetterheadSettings {
 	accentColor: string;
 }
 
+interface DocumentSignatureEntry {
+	name: string;
+	title: string;
+	signature?: string;
+	signedAt?: string;
+}
+
 function CreateDocumentModal({
 	onClose,
 	onCreated,
 	userId,
 	properties,
+	editingDoc,
 }: {
 	onClose: () => void;
 	onCreated: () => void;
 	userId: string;
 	properties: Property[];
+	editingDoc: AIDocument | null;
 }) {
 	const editorRef = useRef<HTMLDivElement>(null);
 	const [title, setTitle] = useState("");
@@ -705,9 +769,11 @@ function CreateDocumentModal({
 		accentColor: "#1e3a5f",
 	});
 	const [showSignatureArea, setShowSignatureArea] = useState(false);
-	const [signatures, setSignatures] = useState<
-		{ name: string; title: string }[]
-	>([]);
+	const [signatures, setSignatures] = useState<DocumentSignatureEntry[]>([]);
+	const [signaturePadIndex, setSignaturePadIndex] = useState<number | null>(
+		null,
+	);
+	const [loadingDraft, setLoadingDraft] = useState(false);
 	const [saving, setSaving] = useState(false);
 
 	// Fetch saved letterhead from settings
@@ -719,6 +785,73 @@ function CreateDocumentModal({
 			.then((d) => setSavedLetterhead(d.letterhead ?? null))
 			.catch(() => {});
 	}, []);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		async function loadExistingDraft() {
+			if (!editingDoc) return;
+			setLoadingDraft(true);
+			setSelectedPropertyIds(editingDoc.propertyIds ?? []);
+
+			try {
+				const rawHtml = await fetch(
+					`/api/documents/${editingDoc.id}/view`,
+				).then((r) => r.text());
+				if (!isMounted) return;
+
+				const parsed = new DOMParser().parseFromString(rawHtml, "text/html");
+				const titleNode =
+					parsed.querySelector('[data-plotfolio-title="true"]') ??
+					parsed.querySelector("h1");
+				const contentNode = parsed.querySelector(
+					'[data-plotfolio-content="true"]',
+				) as HTMLElement | null;
+
+				setTitle(
+					titleNode?.textContent?.trim() ||
+						editingDoc.fileName.replace(/\.[^.]+$/, ""),
+				);
+
+				if (editorRef.current) {
+					editorRef.current.innerHTML =
+						contentNode?.innerHTML?.trim() ||
+						parsed.body?.innerHTML ||
+						"<p></p>";
+				}
+
+				const signaturePayload = parsed.getElementById(
+					"plotfolio-signatures-json",
+				)?.textContent;
+				if (signaturePayload) {
+					try {
+						const parsedSignatures = JSON.parse(
+							signaturePayload,
+						) as DocumentSignatureEntry[];
+						setSignatures(parsedSignatures);
+						setShowSignatureArea(parsedSignatures.length > 0);
+					} catch {
+						setSignatures([]);
+						setShowSignatureArea(false);
+					}
+				} else {
+					setSignatures([]);
+					setShowSignatureArea(false);
+				}
+			} catch {
+				if (!isMounted) return;
+				setTitle(editingDoc.fileName.replace(/\.[^.]+$/, ""));
+				if (editorRef.current) editorRef.current.innerHTML = "<p></p>";
+			} finally {
+				if (isMounted) setLoadingDraft(false);
+			}
+		}
+
+		loadExistingDraft();
+		return () => {
+			isMounted = false;
+		};
+	}, [editingDoc]);
 
 	function execCommand(cmd: string, value?: string) {
 		document.execCommand(cmd, false, value);
@@ -732,6 +865,36 @@ function CreateDocumentModal({
 
 	function removeSignature(index: number) {
 		setSignatures((prev) => prev.filter((_, i) => i !== index));
+	}
+
+	function handleSignatureCapture(signatureDataUrl: string) {
+		if (signaturePadIndex === null) return;
+		setSignatures((prev) =>
+			prev.map((sig, i) =>
+				i === signaturePadIndex
+					? {
+							...sig,
+							signature: signatureDataUrl,
+							signedAt: new Date().toISOString(),
+						}
+					: sig,
+			),
+		);
+		setShowSignatureArea(true);
+		setSignaturePadIndex(null);
+	}
+
+	function formatSignedDate(value?: string): string {
+		if (!value) return "Pending";
+		return new Date(value).toLocaleDateString("en-GB", {
+			day: "2-digit",
+			month: "short",
+			year: "numeric",
+		});
+	}
+
+	function escapeJsonForHtml(value: unknown): string {
+		return JSON.stringify(value).replace(/</g, "\\u003c");
 	}
 
 	function buildDocumentHtml(): string {
@@ -758,27 +921,33 @@ function CreateDocumentModal({
 			const sigBlocks = signatures
 				.map(
 					(s) => `
-					<div style="flex:1;text-align:center;">
-						<div style="border-top:1px solid #333;width:180px;margin:0 auto 8px;"></div>
-						<div style="font-weight:bold;font-size:13px;">${s.name || "Name"}</div>
-						${s.title ? `<div style="font-size:11px;color:#666;">${s.title}</div>` : ""}
+					<div style="flex:1;min-width:240px;max-width:300px;text-align:center;">
+						<div style="height:120px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;display:flex;align-items:center;justify-content:center;padding:8px;margin:0 auto 10px;">
+							${s.signature ? `<img src="${s.signature}" alt="${s.name || "Signature"}" style="max-width:100%;max-height:100%;object-fit:contain;" />` : `<span style="font-size:12px;color:#64748b;letter-spacing:0.04em;text-transform:uppercase;">Signature</span>`}
+						</div>
+						<div style="font-weight:700;font-size:15px;">${s.name || "Name"}</div>
+						${s.title ? `<div style="font-size:12px;color:#475569;margin-top:2px;">${s.title}</div>` : ""}
+						<div style="font-size:12px;color:#64748b;margin-top:6px;">Date signed: ${formatSignedDate(s.signedAt)}</div>
 					</div>`,
 				)
 				.join("");
 			signatureHtml = `
-				<div style="margin-top:48px;display:flex;gap:32px;justify-content:center;">
+				<div style="margin-top:48px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center;" data-plotfolio-signatures="true">
 					${sigBlocks}
 				</div>`;
 		}
+
+		const signaturesJson = escapeJsonForHtml(signatures);
 
 		return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${title || "Document"}</title>
 <style>body{font-family:Georgia,'Times New Roman',serif;max-width:800px;margin:40px auto;padding:20px;color:#222;line-height:1.7;} h1{font-size:20px;} h2{font-size:16px;} p{margin:8px 0;}</style>
 </head><body>
-${headerHtml}
-${title ? `<h1 style="text-align:center;margin-bottom:24px;">${title}</h1>` : ""}
-${content}
+${headerHtml ? `<div data-plotfolio-letterhead="true">${headerHtml}</div>` : ""}
+${title ? `<h1 data-plotfolio-title="true" style="text-align:center;margin-bottom:24px;">${title}</h1>` : ""}
+<div data-plotfolio-content="true">${content}</div>
 ${signatureHtml}
+<script id="plotfolio-signatures-json" type="application/json">${signaturesJson}</script>
 </body></html>`;
 	}
 
@@ -803,30 +972,54 @@ ${signatureHtml}
 		URL.revokeObjectURL(url);
 	}
 
+	async function handleDownloadDocx() {
+		const html = buildDocumentHtml();
+		const docxResult = await Promise.resolve(asBlob(html));
+		const docxBlob =
+			docxResult instanceof Blob
+				? docxResult
+				: new Blob([new Uint8Array(docxResult)], {
+						type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+					});
+		const url = URL.createObjectURL(docxBlob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `${(title || "document").replace(/\s+/g, "-").toLowerCase()}.docx`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
 	async function handleSave() {
 		const html = buildDocumentHtml();
-		const blob = new Blob([html], { type: "text/html" });
-		const file = new File(
-			[blob],
-			`${(title || "document").replace(/\s+/g, "-").toLowerCase()}.html`,
-			{ type: "text/html" },
-		);
+		const fileName = `${(title || "document").replace(/\s+/g, "-").toLowerCase()}.html`;
 		setSaving(true);
 		try {
-			const formData = new FormData();
-			formData.append("file", file);
-			formData.append("userId", userId);
-			if (selectedPropertyIds.length)
-				formData.append("propertyIds", selectedPropertyIds.join(","));
-			formData.append("documentType", "other");
-			formData.append("skipIndexing", "true");
-			const res = await fetch("/api/documents/upload", {
-				method: "POST",
-				body: formData,
-			});
-			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.error || "Upload failed");
+			if (editingDoc) {
+				const ok = await PropertyAPI.updateDocument(editingDoc.id, {
+					htmlContent: html,
+					fileName,
+					propertyIds: selectedPropertyIds,
+					documentType: editingDoc.documentType,
+				});
+				if (!ok) throw new Error("Document update failed");
+			} else {
+				const blob = new Blob([html], { type: "text/html" });
+				const file = new File([blob], fileName, { type: "text/html" });
+				const formData = new FormData();
+				formData.append("file", file);
+				formData.append("userId", userId);
+				if (selectedPropertyIds.length)
+					formData.append("propertyIds", selectedPropertyIds.join(","));
+				formData.append("documentType", "other");
+				formData.append("skipIndexing", "true");
+				const res = await fetch("/api/documents/upload", {
+					method: "POST",
+					body: formData,
+				});
+				if (!res.ok) {
+					const err = await res.json();
+					throw new Error(err.error || "Upload failed");
+				}
 			}
 			onCreated();
 			onClose();
@@ -856,7 +1049,7 @@ ${signatureHtml}
 					<div className="flex items-center gap-2">
 						<PenLine className="w-5 h-5 text-primary" />
 						<h2 className="text-lg font-bold text-on-surface">
-							Create Document
+							{editingDoc ? "Edit Document" : "Create Document"}
 						</h2>
 					</div>
 					<button
@@ -1109,6 +1302,24 @@ ${signatureHtml}
 										/>
 										<button
 											type="button"
+											onClick={() => setSignaturePadIndex(i)}
+											className="px-2 py-1.5 text-xs border border-border rounded-md text-on-surface-variant hover:bg-surface-container-high transition-colors"
+										>
+											{sig.signature ? "Re-sign" : "Sign"}
+										</button>
+										{sig.signature && (
+											/* eslint-disable-next-line @next/next/no-img-element */
+											<img
+												src={sig.signature}
+												alt={`${sig.name || "Signer"} signature`}
+												className="h-8 w-16 object-contain border border-border rounded-md bg-surface-container-lowest"
+											/>
+										)}
+										<span className="text-badge text-outline whitespace-nowrap">
+											{formatSignedDate(sig.signedAt)}
+										</span>
+										<button
+											type="button"
 											onClick={() => removeSignature(i)}
 											className="p-1 text-outline hover:text-red-500 transition-colors"
 										>
@@ -1205,14 +1416,23 @@ ${signatureHtml}
 							</div>
 
 							{/* Editable area */}
-							<div
-								ref={editorRef}
-								contentEditable
-								suppressContentEditableWarning
-								className="flex-1 min-h-[400px] px-6 py-5 text-sm text-on-surface focus:outline-none overflow-y-auto leading-relaxed"
-								style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-								data-placeholder="Start typing your document here…"
-							/>
+							{loadingDraft ? (
+								<div className="flex-1 min-h-[400px] px-6 py-5 flex items-center justify-center text-sm text-on-surface-variant">
+									<div className="flex items-center gap-2">
+										<Loader2 className="w-4 h-4 animate-spin" />
+										Loading document...
+									</div>
+								</div>
+							) : (
+								<div
+									ref={editorRef}
+									contentEditable
+									suppressContentEditableWarning
+									className="flex-1 min-h-[400px] px-6 py-5 text-sm text-on-surface focus:outline-none overflow-y-auto leading-relaxed"
+									style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+									data-placeholder="Start typing your document here..."
+								/>
+							)}
 						</div>
 					</div>
 				</div>
@@ -1226,6 +1446,13 @@ ${signatureHtml}
 							className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md text-on-surface-variant hover:bg-surface-container-high transition-colors"
 						>
 							<Printer className="w-3.5 h-3.5" /> Print
+						</button>
+						<button
+							type="button"
+							onClick={handleDownloadDocx}
+							className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md text-on-surface-variant hover:bg-surface-container-high transition-colors"
+						>
+							<Download className="w-3.5 h-3.5" /> Word
 						</button>
 						<button
 							type="button"
@@ -1245,7 +1472,7 @@ ${signatureHtml}
 						</button>
 						<PrimaryButton
 							onClick={handleSave}
-							disabled={saving}
+							disabled={saving || loadingDraft}
 							className="px-4 py-2 gap-1.5"
 						>
 							{saving ? (
@@ -1253,11 +1480,19 @@ ${signatureHtml}
 							) : (
 								<Stamp className="w-3.5 h-3.5" />
 							)}
-							Save
+							{editingDoc ? "Update" : "Save"}
 						</PrimaryButton>
 					</div>
 				</div>
 			</div>
+
+			{signaturePadIndex !== null && signatures[signaturePadIndex] && (
+				<SignaturePad
+					name={signatures[signaturePadIndex].name || "Signer"}
+					onConfirm={handleSignatureCapture}
+					onCancel={() => setSignaturePadIndex(null)}
+				/>
+			)}
 		</div>
 	);
 }
@@ -1285,7 +1520,9 @@ export default function DocumentsPage() {
 	// Modals
 	const [showUpload, setShowUpload] = useState(false);
 	const [showCreate, setShowCreate] = useState(false);
+	const [editingDoc, setEditingDoc] = useState<AIDocument | null>(null);
 	const [previewDoc, setPreviewDoc] = useState<AIDocument | null>(null);
+	const [rescanningId, setRescanningId] = useState<string | null>(null);
 
 	// Build property name map
 	const propertyMap = useMemo(() => {
@@ -1440,7 +1677,33 @@ export default function DocumentsPage() {
 	}
 
 	function handleUploaded(doc: AIDocument) {
-		setDocuments((prev) => [doc, ...prev]);
+		setDocuments((prev) => {
+			const exists = prev.some((d) => d.id === doc.id);
+			if (exists) {
+				return prev.map((d) => (d.id === doc.id ? doc : d));
+			}
+			return [doc, ...prev];
+		});
+	}
+
+	async function handleRescan(docId: string) {
+		setRescanningId(docId);
+		try {
+			const updated = await PropertyAPI.reextractDocument(docId);
+			if (!updated) return;
+			setDocuments((prev) =>
+				prev.map((d) => (d.id === docId ? { ...d, ...updated } : d)),
+			);
+			setPreviewDoc((prev) =>
+				prev && prev.id === docId ? { ...prev, ...updated } : prev,
+			);
+		} finally {
+			setRescanningId(null);
+		}
+	}
+
+	function canEditDocument(doc: AIDocument): boolean {
+		return getFileKind(doc.mimeType, doc.fileName) === "html";
 	}
 
 	if (authLoading || !user) {
@@ -1582,7 +1845,12 @@ export default function DocumentsPage() {
 
 						{/* Action buttons */}
 						<div className="ml-auto flex items-center gap-2">
-							<PrimaryButton onClick={() => setShowCreate(true)}>
+							<PrimaryButton
+								onClick={() => {
+									setEditingDoc(null);
+									setShowCreate(true);
+								}}
+							>
 								<PenLine className="w-4 h-4" />
 								Create
 							</PrimaryButton>
@@ -1674,6 +1942,16 @@ export default function DocumentsPage() {
 											.filter(Boolean) as string[] | undefined
 									}
 									onPreview={() => setPreviewDoc(doc)}
+									onEdit={
+										canEditDocument(doc)
+											? () => {
+													setEditingDoc(doc);
+													setShowCreate(true);
+												}
+											: undefined
+									}
+									onRescan={() => handleRescan(doc.id)}
+									rescanning={rescanningId === doc.id}
 									onDelete={() => handleDelete(doc.id)}
 									onLinkProperties={(pids) =>
 										handleLinkProperties(doc.id, pids)
@@ -1762,6 +2040,19 @@ export default function DocumentsPage() {
 												>
 													<Eye className="w-3.5 h-3.5" />
 												</button>
+												{canEditDocument(doc) && (
+													<button
+														onClick={(e) => {
+															e.stopPropagation();
+															setEditingDoc(doc);
+															setShowCreate(true);
+														}}
+														className="p-1.5 rounded-lg text-outline hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+														title="Edit"
+													>
+														<PenLine className="w-3.5 h-3.5" />
+													</button>
+												)}
 												<button
 													onClick={(e) => {
 														e.stopPropagation();
@@ -1837,10 +2128,14 @@ export default function DocumentsPage() {
 			{/* Create Document Modal */}
 			{showCreate && (
 				<CreateDocumentModal
-					onClose={() => setShowCreate(false)}
+					onClose={() => {
+						setShowCreate(false);
+						setEditingDoc(null);
+					}}
 					onCreated={fetchData}
 					userId={user.id}
 					properties={properties}
+					editingDoc={editingDoc}
 				/>
 			)}
 

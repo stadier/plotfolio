@@ -32,6 +32,14 @@ export async function GET() {
 			return NextResponse.json({ user: null }, { status: 401 });
 		}
 
+		// Validate session token to prevent stale/stolen cookies. Accept either
+		// inclusion in the multi-device sessionTokens array or the legacy single
+		// sessionToken field (kept for backward compatibility during migration).
+		const tokens = (user as any).sessionTokens ?? [];
+		if (!tokens.includes(token) && (user as any).sessionToken !== token) {
+			return NextResponse.json({ user: null }, { status: 401 });
+		}
+
 		// Ensure user has at least one portfolio (migration for existing users)
 		const hasMembership = await PortfolioMemberModel.findOne({
 			userId,

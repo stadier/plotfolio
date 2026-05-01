@@ -5,17 +5,40 @@ import mongoose, {
 	Types,
 } from "mongoose";
 
-/* ── AI Document ─────────────────────────────────────── */
+/* ── Unified Document model ─────────────────────────────
+ * One collection for ALL documents in the system.
+ *
+ * - Documents may or may not be linked to properties (propertyIds may be empty).
+ * - Documents may or may not have been processed with AI (aiProcessed flag).
+ * - Every document has an accessLevel (default PUBLIC) and may carry a watermark.
+ *
+ * Note: the model name "AIDocument" and the collection name "aidocuments" are
+ * preserved so existing data is not orphaned. New code should treat this as the
+ * generic Document model (see `DocumentModel` alias below).
+ * ─────────────────────────────────────────────────────── */
 
 interface IAIDocument extends MongooseDocument {
 	_id: Types.ObjectId;
 	userId: string;
 	propertyIds: string[];
+	fileHash?: string;
 	fileUrl: string;
 	fileName: string;
 	fileSize: number;
 	mimeType: string;
 	documentType: string;
+	// Access control — applies to every document
+	accessLevel: string;
+	watermark?: {
+		type?: "seal" | "platform" | "text";
+		sealId?: string;
+		text?: string;
+		opacity?: number;
+		position?: string;
+		includePlatformBrand?: boolean;
+	} | null;
+	// AI processing — optional; only populated after extraction has run
+	aiProcessed: boolean;
 	ocrText?: string;
 	extractedData?: Record<string, unknown>;
 	confidence?: number;
@@ -24,10 +47,23 @@ interface IAIDocument extends MongooseDocument {
 	updatedAt: Date;
 }
 
+const WatermarkSubSchema = new Schema(
+	{
+		type: { type: String, enum: ["seal", "platform", "text"] },
+		sealId: String,
+		text: String,
+		opacity: Number,
+		position: String,
+		includePlatformBrand: Boolean,
+	},
+	{ _id: false },
+);
+
 const AIDocumentSchema = new Schema<IAIDocument>(
 	{
 		userId: { type: String, required: true, index: true },
 		propertyIds: { type: [String], default: [], index: true },
+		fileHash: { type: String },
 		fileUrl: { type: String, required: true },
 		fileName: { type: String, required: true },
 		fileSize: { type: Number, required: true },
@@ -48,6 +84,14 @@ const AIDocumentSchema = new Schema<IAIDocument>(
 			],
 			default: "other",
 		},
+		accessLevel: {
+			type: String,
+			enum: ["public", "request_required", "private"],
+			default: "public",
+			index: true,
+		},
+		watermark: { type: WatermarkSubSchema, default: null },
+		aiProcessed: { type: Boolean, default: false, index: true },
 		ocrText: { type: String },
 		extractedData: { type: Schema.Types.Mixed },
 		confidence: { type: Number, min: 0, max: 1 },
@@ -57,7 +101,8 @@ const AIDocumentSchema = new Schema<IAIDocument>(
 );
 
 AIDocumentSchema.index({ userId: 1, documentType: 1 });
-AIDocumentSchema.index({ propertyIds: 1 });
+AIDocumentSchema.index({ userId: 1, fileHash: 1 });
+AIDocumentSchema.index({ propertyIds: 1, createdAt: -1 });
 
 /* ── Document Chunk (for vector search) ──────────────── */
 
@@ -78,9 +123,6 @@ const DocumentChunkSchema = new Schema<IDocumentChunk>(
 	{ timestamps: true },
 );
 
-// If using MongoDB Atlas Vector Search, create a vector index
-// named "vector_index" on the "embedding" field via Atlas UI/CLI.
-// The search query in the RAG module uses $vectorSearch aggregation.
 DocumentChunkSchema.index({ documentId: 1, chunkIndex: 1 });
 
 /* ── Document Image (diagrams extracted from PDFs) ───── */
@@ -107,6 +149,9 @@ const DocumentImageSchema = new Schema<IDocumentImage>(
 export const AIDocumentModel: Model<IAIDocument> =
 	mongoose.models.AIDocument ||
 	mongoose.model<IAIDocument>("AIDocument", AIDocumentSchema);
+
+// Generic alias for new code that should not depend on the legacy name.
+export const DocumentModel = AIDocumentModel;
 
 export const DocumentChunkModel: Model<IDocumentChunk> =
 	mongoose.models.DocumentChunk ||

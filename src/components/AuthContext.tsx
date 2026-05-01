@@ -1,5 +1,13 @@
 "use client";
 
+import {
+	clearClientCacheScope,
+	getClientCacheScope,
+	getReactQueryCacheStorageKey,
+	setClientCacheScope,
+} from "@/lib/cacheScope";
+import { invalidateCachedGet } from "@/lib/clientCache";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
 	createContext,
@@ -7,6 +15,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
 
@@ -49,38 +58,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<AuthUser | null>(null);
 	const [loading, setLoading] = useState(true);
 	const router = useRouter();
+	const queryClient = useQueryClient();
+	const previousUserIdRef = useRef<string | null | undefined>(undefined);
+
+	const clearAuthScopedCaches = useCallback(
+		(previousScope: string, removeActivePortfolio = false) => {
+			invalidateCachedGet();
+			queryClient.clear();
+			if (typeof window !== "undefined") {
+				localStorage.removeItem(getReactQueryCacheStorageKey(previousScope));
+				if (removeActivePortfolio) {
+					localStorage.removeItem("plotfolio-active-portfolio");
+				}
+			}
+		},
+		[queryClient],
+	);
+
+	const transitionAuthCacheScope = useCallback(
+		(nextUserId: string | null, removeActivePortfolio = false) => {
+			const previousScope = getClientCacheScope();
+			const nextScope = nextUserId ?? "guest";
+			if (previousScope === nextScope) {
+				return;
+			}
+
+			clearAuthScopedCaches(previousScope, removeActivePortfolio);
+			if (nextUserId) {
+				setClientCacheScope(nextUserId);
+			} else {
+				clearClientCacheScope();
+			}
+		},
+		[clearAuthScopedCaches],
+	);
 
 	const refresh = useCallback(async () => {
 		try {
 			const res = await fetch("/api/auth/me");
 			if (res.ok) {
 				const data = await res.json();
+				transitionAuthCacheScope(data.user?.id ?? null);
 				setUser(data.user ?? null);
 			} else {
+				transitionAuthCacheScope(null, true);
 				setUser(null);
 			}
 		} catch {
+			transitionAuthCacheScope(null, true);
 			setUser(null);
 		} finally {
 			setLoading(false);
 		}
-	}, []);
+	}, [transitionAuthCacheScope]);
 
 	useEffect(() => {
 		refresh();
 	}, [refresh]);
 
-	const login = useCallback(async (email: string, password: string) => {
-		const res = await fetch("/api/auth/login", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ email, password }),
-		});
-		const data = await res.json();
-		if (!res.ok) return { error: data.error || "Login failed" };
-		setUser(data.user);
-		return {};
-	}, []);
+	useEffect(() => {
+		const currentUserId = user?.id ?? null;
+		if (
+			previousUserIdRef.current !== undefined &&
+			previousUserIdRef.current !== currentUserId
+		) {
+			transitionAuthCacheScope(currentUserId, true);
+		}
+		previousUserIdRef.current = currentUserId;
+	}, [user?.id, transitionAuthCacheScope]);
+
+	const login = useCallback(
+		async (email: string, password: string) => {
+			const res = await fetch("/api/auth/login", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ email, password }),
+			});
+			const data = await res.json();
+			if (!res.ok) return { error: data.error || "Login failed" };
+			transitionAuthCacheScope(data.user?.id ?? null, true);
+			setUser(data.user);
+			return {};
+		},
+		[transitionAuthCacheScope],
+	);
 
 	const signup = useCallback(
 		async (name: string, email: string, password: string) => {
@@ -91,29 +152,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			});
 			const data = await res.json();
 			if (!res.ok) return { error: data.error || "Signup failed" };
+			transitionAuthCacheScope(data.user?.id ?? null, true);
 			setUser(data.user);
 			return {};
 		},
-		[],
+		[transitionAuthCacheScope],
 	);
 
-	const googleLogin = useCallback(async (credential: string) => {
-		const res = await fetch("/api/auth/google", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ credential }),
-		});
-		const data = await res.json();
-		if (!res.ok) return { error: data.error || "Google sign-in failed" };
-		setUser(data.user);
-		return {};
-	}, []);
+	const googleLogin = useCallback(
+		async (credential: string) => {
+			const res = await fetch("/api/auth/google", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ credential }),
+			});
+			const data = await res.json();
+			if (!res.ok) return { error: data.error || "Google sign-in failed" };
+			transitionAuthCacheScope(data.user?.id ?? null, true);
+			setUser(data.user);
+			return {};
+		},
+		[transitionAuthCacheScope],
+	);
 
 	const logout = useCallback(async () => {
 		await fetch("/api/auth/logout", { method: "POST" });
+		transitionAuthCacheScope(null, true);
 		setUser(null);
 		router.push("/login");
-	}, [router]);
+	}, [router, transitionAuthCacheScope]);
 
 	return (
 		<AuthContext.Provider

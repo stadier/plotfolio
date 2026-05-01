@@ -1,12 +1,14 @@
 import { b2, B2_BUCKET } from "@/lib/b2";
 import { CacheControl } from "@/lib/httpCache";
 import connectDB from "@/lib/mongoose";
-import { PropertyModel } from "@/models/Property";
+import { AIDocumentModel } from "@/models/AIDocument";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/properties/[id]/documents/[docId]/view
-// Streams the document file from B2 storage
+// Streams the document file from B2 storage. Documents now live in the
+// unified AIDocumentModel collection; the property linkage is checked via
+// the propertyIds array.
 export async function GET(
 	_request: NextRequest,
 	{ params }: { params: Promise<{ id: string; docId: string }> },
@@ -16,22 +18,19 @@ export async function GET(
 
 		await connectDB();
 
-		// Find the property and the specific document
-		const property = (await PropertyModel.findOne(
-			{ id, "documents.id": docId },
-			{ "documents.$": 1 },
-		).lean()) as { documents?: Array<{ url: string; name: string }> } | null;
+		const doc = await AIDocumentModel.findById(docId)
+			.select("fileUrl fileName propertyIds")
+			.lean();
 
-		if (!property?.documents?.[0]) {
+		if (!doc || !(doc.propertyIds ?? []).includes(id)) {
 			return NextResponse.json(
 				{ error: "Document not found" },
 				{ status: 404 },
 			);
 		}
 
-		const doc = property.documents[0];
-		const url = new URL(doc.url);
-		const key = decodeURIComponent(url.pathname.slice(1)); // Remove leading /
+		const url = new URL(doc.fileUrl);
+		const key = decodeURIComponent(url.pathname.slice(1));
 
 		const response = await b2.send(
 			new GetObjectCommand({
@@ -56,11 +55,10 @@ export async function GET(
 		}
 		headers.set(
 			"Content-Disposition",
-			`inline; filename="${encodeURIComponent(doc.name)}"`,
+			`inline; filename="${encodeURIComponent(doc.fileName)}"`,
 		);
 		headers.set("Cache-Control", CacheControl.privateMedium);
 
-		// Stream the body from S3-compatible response
 		const bodyStream = response.Body.transformToWebStream();
 
 		return new NextResponse(bodyStream as ReadableStream, {

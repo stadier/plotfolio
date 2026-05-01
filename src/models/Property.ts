@@ -2,9 +2,9 @@ import { toPlotWords } from "@/lib/plotwords";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
-	DocumentType,
 	MediaType,
 	Property,
+	PropertyDocument,
 	PropertyOwner,
 	PropertyStatus,
 	PropertyType,
@@ -129,35 +129,9 @@ const PropertyStructureSchema = new Schema(
 	{ _id: false },
 );
 
-// Property Document Schema
-const PropertyDocumentSchema = new Schema({
-	id: { type: String, required: true },
-	name: { type: String, required: true },
-	type: {
-		type: String,
-		enum: Object.values(DocumentType),
-		required: true,
-	},
-	url: { type: String, required: true },
-	uploadDate: { type: Date, default: Date.now },
-	size: { type: Number, default: 0 },
-	accessLevel: {
-		type: String,
-		enum: Object.values(DocumentAccessLevel),
-		default: DocumentAccessLevel.PUBLIC,
-	},
-	watermark: {
-		type: {
-			type: String,
-			enum: ["seal", "platform", "text"],
-		},
-		sealId: String,
-		text: String,
-		opacity: Number,
-		position: String,
-		includePlatformBrand: Boolean,
-	},
-});
+// Property Document Schema removed — documents now live in the unified
+// AIDocumentModel collection (see /src/models/AIDocument.ts). Property
+// linkage is via DocumentModel.propertyIds[].
 
 // Document Access Request Schema
 const DocumentAccessRequestSchema = new Schema(
@@ -206,7 +180,6 @@ const PropertySchema = new Schema<Property & Document>(
 		currentValue: { type: Number, default: 0 },
 		soldPrice: { type: Number },
 		soldDate: { type: Date },
-		documents: [PropertyDocumentSchema],
 		status: {
 			type: String,
 			enum: Object.values(PropertyStatus),
@@ -316,16 +289,6 @@ function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
 			prop.plotWords = toPlotWords(prop.coordinates.lat, prop.coordinates.lng);
 		}
 	}
-	if (prop.documents) {
-		prop.documents = prop.documents.map((doc: any) => {
-			const { _id, ...rest } = doc;
-			return {
-				...rest,
-				size: doc.size || 0,
-				accessLevel: doc.accessLevel || DocumentAccessLevel.PUBLIC,
-			};
-		});
-	}
 	if (prop.media) {
 		prop.media = prop.media.map((m: any) => {
 			const { _id, ...rest } = m;
@@ -340,12 +303,68 @@ function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
 
 // Helper functions for database operations
 export class PropertyService {
+	/**
+	 * Hydrate the legacy `property.documents` array on a Property by joining
+	 * with the unified DocumentModel collection. Documents no longer live
+	 * on the Property record; this exists so existing UI consumers that
+	 * read `property.documents` keep working without per-component fetches.
+	 */
+	private static async hydrateDocuments<T extends { id: string }>(
+		properties: T[],
+	): Promise<Array<T & { documents: PropertyDocument[] }>> {
+		if (properties.length === 0) {
+			return properties as Array<T & { documents: PropertyDocument[] }>;
+		}
+		// Lazy import to avoid circular module init.
+		const { AIDocumentModel } = await import("@/models/AIDocument");
+		const ids = properties.map((p) => p.id);
+		const docs = await AIDocumentModel.find({ propertyIds: { $in: ids } })
+			.sort({ createdAt: -1 })
+			.lean();
+
+		const byProperty = new Map<string, PropertyDocument[]>();
+		for (const d of docs as Array<{
+			_id: unknown;
+			propertyIds?: string[];
+			fileName: string;
+			fileUrl: string;
+			fileSize: number;
+			documentType: string;
+			accessLevel?: DocumentAccessLevel;
+			watermark?: unknown;
+			aiProcessed?: boolean;
+			createdAt: Date;
+		}>) {
+			const legacy: PropertyDocument = {
+				id: String(d._id),
+				name: d.fileName,
+				url: d.fileUrl,
+				size: d.fileSize,
+				type: d.documentType as PropertyDocument["type"],
+				uploadDate: d.createdAt,
+				accessLevel: d.accessLevel ?? DocumentAccessLevel.PUBLIC,
+				watermark: (d.watermark as PropertyDocument["watermark"]) ?? null,
+				aiProcessed: d.aiProcessed ?? false,
+			};
+			for (const pid of d.propertyIds ?? []) {
+				if (!byProperty.has(pid)) byProperty.set(pid, []);
+				byProperty.get(pid)!.push(legacy);
+			}
+		}
+
+		return properties.map((p) => ({
+			...p,
+			documents: byProperty.get(p.id) ?? [],
+		}));
+	}
+
 	static async getAllProperties(): Promise<Property[]> {
 		const properties = await PropertyModel.find({}).lean();
-		return properties.map((prop) => {
+		const cleaned = properties.map((prop) => {
 			const { _id, __v, ...cleanProp } = prop as any;
 			return sanitizeProperty(cleanProp);
 		}) as Property[];
+		return this.hydrateDocuments(cleaned);
 	}
 
 	static async getPropertyById(id: string): Promise<Property | null> {
@@ -353,7 +372,9 @@ export class PropertyService {
 		if (!property) return null;
 
 		const { _id, __v, ...cleanProp } = property as any;
-		return sanitizeProperty(cleanProp) as Property;
+		const sanitized = sanitizeProperty(cleanProp) as Property;
+		const [hydrated] = await this.hydrateDocuments([sanitized]);
+		return hydrated;
 	}
 
 	static async createProperty(property: Property): Promise<Property> {
@@ -363,21 +384,32 @@ export class PropertyService {
 		const created = await PropertyModel.create(property);
 		const obj = created.toObject();
 		const { _id, __v, ...cleanProp } = obj as any;
-		return sanitizeProperty(cleanProp) as Property;
+		const sanitized = sanitizeProperty(cleanProp) as Property;
+		// Newly created property has no documents yet.
+		sanitized.documents = [];
+		return sanitized;
 	}
 
 	static async updateProperty(
 		id: string,
 		updates: Partial<Property>,
 	): Promise<Property | null> {
-		const updated = await PropertyModel.findOneAndUpdate({ id }, updates, {
+		// `documents` is not a real schema field anymore \u2014 strip it before save.
+		const { documents: _ignoredDocs, ...safeUpdates } =
+			updates as Partial<Property> & {
+				documents?: unknown;
+			};
+		void _ignoredDocs;
+		const updated = await PropertyModel.findOneAndUpdate({ id }, safeUpdates, {
 			new: true,
 		}).lean();
 
 		if (!updated) return null;
 
 		const { _id, __v, ...cleanProp } = updated as any;
-		return sanitizeProperty(cleanProp) as Property;
+		const sanitized = sanitizeProperty(cleanProp) as Property;
+		const [hydrated] = await this.hydrateDocuments([sanitized]);
+		return hydrated;
 	}
 
 	static async deleteProperty(id: string): Promise<boolean> {

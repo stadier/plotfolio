@@ -142,69 +142,11 @@ const owners = {
 		joinDate: "2020-06-15",
 		salesCount: 12,
 	},
-	me: {
-		id: "owner-1",
-		name: "Stadier HQ",
-		username: "stadier_hq",
-		displayName: "Stadier",
-		avatar:
-			"https://api.dicebear.com/9.x/initials/svg?seed=SH&backgroundColor=1e3a5f",
-		banner: "/mock-profiles/banner-me.svg",
-		email: "stadier.hq@gmail.com",
-		type: "individual" as const,
-		joinDate: "2023-01-15",
-		salesCount: 0,
-	},
 };
 
 /* ─── sample properties data ──────────────────────────────────── */
 
 const sampleProperties: Property[] = [
-	// ── My properties (owner-1) ─────────────────────────────────
-	{
-		id: "1",
-		name: "Plot A47 - Maitama District",
-		address: "Plot A47, Maitama District, Abuja FCT",
-		coordinates: { lat: 9.0765, lng: 7.4951 },
-		area: 800,
-		propertyType: PropertyType.LAND,
-		purchaseDate: new Date("2023-01-15"),
-		purchasePrice: 45000000,
-		currentValue: 52000000,
-		documents: [],
-		images: [
-			"https://picsum.photos/seed/plotfolio-1/1200/900",
-			"/mock-properties/maitama-overview.svg",
-		],
-		status: PropertyStatus.OWNED,
-		description:
-			"Prime residential plot in upscale Maitama district with Certificate of Occupancy.",
-		state: "Abuja FCT",
-		city: "Maitama",
-		country: "Nigeria",
-		owner: owners.me,
-	},
-	{
-		id: "7",
-		name: "My Property",
-		address: "8°55'54.1\"N 7°19'27.7\"E",
-		coordinates: { lat: 8.9317, lng: 7.3244 },
-		area: 500,
-		propertyType: PropertyType.LAND,
-		purchaseDate: new Date("2025-11-02"),
-		purchasePrice: 0,
-		currentValue: 0,
-		documents: [],
-		images: [
-			"https://picsum.photos/seed/plotfolio-7/1200/900",
-			"/mock-properties/my-property.svg",
-		],
-		status: PropertyStatus.OWNED,
-		description: "My personal property",
-		country: "Nigeria",
-		owner: owners.me,
-	},
-
 	// ── Adebayo's properties ────────────────────────────────────
 	{
 		id: "3",
@@ -217,7 +159,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 35000000,
 		currentValue: 42000000,
 		conditions: [PropertyCondition.FENCED, PropertyCondition.CLEARED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-3/1200/900",
 			"/mock-properties/jahi-garden.svg",
@@ -243,7 +184,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 120000000,
 		currentValue: 165000000,
 		conditions: [PropertyCondition.PAVED, PropertyCondition.HAS_STRUCTURE],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-8/1200/900",
 			"/mock-properties/commercial-cbd.svg",
@@ -290,7 +230,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 18000000,
 		currentValue: 22000000,
 		conditions: [PropertyCondition.FOUNDATION],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-2/1200/900",
 			"/mock-properties/gwarinpa-foundation.svg",
@@ -314,7 +253,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 28000000,
 		currentValue: 33000000,
 		conditions: [PropertyCondition.CLEARED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-5/1200/900",
 			"/mock-properties/wuye-corner-plot.svg",
@@ -338,7 +276,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 32000000,
 		currentValue: 38000000,
 		conditions: [PropertyCondition.FENCED, PropertyCondition.CLEARED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-9/1200/900",
 			"/mock-properties/life-camp-duplex.svg",
@@ -364,7 +301,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 12000000,
 		currentValue: 15000000,
 		conditions: [PropertyCondition.BUSH],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-4/1200/900",
 			"/mock-properties/kubwa-plot.svg",
@@ -389,7 +325,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 55000000,
 		currentValue: 72000000,
 		conditions: [PropertyCondition.PAVED, PropertyCondition.FENCED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-10/1200/900",
 			"/mock-properties/idu-industrial.svg",
@@ -415,7 +350,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 16000000,
 		currentValue: 21000000,
 		conditions: [PropertyCondition.CLEARED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-6/1200/900",
 			"/mock-properties/karsana-expanse.svg",
@@ -440,7 +374,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 8000000,
 		currentValue: 14000000,
 		conditions: [PropertyCondition.BUSH],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-11/1200/900",
 			"/mock-properties/gwagwalada-farm.svg",
@@ -471,7 +404,6 @@ const sampleProperties: Property[] = [
 			PropertyCondition.PAVED,
 			PropertyCondition.HAS_STRUCTURE,
 		],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-12/1200/900",
 			"/mock-properties/asokoro-terrace.svg",
@@ -495,7 +427,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 62000000,
 		currentValue: 75000000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.FENCED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-13/1200/900",
 			"/mock-properties/guzape-duplex.svg",
@@ -521,7 +452,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 48000000,
 		currentValue: 58000000,
 		conditions: [PropertyCondition.PAVED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-14/1200/900",
 			"/mock-properties/garki-mixed.svg",
@@ -547,7 +477,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 20000000,
 		currentValue: 24000000,
 		conditions: [PropertyCondition.CLEARED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-15/1200/900",
 			"/mock-properties/lokogoma-estate.svg",
@@ -571,7 +500,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 7500000,
 		currentValue: 9500000,
 		conditions: [PropertyCondition.BUSH],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-16/1200/900",
 			"/mock-properties/lugbe-vacant.svg",
@@ -596,7 +524,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 14000000,
 		currentValue: 18000000,
 		conditions: [PropertyCondition.HAS_STRUCTURE],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-17/1200/900",
 			"/mock-properties/nyanya-shop.svg",
@@ -623,7 +550,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 70000000,
 		currentValue: 95000000,
 		conditions: [PropertyCondition.ROCKY, PropertyCondition.FENCED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-18/1200/900",
 			"/mock-properties/katampe-hilltop.svg",
@@ -647,7 +573,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 25000000,
 		currentValue: 28000000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.PAVED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-19/1200/900",
 			"/mock-properties/mbora-serviced.svg",
@@ -673,7 +598,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 6000000,
 		currentValue: 7800000,
 		conditions: [PropertyCondition.BUSH],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-20/1200/900",
 			"/mock-properties/dei-dei-bungalow.svg",
@@ -698,7 +622,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 35000000,
 		currentValue: 48000000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.FENCED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-21/1200/900",
 			"/mock-properties/zuba-warehouse.svg",
@@ -725,7 +648,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 10000000,
 		currentValue: 13500000,
 		conditions: [PropertyCondition.CLEARED, PropertyCondition.PAVED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-22/1200/900",
 			"/mock-properties/karshi-estate.svg",
@@ -754,7 +676,6 @@ const sampleProperties: Property[] = [
 			PropertyCondition.HAS_STRUCTURE,
 			PropertyCondition.FENCED,
 		],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-23/1200/900",
 			"/mock-properties/apo-commercial.svg",
@@ -778,7 +699,6 @@ const sampleProperties: Property[] = [
 		purchasePrice: 5500000,
 		currentValue: 7000000,
 		conditions: [PropertyCondition.CLEARED],
-		documents: [],
 		images: [
 			"https://picsum.photos/seed/plotfolio-24/1200/900",
 			"/mock-properties/kuje-gated.svg",
@@ -824,8 +744,7 @@ export async function POST() {
 			username: o.username,
 			displayName: o.displayName ?? o.name.split(" ")[0],
 			email: o.email,
-			passwordHash:
-				o.email === "stadier.hq@gmail.com" ? "google:seeded" : defaultPassword,
+			passwordHash: defaultPassword,
 			avatar: o.avatar,
 			banner: o.banner,
 			phone: `+234-${800 + Number(o.id.replace(/\D/g, "") || "0")}0-000-${String(Number(o.id.replace(/\D/g, "") || "0")).padStart(4, "0")}`,
@@ -881,10 +800,6 @@ export async function POST() {
 			["9", "2"],
 			["9", "3"],
 			["9", "5"],
-			["owner-1", "1"],
-			["owner-1", "3"],
-			["owner-1", "5"],
-			["owner-1", "9"],
 		];
 		await FollowModel.insertMany(
 			followPairs.map(([followerId, followingId], i) => ({
@@ -906,10 +821,6 @@ export async function POST() {
 
 		// ── 5. Create Favourites ────────────────────────────────────
 		const favouritePairs = [
-			["owner-1", "3"],
-			["owner-1", "8"],
-			["owner-1", "12"],
-			["owner-1", "22"],
 			["1", "12"],
 			["1", "22"],
 			["1", "9"],
@@ -944,30 +855,6 @@ export async function POST() {
 
 		// ── 6. Create Bookings ──────────────────────────────────────
 		const bookingData = [
-			{
-				ownerId: "1",
-				requesterId: "owner-1",
-				name: owners.me.name,
-				email: owners.me.email,
-				type: BookingType.CONSULTATION,
-				date: "2026-04-15",
-				time: "10:00",
-				msg: "I'd like to discuss the commercial block in CBD.",
-				status: BookingStatus.CONFIRMED,
-				propertyId: "8",
-			},
-			{
-				ownerId: "2",
-				requesterId: "owner-1",
-				name: owners.me.name,
-				email: owners.me.email,
-				type: BookingType.INSPECTION,
-				date: "2026-04-18",
-				time: "14:00",
-				msg: "Can I visit the Gwarinpa plot?",
-				status: BookingStatus.PENDING,
-				propertyId: "2",
-			},
 			{
 				ownerId: "5",
 				requesterId: "1",
@@ -1051,18 +938,6 @@ export async function POST() {
 				msg: "Site visit for the Guzape duplex land.",
 				status: BookingStatus.CONFIRMED,
 				propertyId: "13",
-			},
-			{
-				ownerId: "6",
-				requesterId: "owner-1",
-				name: owners.me.name,
-				email: owners.me.email,
-				type: BookingType.CONSULTATION,
-				date: "2026-05-05",
-				time: "09:30",
-				msg: "Need details on the Nyanya shop rental income.",
-				status: BookingStatus.PENDING,
-				propertyId: "17",
 			},
 		];
 		await BookingModel.insertMany(
