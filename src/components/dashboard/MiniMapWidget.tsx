@@ -1,9 +1,31 @@
 "use client";
 
+import { useTheme } from "@/components/ThemeProvider";
 import { Property, PropertyStatus } from "@/types/property";
 import { ChevronLeft, ChevronRight, Globe } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
+const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
+// Compact dark-mode style for Google Static Maps (subtle slate look)
+const GOOGLE_DARK_STYLE = [
+	"feature:all|element:geometry|color:0x1e293b",
+	"feature:all|element:labels|visibility:off",
+	"feature:road|element:geometry|color:0x334155",
+	"feature:water|element:geometry|color:0x0f172a",
+	"feature:landscape|element:geometry|color:0x1e293b",
+	"feature:poi|element:geometry|color:0x1e293b",
+];
+const GOOGLE_LIGHT_STYLE = [
+	"feature:all|element:labels|visibility:off",
+	"feature:poi|element:geometry|color:0xf1f5f9",
+];
+
+function buildStyleParams(styles: string[]): string {
+	return styles.map((s) => `style=${encodeURIComponent(s)}`).join("&");
+}
 
 interface MiniMapWidgetProps {
 	properties: Property[];
@@ -29,6 +51,9 @@ interface LocationGroup {
 
 const SLIDE_INTERVAL = 5000;
 
+/** Toggle to show/hide the SVG grid overlay on top of the map backdrop. */
+const SHOW_GRID = false;
+
 export default function MiniMapWidget({
 	properties,
 	onSelect,
@@ -39,7 +64,11 @@ export default function MiniMapWidget({
 	const mappable = useMemo(
 		() =>
 			properties.filter(
-				(p) => p.coordinates?.lat != null && p.coordinates?.lng != null,
+				(p) =>
+					p.coordinates?.lat != null &&
+					p.coordinates?.lng != null &&
+					// Treat (0,0) as missing — Null Island sentinel
+					!(p.coordinates.lat === 0 && p.coordinates.lng === 0),
 			),
 		[properties],
 	);
@@ -129,6 +158,48 @@ export default function MiniMapWidget({
 	const slideClass =
 		slideDir === "left" ? "animate-slide-left" : "animate-slide-right";
 
+	const { resolvedTheme } = useTheme();
+
+	// Build a Static Map URL for the current bounds (backdrop behind grid).
+	// Prefers Mapbox if a token is set, otherwise falls back to Google Static Maps
+	// (the project's primary map provider).
+	const staticMapUrl = useMemo(() => {
+		// No real property coordinates → skip; don't render Null Island
+		if (lats.length === 0 || lngs.length === 0) return null;
+
+		const lngPad = lngRange * 0.15;
+		const latPad = latRange * 0.15;
+		const minLng = lngMin - lngPad;
+		const minLat = latMin - latPad;
+		const maxLng = lngMax + lngPad;
+		const maxLat = latMax + latPad;
+
+		if (MAPBOX_TOKEN) {
+			const style = resolvedTheme === "dark" ? "dark-v11" : "light-v11";
+			const bbox = `[${minLng},${minLat},${maxLng},${maxLat}]`;
+			return `https://api.mapbox.com/styles/v1/mapbox/${style}/static/${bbox}/600x352@2x?access_token=${MAPBOX_TOKEN}&attribution=false&logo=false`;
+		}
+
+		if (GOOGLE_KEY) {
+			const visible = `${minLat},${minLng}|${maxLat},${maxLng}`;
+			const styles =
+				resolvedTheme === "dark" ? GOOGLE_DARK_STYLE : GOOGLE_LIGHT_STYLE;
+			return `https://maps.googleapis.com/maps/api/staticmap?size=600x352&scale=2&maptype=roadmap&visible=${visible}&${buildStyleParams(styles)}&key=${GOOGLE_KEY}`;
+		}
+
+		return null;
+	}, [
+		resolvedTheme,
+		lngMin,
+		lngMax,
+		latMin,
+		latMax,
+		lngRange,
+		latRange,
+		lats.length,
+		lngs.length,
+	]);
+
 	return (
 		<div className="bg-card border border-border sz-radius-card overflow-hidden break-inside-avoid widget-card animate-fade-in-up">
 			{/* Header — padded */}
@@ -182,35 +253,51 @@ export default function MiniMapWidget({
 			</div>
 
 			{/* SVG mini map — bleeds to left, right, bottom */}
-			<div className="bg-slate-50 dark:bg-surface-container overflow-hidden pt-2">
+			<div
+				className={`relative bg-slate-50 dark:bg-surface-container overflow-hidden ${
+					locationGroups.length > 1 ? "" : "rounded-b-(--radius-card)"
+				}`}
+			>
+				{staticMapUrl && (
+					<img
+						key={staticMapUrl}
+						src={staticMapUrl}
+						alt=""
+						aria-hidden
+						className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+					/>
+				)}
 				<svg
 					key={slideKey}
 					viewBox={`0 0 ${mapW} ${mapH}`}
-					className={`w-full h-44 ${slideClass}`}
+					preserveAspectRatio="none"
+					className={`relative w-full h-44 block ${slideClass}`}
 				>
 					{/* Grid lines */}
-					{Array.from({ length: 6 }, (_, i) => (
-						<line
-							key={`h${i}`}
-							x1={0}
-							y1={(i * mapH) / 5}
-							x2={mapW}
-							y2={(i * mapH) / 5}
-							stroke="var(--chart-grid)"
-							strokeWidth="0.5"
-						/>
-					))}
-					{Array.from({ length: 8 }, (_, i) => (
-						<line
-							key={`v${i}`}
-							x1={(i * mapW) / 7}
-							y1={0}
-							x2={(i * mapW) / 7}
-							y2={mapH}
-							stroke="var(--chart-grid)"
-							strokeWidth="0.5"
-						/>
-					))}
+					{SHOW_GRID &&
+						Array.from({ length: 6 }, (_, i) => (
+							<line
+								key={`h${i}`}
+								x1={0}
+								y1={(i * mapH) / 5}
+								x2={mapW}
+								y2={(i * mapH) / 5}
+								stroke="var(--chart-grid)"
+								strokeWidth="0.5"
+							/>
+						))}
+					{SHOW_GRID &&
+						Array.from({ length: 8 }, (_, i) => (
+							<line
+								key={`v${i}`}
+								x1={(i * mapW) / 7}
+								y1={0}
+								x2={(i * mapW) / 7}
+								y2={mapH}
+								stroke="var(--chart-grid)"
+								strokeWidth="0.5"
+							/>
+						))}
 					{/* Property pins */}
 					{currentProps.map((p, idx) => {
 						const x =
@@ -265,7 +352,7 @@ export default function MiniMapWidget({
 
 			{/* Slide dots — overlaid on map area */}
 			{locationGroups.length > 1 && (
-				<div className="flex items-center justify-center gap-1 py-2 bg-slate-50 dark:bg-surface-container">
+				<div className="flex items-center justify-center gap-1 py-2 bg-slate-50 dark:bg-surface-container rounded-b-(--radius-card)">
 					{locationGroups.map((_, i) => (
 						<button
 							key={i}

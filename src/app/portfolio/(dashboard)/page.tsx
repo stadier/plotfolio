@@ -13,6 +13,7 @@ import AppShell from "@/components/layout/AppShell";
 import { usePortfolio } from "@/components/PortfolioContext";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import {
+	DashboardSkeleton,
 	MetricGridSkeleton,
 	PageHeadingSkeleton,
 } from "@/components/ui/skeletons";
@@ -20,14 +21,7 @@ import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties, useOwnerBookings } from "@/hooks/usePropertyQueries";
 import { PropertyAPI } from "@/lib/api";
 import { formatCurrencyCompact } from "@/lib/utils";
-import {
-	Building2,
-	FileText,
-	Loader2,
-	MapPin,
-	TrendingUp,
-	Wallet,
-} from "lucide-react";
+import { Building2, FileText, MapPin, TrendingUp, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // ── Stat card used only in this dashboard ─────────────────────────────────────
@@ -82,12 +76,10 @@ export default function DashboardV2Page() {
 		);
 	}, [user?.id]);
 
-	if (authLoading || !user) {
+	if (authLoading || !user || loading) {
 		return (
 			<AppShell>
-				<div className="flex items-center justify-center h-[60vh]">
-					<Loader2 className="w-6 h-6 animate-spin text-primary" />
-				</div>
+				<DashboardSkeleton />
 			</AppShell>
 		);
 	}

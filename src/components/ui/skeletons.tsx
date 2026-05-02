@@ -37,18 +37,19 @@ export function ImageSkeleton({ className }: { className?: string }) {
 
 /**
  * Pill-shaped stat card matching `SummaryStatCard` (default variant) — icon
- * circle on the left + label/value stacked on the right. Max-w-xs, no stretch.
+ * circle on the left + label/value stacked on the right. Width follows its
+ * content so a row of pills sits naturally on one line.
  */
 export function SummaryStatPillSkeleton({ className }: { className?: string }) {
 	return (
 		<div
 			className={cn(
-				"bg-card border border-border rounded-lg px-5 py-3 flex items-center gap-3 max-w-xs w-full",
+				"bg-card border border-border rounded-lg px-5 py-3 flex items-center gap-3 shrink-0",
 				className,
 			)}
 		>
 			<Skeleton shape="circle" className="w-10 h-10 shrink-0" />
-			<div className="flex-1 min-w-0 space-y-1.5">
+			<div className="min-w-0 space-y-1.5">
 				<SkeletonText width="w-20" className="h-2.5" />
 				<SkeletonText width="w-16" className="h-3.5" />
 			</div>
@@ -59,7 +60,7 @@ export function SummaryStatPillSkeleton({ className }: { className?: string }) {
 /** Row of summary stat pills (used on properties / documents / analytics). */
 export function SummaryStatRowSkeleton({ count = 4 }: { count?: number }) {
 	return (
-		<div className="flex flex-wrap items-stretch gap-3">
+		<div className="flex flex-nowrap md:flex-wrap items-start gap-3 overflow-x-auto scrollbar-hide pb-2 md:pb-0">
 			{Array.from({ length: count }).map((_, i) => (
 				<SummaryStatPillSkeleton key={i} />
 			))}
@@ -244,7 +245,7 @@ export function PropertyListItemSkeleton({
 /** Grid of property cards. */
 export function PropertyGridSkeleton({ count = 6 }: { count?: number }) {
 	return (
-		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
 			{Array.from({ length: count }).map((_, i) => (
 				<PropertyCardSkeleton key={i} />
 			))}
@@ -614,6 +615,125 @@ export function MarketplacePageSkeleton() {
 				{Array.from({ length: 8 }).map((_, i) => (
 					<MarketplaceCardSkeleton key={i} />
 				))}
+			</div>
+		</div>
+	);
+}
+
+/* ── Form section skeletons (create/edit property) ────────────────────── */
+
+/**
+ * Generic form-section card matching `FormSection` in CreatePropertyForm:
+ * title row + a stack of label/input rows. The card itself stays narrow
+ * (capped width) so it slots cleanly into a masonry column.
+ */
+export function FormSectionCardSkeleton({
+	titleWidth = "w-32",
+	rows = 3,
+	twoCol = false,
+}: {
+	titleWidth?: string;
+	rows?: number;
+	twoCol?: boolean;
+}) {
+	return (
+		<div className="bg-card border border-border rounded-xl p-6 w-full">
+			<SkeletonText width={titleWidth} className="h-4 mb-5" />
+			{twoCol ? (
+				<div className="grid grid-cols-2 gap-4">
+					{Array.from({ length: rows * 2 }).map((_, i) => (
+						<div key={i} className="space-y-1.5">
+							<SkeletonText width="w-20" className="h-2.5" />
+							<Skeleton className="h-9 w-full" />
+						</div>
+					))}
+				</div>
+			) : (
+				<div className="space-y-4">
+					{Array.from({ length: rows }).map((_, i) => (
+						<div key={i} className="space-y-1.5">
+							<SkeletonText width="w-24" className="h-2.5" />
+							<Skeleton className="h-9 w-full" />
+						</div>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
+/** Two upload-zone tiles at the top of the create/edit form. */
+export function UploadZonesSkeleton() {
+	return (
+		<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+			{[0, 1].map((i) => (
+				<div
+					key={i}
+					className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-border bg-card"
+				>
+					<Skeleton className="w-9 h-9 shrink-0 rounded-lg" />
+					<div className="flex-1 min-w-0 space-y-1.5">
+						<SkeletonText width="w-32" className="h-3.5" />
+						<SkeletonText width="w-44" />
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+/**
+ * Full create/edit property page skeleton — header bar + upload zones +
+ * masonry of form-section cards + sticky action footer. Mirrors the real
+ * layout in `CreatePropertyForm` (`docs` columns fold per breakpoint).
+ */
+export function CreatePropertyFormSkeleton() {
+	return (
+		<div className="flex flex-col h-full">
+			{/* Sticky page header */}
+			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4">
+				<div className="flex items-center gap-3">
+					<Skeleton className="h-8 w-24" />
+					<Skeleton shape="text" className="h-3 w-3" />
+					<SkeletonText width="w-40" className="h-4" />
+				</div>
+			</div>
+
+			{/* Body */}
+			<div className="px-4 sm:px-8 pt-6 pb-0 space-y-5 flex-1">
+				<UploadZonesSkeleton />
+
+				{/* Masonry of section cards (CSS columns approximate the
+				    real responsive masonry without needing JS) */}
+				<div className="columns-1 md:columns-2 xl:columns-3 2xl:columns-4 gap-5 [column-fill:balance]">
+					<div className="break-inside-avoid mb-5">
+						<FormSectionCardSkeleton titleWidth="w-36" rows={3} />
+					</div>
+					<div className="break-inside-avoid mb-5">
+						<FormSectionCardSkeleton titleWidth="w-32" rows={4} twoCol />
+					</div>
+					<div className="break-inside-avoid mb-5">
+						<FormSectionCardSkeleton titleWidth="w-24" rows={1} />
+					</div>
+					<div className="break-inside-avoid mb-5">
+						<FormSectionCardSkeleton titleWidth="w-40" rows={2} />
+					</div>
+					<div className="break-inside-avoid mb-5">
+						<FormSectionCardSkeleton titleWidth="w-28" rows={3} twoCol />
+					</div>
+					<div className="break-inside-avoid mb-5">
+						<FormSectionCardSkeleton titleWidth="w-36" rows={4} />
+					</div>
+					<div className="break-inside-avoid mb-5">
+						<FormSectionCardSkeleton titleWidth="w-32" rows={2} />
+					</div>
+				</div>
+			</div>
+
+			{/* Sticky action footer */}
+			<div className="sticky bottom-0 left-0 right-0 py-4 px-4 sm:px-8 flex items-center gap-3 justify-end border-t border-border bg-background">
+				<Skeleton className="h-9 w-20" />
+				<Skeleton className="h-9 w-24" />
 			</div>
 		</div>
 	);

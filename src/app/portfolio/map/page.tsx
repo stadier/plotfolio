@@ -31,6 +31,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import MapPropertySidebar from "@/components/maps/MapPropertySidebar";
 import MapSearchControl from "@/components/maps/MapSearchControl";
 import PropertyFullView from "@/components/property/PropertyFullView";
+import { MapPageSkeleton } from "@/components/ui/skeletons";
 
 // Dynamically import unified map component to avoid SSR issues
 const PlotfolioMap = dynamic(() => import("@/components/maps/PlotfolioMap"), {
@@ -379,14 +380,7 @@ export default function Home() {
 	if (loading) {
 		return (
 			<AppShell scrollable={false}>
-				<div className="h-full flex items-center justify-center bg-surface-container-low">
-					<div className="text-center">
-						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-						<p className="text-on-surface-variant font-body">
-							Loading properties...
-						</p>
-					</div>
-				</div>
+				<MapPageSkeleton />
 			</AppShell>
 		);
 	}

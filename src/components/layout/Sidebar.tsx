@@ -3,35 +3,34 @@
 import { usePortfolio } from "@/components/PortfolioContext";
 import { useTheme, type Theme } from "@/components/ThemeProvider";
 import PrimaryButton from "@/components/ui/PrimaryButton";
-import { PortfolioSwitcherSkeleton } from "@/components/ui/skeletons";
 import { PortfolioAPI } from "@/lib/api";
 import {
-    BarChart3,
-    Bell,
-    Bookmark,
-    ChevronDown,
-    FileText,
-    Grid,
-    Heart,
-    HelpCircle,
-    LayoutDashboard,
-    MapPin,
-    MessageCircle,
-    MessageSquare,
-    Monitor,
-    Moon,
-    MoreHorizontal,
-    PanelLeftClose,
-    PanelLeftOpen,
-    Plus,
-    Search,
-    Send,
-    Settings,
-    ShoppingBag,
-    Sun,
-    Tag,
-    Users,
-    type LucideIcon,
+	BarChart3,
+	Bell,
+	Bookmark,
+	ChevronDown,
+	FileText,
+	Grid,
+	Heart,
+	HelpCircle,
+	LayoutDashboard,
+	MapPin,
+	MessageCircle,
+	MessageSquare,
+	Monitor,
+	Moon,
+	MoreHorizontal,
+	PanelLeftClose,
+	PanelLeftOpen,
+	Plus,
+	Search,
+	Send,
+	Settings,
+	ShoppingBag,
+	Sun,
+	Tag,
+	Users,
+	type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -155,7 +154,6 @@ export default function Sidebar({
 		pendingInvites,
 		refresh,
 		activePermissions,
-		loading: portfoliosLoading,
 	} = usePortfolio();
 	const [switcherOpen, setSwitcherOpen] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -232,9 +230,9 @@ export default function Sidebar({
 					<Image
 						src="/plotfolio-logo-l.png"
 						alt="Plotfolio"
-						width={28}
-						height={28}
-						className="w-7 h-7 shrink-0 rounded-md object-cover"
+						width={40}
+						height={40}
+						className="w-8 h-8 shrink-0 rounded-md object-cover"
 					/>
 					<span
 						data-sidebar-label
@@ -248,11 +246,6 @@ export default function Sidebar({
 			</div>
 
 			{/* Portfolio switcher — under logo */}
-			{!isMarketplace && portfoliosLoading && portfolios.length === 0 && (
-				<div className="my-3">
-					<PortfolioSwitcherSkeleton collapsed={collapsed} />
-				</div>
-			)}
 			{!isMarketplace && portfolios.length > 0 && (
 				<div ref={switcherRef} className="relative z-layer-sidebar my-3">
 					<button

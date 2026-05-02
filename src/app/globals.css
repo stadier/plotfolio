@@ -355,6 +355,30 @@ body {
 	}
 }
 
+/* Gentle breathing fade — runs alongside the shimmer so the placeholder
+   feels like it fades in and out instead of just sweeping. */
+@keyframes skeleton-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.55;
+	}
+}
+
+/* Entrance fade — when the skeleton mounts (e.g. route change) it eases in
+   instead of popping. Pair the same easing on unmount via Tailwind's
+   transition utilities where the consumer fades it out. */
+@keyframes skeleton-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
 .skeleton {
 	position: relative;
 	overflow: hidden;
@@ -367,7 +391,10 @@ body {
 	);
 	background-size: 200% 100%;
 	background-repeat: no-repeat;
-	animation: skeleton-shimmer 1.6s ease-in-out infinite;
+	animation:
+		skeleton-fade-in 320ms ease-out both,
+		skeleton-pulse 1.8s ease-in-out 320ms infinite,
+		skeleton-shimmer 1.6s ease-in-out 320ms infinite;
 }
 
 .dark .skeleton {
@@ -380,9 +407,16 @@ body {
 	);
 }
 
+/* Optional wrapper: `.skeleton-fade-out` gracefully fades the placeholder
+   tree out before it's removed from the DOM. Apply when the data has
+   resolved but you still want a brief exit transition. */
+.skeleton-fade-out {
+	animation: skeleton-fade-in 240ms ease-in reverse forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.skeleton {
-		animation: none;
+		animation: skeleton-fade-in 200ms ease-out both;
 	}
 }
 

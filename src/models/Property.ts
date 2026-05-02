@@ -314,6 +314,13 @@ function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
 	return prop;
 }
 
+// Fields needed to build the legacy `property.documents` shape from an
+// AIDocument record. Excludes large blobs (ocrText, extractedData) so the
+// property GET/PUT responses stay small even for properties with many
+// uploaded documents.
+const DOCUMENT_PROJECTION =
+	"fileName fileUrl fileSize documentType accessLevel watermark aiProcessed createdAt propertyIds" as const;
+
 // Helper functions for database operations
 export class PropertyService {
 	/**
@@ -331,7 +338,11 @@ export class PropertyService {
 		// Lazy import to avoid circular module init.
 		const { AIDocumentModel } = await import("@/models/AIDocument");
 		const ids = properties.map((p) => p.id);
+		// Only project the fields used to hydrate property.documents — the full
+		// records can carry multi-MB ocrText/extractedData blobs that would
+		// otherwise dominate response size and parse time.
 		const docs = await AIDocumentModel.find({ propertyIds: { $in: ids } })
+			.select(DOCUMENT_PROJECTION)
 			.sort({ createdAt: -1 })
 			.lean();
 
@@ -419,7 +430,10 @@ export class PropertyService {
 		// share the id from the URL, so there's no reason to serialize them.
 		const [property, docs] = await Promise.all([
 			PropertyModel.findOne({ id }).lean(),
-			AIDocumentModel.find({ propertyIds: id }).sort({ createdAt: -1 }).lean(),
+			AIDocumentModel.find({ propertyIds: id })
+				.select(DOCUMENT_PROJECTION)
+				.sort({ createdAt: -1 })
+				.lean(),
 		]);
 		if (!property) return null;
 
@@ -467,7 +481,10 @@ export class PropertyService {
 		const { AIDocumentModel } = await import("@/models/AIDocument");
 		const [updated, docs] = await Promise.all([
 			PropertyModel.findOneAndUpdate({ id }, safeUpdates, { new: true }).lean(),
-			AIDocumentModel.find({ propertyIds: id }).sort({ createdAt: -1 }).lean(),
+			AIDocumentModel.find({ propertyIds: id })
+				.select(DOCUMENT_PROJECTION)
+				.sort({ createdAt: -1 })
+				.lean(),
 		]);
 
 		if (!updated) return null;

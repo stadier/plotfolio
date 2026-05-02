@@ -14,7 +14,7 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /* ── helpers ──────────────────────────────────────────── */
 
@@ -77,12 +77,18 @@ function getRemoteFileKind(name: string, url: string): FileKind {
 /* ── thumbnails ──────────────────────────────────────── */
 
 function ImageThumbnail({ file }: { file: File }) {
-	const url = useMemo(() => URL.createObjectURL(file), [file]);
-	useEffect(() => () => URL.revokeObjectURL(url), [url]);
+	const [url, setUrl] = useState<string | null>(null);
+	useEffect(() => {
+		const objectUrl = URL.createObjectURL(file);
+		setUrl(objectUrl);
+		return () => URL.revokeObjectURL(objectUrl);
+	}, [file]);
 	return (
 		<div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-slate-100">
 			{/* eslint-disable-next-line @next/next/no-img-element */}
-			<img src={url} alt={file.name} className="w-full h-full object-cover" />
+			{url && (
+				<img src={url} alt={file.name} className="w-full h-full object-cover" />
+			)}
 			<span className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-badge font-medium px-1.5 py-0.5 rounded">
 				<Image className="w-2.5 h-2.5" />
 				IMG
@@ -128,11 +134,15 @@ function PdfThumbnail() {
 }
 
 function VideoThumbnail({ file }: { file: File }) {
-	const url = useMemo(() => URL.createObjectURL(file), [file]);
-	useEffect(() => () => URL.revokeObjectURL(url), [url]);
+	const [url, setUrl] = useState<string | null>(null);
+	useEffect(() => {
+		const objectUrl = URL.createObjectURL(file);
+		setUrl(objectUrl);
+		return () => URL.revokeObjectURL(objectUrl);
+	}, [file]);
 	return (
 		<div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-slate-900">
-			<video src={url} className="w-full h-full object-cover" muted />
+			{url && <video src={url} className="w-full h-full object-cover" muted />}
 			<div className="absolute inset-0 flex items-center justify-center">
 				<div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
 					<div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-10 border-l-white ml-0.5" />

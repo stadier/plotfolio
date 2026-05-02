@@ -1283,7 +1283,17 @@ export default function CreatePropertyForm({
 					{/* ── Masonry grid + Document sidebar row ── */}
 					<div className="flex flex-col items-start gap-5 lg:flex-row">
 						<div className="flex-1 min-w-0">
-							<MasonryGrid minColWidth={320} maxCols={3} gap={20}>
+							<MasonryGrid
+								minColWidth={340}
+								maxCols={4}
+								maxColWidth={560}
+								gap={20}
+								breakpoints={[
+									{ maxWidth: 720, cols: 1 },
+									{ maxWidth: 1180, cols: 2 },
+									{ maxWidth: 2000, cols: 3 },
+								]}
+							>
 								{/* ── Basic Info ──────────────────────────── */}
 								<FormSection title="Basic Information">
 									<div className="grid grid-cols-1 gap-4">

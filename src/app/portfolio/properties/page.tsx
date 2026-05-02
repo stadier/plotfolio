@@ -12,7 +12,10 @@ import StatusToggle from "@/components/property/StatusToggle";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
-import { PropertyGridSkeleton } from "@/components/ui/skeletons";
+import {
+	PropertiesPageSkeleton,
+	PropertyGridSkeleton,
+} from "@/components/ui/skeletons";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import usePersistedState from "@/hooks/usePersistedState";
 import {
@@ -1022,12 +1025,10 @@ export default function PropertiesPage() {
 		},
 	];
 
-	if (authLoading || !user) {
+	if (authLoading || !user || loading) {
 		return (
 			<AppShell>
-				<div className="flex items-center justify-center h-[60vh]">
-					<div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-				</div>
+				<PropertiesPageSkeleton />
 			</AppShell>
 		);
 	}
