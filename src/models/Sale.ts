@@ -193,7 +193,9 @@ if (process.env.NODE_ENV !== "production" && mongoose.models.Sale) {
 	}
 }
 
-export const SaleModel = mongoose.model<Sale & Document>("Sale", SaleSchema);
+export const SaleModel =
+	(mongoose.models.Sale as mongoose.Model<Sale & Document>) ||
+	mongoose.model<Sale & Document>("Sale", SaleSchema);
 
 /* ─── Offer ───────────────────────────────────────────────────── */
 
@@ -253,10 +255,9 @@ if (process.env.NODE_ENV !== "production" && mongoose.models.Offer) {
 	}
 }
 
-export const OfferModel = mongoose.model<Offer & Document>(
-	"Offer",
-	OfferSchema,
-);
+export const OfferModel =
+	(mongoose.models.Offer as mongoose.Model<Offer & Document>) ||
+	mongoose.model<Offer & Document>("Offer", OfferSchema);
 
 /* ─── Bid ─────────────────────────────────────────────────────── */
 
@@ -289,7 +290,9 @@ if (process.env.NODE_ENV !== "production" && mongoose.models.Bid) {
 	}
 }
 
-export const BidModel = mongoose.model<Bid & Document>("Bid", BidSchema);
+export const BidModel =
+	(mongoose.models.Bid as mongoose.Model<Bid & Document>) ||
+	mongoose.model<Bid & Document>("Bid", BidSchema);
 
 /* ─── Dispute ─────────────────────────────────────────────────── */
 
@@ -341,10 +344,9 @@ if (process.env.NODE_ENV !== "production" && mongoose.models.Dispute) {
 	}
 }
 
-export const DisputeModel = mongoose.model<Dispute & Document>(
-	"Dispute",
-	DisputeSchema,
-);
+export const DisputeModel =
+	(mongoose.models.Dispute as mongoose.Model<Dispute & Document>) ||
+	mongoose.model<Dispute & Document>("Dispute", DisputeSchema);
 
 /* ─── Platform Settings (singleton) ───────────────────────────── */
 
@@ -389,9 +391,14 @@ if (process.env.NODE_ENV !== "production" && mongoose.models.PlatformSettings) {
 	}
 }
 
-export const PlatformSettingsModel = mongoose.model<
-	PlatformSettings & Document
->("PlatformSettings", PlatformSettingsSchema);
+export const PlatformSettingsModel =
+	(mongoose.models.PlatformSettings as mongoose.Model<
+		PlatformSettings & Document
+	>) ||
+	mongoose.model<PlatformSettings & Document>(
+		"PlatformSettings",
+		PlatformSettingsSchema,
+	);
 
 /* ─── Platform Charge ─────────────────────────────────────────── */
 
@@ -426,10 +433,14 @@ if (process.env.NODE_ENV !== "production" && mongoose.models.PlatformCharge) {
 	}
 }
 
-export const PlatformChargeModel = mongoose.model<PlatformCharge & Document>(
-	"PlatformCharge",
-	PlatformChargeSchema,
-);
+export const PlatformChargeModel =
+	(mongoose.models.PlatformCharge as mongoose.Model<
+		PlatformCharge & Document
+	>) ||
+	mongoose.model<PlatformCharge & Document>(
+		"PlatformCharge",
+		PlatformChargeSchema,
+	);
 
 /* ─── Verification Request ────────────────────────────────────── */
 
@@ -466,6 +477,11 @@ if (
 	}
 }
 
-export const VerificationRequestModel = mongoose.model<
-	VerificationRequest & Document
->("VerificationRequest", VerificationRequestSchema);
+export const VerificationRequestModel =
+	(mongoose.models.VerificationRequest as mongoose.Model<
+		VerificationRequest & Document
+	>) ||
+	mongoose.model<VerificationRequest & Document>(
+		"VerificationRequest",
+		VerificationRequestSchema,
+	);

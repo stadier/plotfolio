@@ -191,7 +191,11 @@ if (process.env.NODE_ENV !== "production" && mongoose.models.User) {
 	}
 }
 
-export const UserModel = mongoose.model<IUser & Document>("User", UserSchema);
+// Reuse the cached model in production to avoid OverwriteModelError when the
+// module is evaluated more than once during the Next.js build.
+export const UserModel =
+	(mongoose.models.User as mongoose.Model<IUser & Document>) ||
+	mongoose.model<IUser & Document>("User", UserSchema);
 
 /* ─── password utilities ──────────────────────────────────────── */
 
