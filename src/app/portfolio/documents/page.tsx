@@ -1732,6 +1732,15 @@ export default function DocumentsPage() {
 			setPreviewDoc((prev) =>
 				prev && prev.id === docId ? { ...prev, ...updated } : prev,
 			);
+			if (updated.aiSkipped === "rate_limited") {
+				const minutes = Math.max(
+					1,
+					Math.ceil((updated.rateLimitCooldownMs ?? 0) / 60000),
+				);
+				window.alert(
+					`AI extraction is temporarily rate-limited. Try again in about ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+				);
+			}
 		} finally {
 			setRescanningId(null);
 		}

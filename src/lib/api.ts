@@ -337,7 +337,13 @@ export class PropertyAPI {
 		}
 	}
 
-	static async reextractDocument(id: string): Promise<AIDocument | null> {
+	static async reextractDocument(id: string): Promise<
+		| (AIDocument & {
+				aiSkipped?: "rate_limited";
+				rateLimitCooldownMs?: number;
+		  })
+		| null
+	> {
 		try {
 			const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
 				method: "PATCH",
@@ -345,10 +351,18 @@ export class PropertyAPI {
 				body: JSON.stringify({ reextract: true }),
 			});
 			if (!response.ok) return null;
-			const data = (await response.json()) as { document?: AIDocument };
+			const data = (await response.json()) as {
+				document?: AIDocument;
+				aiSkipped?: "rate_limited";
+				rateLimitCooldownMs?: number;
+			};
 			if (!data.document) return null;
 			invalidateCachedGet(cachePatterns.documents);
-			return data.document;
+			return {
+				...data.document,
+				aiSkipped: data.aiSkipped,
+				rateLimitCooldownMs: data.rateLimitCooldownMs,
+			};
 		} catch (error) {
 			console.error("Error re-extracting document:", error);
 			return null;

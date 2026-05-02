@@ -4,18 +4,19 @@
  * Sends raw text — or a document image — to the active AI provider and receives
  * structured JSON matching the ExtractedPropertyData schema.
  * Includes auto-classification of document type and confidence scoring.
+ *
+ * Uses runWithFallback so that if the primary provider is rate-limited the
+ * call automatically retries against AI_FALLBACK_PROVIDERS.
  */
 
 import {
-	getChatClient,
-	getChatModel,
-	providerSupportsVision,
+	AllProvidersRateLimitedError,
+	areAllProvidersRateLimited,
+	getChainCooldownRemainingMs,
+	runWithFallback,
 } from "@/lib/aiProvider";
 import type { ExtractedPropertyData } from "@/types/document";
 import { AIDocumentType } from "@/types/document";
-
-const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000;
-let llmRateLimitedUntil = 0;
 
 function emptyExtractionResult(): {
 	data: ExtractedPropertyData;
@@ -29,21 +30,20 @@ function emptyExtractionResult(): {
 	};
 }
 
-function isRateLimitError(error: unknown): boolean {
-	if (!error || typeof error !== "object") return false;
-	const err = error as { status?: number; message?: string };
-	if (err.status === 429) return true;
-	return (
-		typeof err.message === "string" && /\b429\b|rate limit/i.test(err.message)
-	);
+/**
+ * Returns the number of milliseconds remaining before any provider in the
+ * chain is available again, or 0 if at least one provider is ready now.
+ */
+export function getRateLimitCooldownRemainingMs(): number {
+	if (!areAllProvidersRateLimited()) return 0;
+	return getChainCooldownRemainingMs();
 }
 
-function isRateLimitedNow(): boolean {
-	return Date.now() < llmRateLimitedUntil;
-}
-
-function markRateLimitedCooldown() {
-	llmRateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+/**
+ * Whether every provider in the chain is currently in a rate-limit cooldown.
+ */
+export function isLLMRateLimited(): boolean {
+	return areAllProvidersRateLimited();
 }
 
 const EXTRACTION_PROMPT = `You are a document parser specializing in real estate and property documents from any country worldwide (survey plans, certificates of occupancy, contracts of sale, title deeds, lease agreements, building permits, allocation letters, etc.).
@@ -87,34 +87,29 @@ export async function extractStructuredData(text: string): Promise<{
 	confidence: number;
 	documentType: AIDocumentType;
 }> {
-	if (isRateLimitedNow()) {
-		return emptyExtractionResult();
-	}
-
-	const openai = getChatClient();
-
 	// Trim text to stay under token limits (12k chars ≈ 3k tokens)
 	const trimmedText = text.slice(0, 12000);
 
 	let completion;
 	try {
-		completion = await openai.chat.completions.create({
-			model: getChatModel(),
-			temperature: 0,
-			response_format: { type: "json_object" },
-			messages: [
-				{ role: "system", content: EXTRACTION_PROMPT },
-				{
-					role: "user",
-					content: `Extract structured property data from the text below.\nReturn ONLY valid JSON matching the schema.\n\nText:\n${trimmedText}`,
-				},
-			],
-		});
+		completion = await runWithFallback((client, model) =>
+			client.chat.completions.create({
+				model,
+				temperature: 0,
+				response_format: { type: "json_object" },
+				messages: [
+					{ role: "system", content: EXTRACTION_PROMPT },
+					{
+						role: "user",
+						content: `Extract structured property data from the text below.\nReturn ONLY valid JSON matching the schema.\n\nText:\n${trimmedText}`,
+					},
+				],
+			}),
+		);
 	} catch (error) {
-		if (isRateLimitError(error)) {
-			markRateLimitedCooldown();
+		if (error instanceof AllProvidersRateLimitedError) {
 			console.warn(
-				"[extraction] LLM rate-limited; skipping structured extraction during cooldown.",
+				"[extraction] All providers rate-limited; skipping structured extraction.",
 			);
 			return emptyExtractionResult();
 		}
@@ -150,35 +145,30 @@ export async function extractStructuredData(text: string): Promise<{
 export async function classifyDocumentType(
 	text: string,
 ): Promise<AIDocumentType> {
-	if (isRateLimitedNow()) {
-		return AIDocumentType.OTHER;
-	}
-
-	const openai = getChatClient();
-
 	let completion;
 	try {
-		completion = await openai.chat.completions.create({
-			model: getChatModel(),
-			temperature: 0,
-			response_format: { type: "json_object" },
-			messages: [
-				{
-					role: "system",
-					content:
-						'Classify the document type. Return JSON: {"type": "<type>"} where type is one of: survey_plan, certificate_of_occupancy, contract_of_sale, title_deed, lease_agreement, building_permit, inspection_report, allocation_letter, other',
-				},
-				{
-					role: "user",
-					content: text.slice(0, 3000),
-				},
-			],
-		});
+		completion = await runWithFallback((client, model) =>
+			client.chat.completions.create({
+				model,
+				temperature: 0,
+				response_format: { type: "json_object" },
+				messages: [
+					{
+						role: "system",
+						content:
+							'Classify the document type. Return JSON: {"type": "<type>"} where type is one of: survey_plan, certificate_of_occupancy, contract_of_sale, title_deed, lease_agreement, building_permit, inspection_report, allocation_letter, other',
+					},
+					{
+						role: "user",
+						content: text.slice(0, 3000),
+					},
+				],
+			}),
+		);
 	} catch (error) {
-		if (isRateLimitError(error)) {
-			markRateLimitedCooldown();
+		if (error instanceof AllProvidersRateLimitedError) {
 			console.warn(
-				"[extraction] LLM rate-limited; skipping document classification during cooldown.",
+				"[extraction] All providers rate-limited; skipping document classification.",
 			);
 			return AIDocumentType.OTHER;
 		}
@@ -210,14 +200,6 @@ export async function extractStructuredDataFromImage(
 	documentType: AIDocumentType;
 	ocrText: string;
 }> {
-	if (!providerSupportsVision() || isRateLimitedNow()) {
-		return {
-			...emptyExtractionResult(),
-			ocrText: "",
-		};
-	}
-
-	const openai = getChatClient();
 	const base64 = imageBuffer.toString("base64");
 	const dataUrl = `data:${mimeType};base64,${base64}`;
 
@@ -258,32 +240,35 @@ Only include fields you are confident about. Omit fields you cannot find. Return
 
 	let response;
 	try {
-		response = await openai.chat.completions.create({
-			model: getChatModel(true),
-			temperature: 0,
-			response_format: { type: "json_object" },
-			messages: [
-				{ role: "system", content: systemPrompt },
-				{
-					role: "user",
-					content: [
+		response = await runWithFallback(
+			(client, model) =>
+				client.chat.completions.create({
+					model,
+					temperature: 0,
+					response_format: { type: "json_object" },
+					messages: [
+						{ role: "system", content: systemPrompt },
 						{
-							type: "text",
-							text: "Extract all text and structured property data from this document image.",
-						},
-						{
-							type: "image_url",
-							image_url: { url: dataUrl, detail: "high" },
+							role: "user",
+							content: [
+								{
+									type: "text",
+									text: "Extract all text and structured property data from this document image.",
+								},
+								{
+									type: "image_url",
+									image_url: { url: dataUrl, detail: "high" },
+								},
+							],
 						},
 					],
-				},
-			],
-		});
+				}),
+			{ requireVision: true, hasVision: true },
+		);
 	} catch (error) {
-		if (isRateLimitError(error)) {
-			markRateLimitedCooldown();
+		if (error instanceof AllProvidersRateLimitedError) {
 			console.warn(
-				"[extraction] Vision LLM rate-limited; skipping image extraction during cooldown.",
+				"[extraction] All vision providers rate-limited; skipping image extraction.",
 			);
 			return {
 				...emptyExtractionResult(),

@@ -246,6 +246,15 @@ export default function DocumentTestPage() {
 						existingAiDoc.id,
 					);
 					if (reextracted) {
+						if (reextracted.aiSkipped === "rate_limited") {
+							const minutes = Math.max(
+								1,
+								Math.ceil((reextracted.rateLimitCooldownMs ?? 0) / 60000),
+							);
+							setError(
+								`AI extraction is temporarily rate-limited. Try again in about ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+							);
+						}
 						setResult({
 							document: reextracted as unknown as UploadResult["document"],
 							images: [],
@@ -299,6 +308,16 @@ export default function DocumentTestPage() {
 			if (!updated) {
 				setError("Reprocessing failed.");
 				return;
+			}
+
+			if (updated.aiSkipped === "rate_limited") {
+				const minutes = Math.max(
+					1,
+					Math.ceil((updated.rateLimitCooldownMs ?? 0) / 60000),
+				);
+				setError(
+					`AI extraction is temporarily rate-limited. Try again in about ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+				);
 			}
 
 			const full = await PropertyAPI.getDocument(doc.id);

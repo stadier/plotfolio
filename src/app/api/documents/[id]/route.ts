@@ -12,6 +12,8 @@ import {
 import {
 	extractStructuredData,
 	extractStructuredDataFromImage,
+	getRateLimitCooldownRemainingMs,
+	isLLMRateLimited,
 } from "@/lib/documentAI/extraction";
 import { indexDocument } from "@/lib/documentAI/indexing";
 import { extractText, extractTextWithLocalOcr } from "@/lib/documentAI/ocr";
@@ -200,6 +202,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 		}
 
 		if (body.reextract === true) {
+			const wasRateLimitedAtStart = isLLMRateLimited();
 			let key: string;
 			try {
 				const url = new URL(doc.fileUrl);
@@ -379,6 +382,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
 			return NextResponse.json({
 				reextracted: true,
+				aiSkipped:
+					wasRateLimitedAtStart || isLLMRateLimited()
+						? "rate_limited"
+						: undefined,
+				rateLimitCooldownMs: getRateLimitCooldownRemainingMs() || undefined,
 				document: {
 					id: String(doc._id),
 					userId: doc.userId,
