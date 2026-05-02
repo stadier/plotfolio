@@ -1,5 +1,8 @@
+import MasonryGrid from "@/components/ui/MasonryGrid";
 import Skeleton, { SkeletonText } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Domain skeletons
@@ -71,16 +74,84 @@ export function SummaryStatRowSkeleton({ count = 4 }: { count?: number }) {
 /** Page heading + description (left) paired with stat pills (right). */
 export function PageHeaderRowSkeleton({
 	statCount = 4,
+	heading,
 }: {
 	statCount?: number;
+	/** Real (non-shimmer) heading slot — renders in place of the title placeholder. */
+	heading?: ReactNode;
 }) {
 	return (
-		<div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-			<div className="space-y-2 max-w-xl">
-				<Skeleton className="h-6 w-48" />
-				<SkeletonText width="w-72" />
-			</div>
+		<div className="flex flex-wrap items-start justify-between sz-gap-section gap-4">
+			{heading ?? (
+				<div className="space-y-2 max-w-xl">
+					<Skeleton className="h-6 w-48" />
+					<SkeletonText width="w-72" />
+				</div>
+			)}
 			<SummaryStatRowSkeleton count={statCount} />
+		</div>
+	);
+}
+
+/**
+ * Real page hero block — icon + title + description. Mirrors the static
+ * header block on `/portfolio/properties`, `/portfolio/documents`, etc.
+ * Use inside a page-level skeleton's `heading` prop so the title doesn't
+ * shimmer (it's static text known before data loads).
+ */
+export function PageHero({
+	icon: Icon,
+	title,
+	description,
+}: {
+	icon: LucideIcon;
+	title: string;
+	description?: string;
+}) {
+	return (
+		<div>
+			<div className="flex items-center gap-3 mb-1">
+				<Icon className="w-5 h-5 text-secondary" />
+				<h1 className="font-headline typo-page-title font-extrabold tracking-tighter text-primary">
+					{title}
+				</h1>
+			</div>
+			{description && (
+				<p className="typo-body text-on-surface-variant ml-8">{description}</p>
+			)}
+		</div>
+	);
+}
+
+/**
+ * Sticky breadcrumb-style page header used by `/portfolio/team`,
+ * `/portfolio/all`, and other sub-pages. Renders BackButton + " / " +
+ * real title (no shimmer).
+ *
+ * NOTE: Pass `<BackButton .../>` as the `back` prop from the call site so
+ * this file stays free of cross-component imports that could cycle.
+ */
+export function BreadcrumbPageHeader({
+	back,
+	title,
+	right,
+}: {
+	back: ReactNode;
+	title: string;
+	right?: ReactNode;
+}) {
+	return (
+		<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-10">
+			<div className="flex items-center justify-between gap-4">
+				<div className="flex items-center gap-3 min-w-0">
+					{back}
+					<span className="text-outline">/</span>
+					<h1 className="font-headline text-lg font-bold text-on-surface truncate">
+						{title}
+					</h1>
+				</div>
+				{right}
+			</div>
 		</div>
 	);
 }
@@ -242,49 +313,107 @@ export function PropertyListItemSkeleton({
 	);
 }
 
-/** Grid of property cards. */
+/** Grid of property cards (uses MasonryGrid to match the real properties page). */
 export function PropertyGridSkeleton({ count = 6 }: { count?: number }) {
 	return (
-		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+		<MasonryGrid>
 			{Array.from({ length: count }).map((_, i) => (
 				<PropertyCardSkeleton key={i} />
 			))}
-		</div>
+		</MasonryGrid>
 	);
 }
 
 /** Full property detail layout (hero + sidebar + content). */
+/** Full property detail layout — matches `PropertyFullView` (3/5 + 2/5 columns). */
 export function PropertyDetailSkeleton() {
 	return (
-		<div className="space-y-6 max-w-6xl">
-			<Skeleton shape="card" className="w-full aspect-video max-h-[420px]" />
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				<div className="lg:col-span-2 space-y-4">
-					<SkeletonText width="w-1/2" className="h-6" />
-					<SkeletonText width="w-1/3" />
-					<div className="bg-card border border-border rounded-xl p-5 space-y-3">
-						<SkeletonText />
-						<SkeletonText />
-						<SkeletonText width="w-2/3" />
+		<div className="flex flex-col lg:flex-row h-full">
+			{/* Left column: media + documents (3/5) */}
+			<div className="hidden lg:block w-full lg:w-3/5 overflow-y-auto p-4 space-y-6">
+				{/* Media gallery — 2-col grid of large images + add tile */}
+				<div className="grid grid-cols-2 gap-3">
+					<Skeleton shape="card" className="w-full aspect-video" />
+					<Skeleton shape="card" className="w-full aspect-video" />
+					<Skeleton shape="card" className="w-full aspect-square" />
+					<Skeleton shape="card" className="w-full aspect-square" />
+					<Skeleton
+						shape="card"
+						className="w-full aspect-square col-span-2 sm:col-span-1 max-w-[180px]"
+					/>
+				</div>
+
+				{/* Documents row */}
+				<div className="space-y-3">
+					<div className="flex items-center justify-between">
+						<SkeletonText width="w-28" className="h-4" />
+						<SkeletonText width="w-16" className="h-2.5" />
 					</div>
-					<div className="bg-card border border-border rounded-xl p-5 space-y-3">
-						<SkeletonText width="w-32" className="h-4" />
-						<div className="grid grid-cols-2 gap-3">
-							<SkeletonText />
-							<SkeletonText />
-							<SkeletonText />
-							<SkeletonText />
-						</div>
+					<div className="flex flex-wrap gap-3">
+						{Array.from({ length: 3 }).map((_, i) => (
+							<div
+								key={i}
+								className="w-44 bg-card border border-border rounded-xl overflow-hidden"
+							>
+								<div className="bg-surface-container-low p-4 h-24 space-y-1.5">
+									<SkeletonText className="h-2" width="w-3/4" />
+									<SkeletonText className="h-2" />
+									<SkeletonText className="h-2" width="w-2/3" />
+								</div>
+								<div className="p-3 space-y-1.5">
+									<Skeleton shape="pill" className="h-5 w-12" />
+									<SkeletonText width="w-4/5" className="h-3" />
+									<Skeleton shape="pill" className="h-4 w-20" />
+								</div>
+							</div>
+						))}
 					</div>
 				</div>
-				<aside className="space-y-4">
-					<MetricCardSkeleton className="max-w-none" />
-					<div className="bg-card border border-border rounded-xl p-5 space-y-3">
+			</div>
+
+			{/* Right column: overview/details/etc. (2/5) */}
+			<div className="w-full lg:w-2/5 lg:border-l border-border overflow-y-auto">
+				{/* Overview header */}
+				<div className="p-5 space-y-4 border-b border-border">
+					<div className="flex items-center justify-between">
 						<SkeletonText width="w-24" className="h-4" />
-						<SkeletonText />
-						<SkeletonText width="w-2/3" />
+						<SkeletonText width="w-16" className="h-2.5" />
 					</div>
-				</aside>
+					<div className="flex items-center gap-2">
+						<Skeleton shape="circle" className="w-4 h-4" />
+						<SkeletonText width="w-40" className="h-3" />
+					</div>
+					<div className="flex items-center justify-between gap-3">
+						<SkeletonText width="w-32" className="h-5" />
+						<SkeletonText width="w-16" className="h-5" />
+					</div>
+					<SkeletonText width="w-28" className="h-4" />
+					<div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
+						<Skeleton className="h-9 w-9" />
+						<div className="flex-1 space-y-1.5">
+							<SkeletonText width="w-12" className="h-2.5" />
+							<SkeletonText width="w-16" className="h-3" />
+						</div>
+					</div>
+					<SkeletonText width="w-24" className="h-2.5" />
+					<Skeleton shape="pill" className="h-6 w-20" />
+				</div>
+
+				{/* Accordion section rows */}
+				{[
+					"Ownership & Transfers",
+					"Property Settings",
+					"Property Insights",
+					"Pricing & Contacts",
+				].map((_, i) => (
+					<div
+						key={i}
+						className="px-5 py-4 border-b border-border flex items-center justify-between"
+					>
+						<SkeletonText width="w-40" className="h-3.5" />
+						<Skeleton shape="circle" className="w-4 h-4" />
+					</div>
+				))}
 			</div>
 		</div>
 	);
@@ -298,21 +427,31 @@ export function DocumentCardSkeleton({ className }: { className?: string }) {
 	return (
 		<div
 			className={cn(
-				"bg-card border border-border rounded-xl overflow-hidden max-w-xs w-full",
+				"bg-card border border-border rounded-xl overflow-hidden w-full",
 				className,
 			)}
 		>
-			<div className="bg-surface-container-low p-5 space-y-2.5">
+			{/* Preview area — text lines on a slightly lighter surface */}
+			<div className="bg-surface-container-low p-5 h-44 space-y-2">
+				<SkeletonText className="h-2" width="w-3/4" />
 				<SkeletonText className="h-2" />
 				<SkeletonText className="h-2" width="w-11/12" />
-				<SkeletonText className="h-2" width="w-3/4" />
-				<SkeletonText className="h-2" width="w-5/6" />
+				<SkeletonText className="h-2" width="w-2/3" />
+				<SkeletonText className="h-2" />
+				<SkeletonText className="h-2" width="w-1/2" />
 			</div>
-			<div className="p-4 space-y-2">
-				<Skeleton shape="pill" className="h-5 w-12" />
-				<SkeletonText width="w-3/4" className="h-3.5" />
-				<SkeletonText width="w-1/2" />
-				<Skeleton shape="pill" className="h-4 w-20" />
+			{/* Body */}
+			<div className="p-4 space-y-2.5">
+				<Skeleton shape="pill" className="h-6 w-14" />
+				<SkeletonText width="w-11/12" className="h-3.5" />
+				<div className="flex items-center gap-2">
+					<SkeletonText width="w-12" className="h-2.5" />
+					<SkeletonText width="w-16" className="h-2.5" />
+				</div>
+				<Skeleton shape="pill" className="h-6 w-32" />
+				<SkeletonText width="w-20" className="h-2.5" />
+				<SkeletonText width="w-28" className="h-2.5" />
+				<Skeleton shape="pill" className="h-5 w-16" />
 			</div>
 		</div>
 	);
@@ -323,17 +462,22 @@ export function MarketplaceCardSkeleton({ className }: { className?: string }) {
 	return (
 		<div
 			className={cn(
-				"bg-card border border-border rounded-xl overflow-hidden max-w-sm w-full",
+				"bg-card border border-border rounded-xl overflow-hidden w-full",
 				className,
 			)}
 		>
 			<Skeleton shape="card" className="w-full aspect-4/3 rounded-none" />
 			<div className="p-4 space-y-2">
-				<SkeletonText width="w-2/3" className="h-4" />
-				<SkeletonText width="w-1/3" />
-				<div className="flex items-center justify-between pt-2">
-					<SkeletonText width="w-20" className="h-4" />
-					<Skeleton shape="pill" className="h-5 w-16" />
+				<SkeletonText width="w-2/3" className="h-3.5" />
+				<SkeletonText width="w-3/4" className="h-2.5" />
+				<SkeletonText width="w-1/3" className="h-2.5" />
+				<SkeletonText width="w-1/2" className="h-4 mt-1" />
+				<div className="flex items-center gap-2 pt-2">
+					<Skeleton shape="circle" className="w-7 h-7 shrink-0" />
+					<div className="flex-1 min-w-0 space-y-1">
+						<SkeletonText width="w-20" className="h-2.5" />
+						<SkeletonText width="w-16" className="h-2" />
+					</div>
 				</div>
 			</div>
 		</div>
@@ -486,10 +630,10 @@ export function PortfolioSwitcherSkeleton({
 /* ── Page-level layouts ────────────────────────────────────────────────── */
 
 /** Dashboard skeleton — mirrors `/portfolio` layout. */
-export function DashboardSkeleton() {
+export function DashboardSkeleton({ header }: { header?: ReactNode } = {}) {
 	return (
-		<div className="p-6 space-y-6">
-			<PageHeaderRowSkeleton statCount={5} />
+		<div className="sz-page space-y-6">
+			<PageHeaderRowSkeleton statCount={5} heading={header} />
 			<div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] xl:grid-cols-[1fr_350px_350px] gap-4">
 				<div className="min-w-0 lg:row-span-2 space-y-4">
 					<Skeleton
@@ -514,10 +658,12 @@ export function DashboardSkeleton() {
 }
 
 /** My Properties page skeleton. */
-export function PropertiesPageSkeleton() {
+export function PropertiesPageSkeleton({
+	header,
+}: { header?: ReactNode } = {}) {
 	return (
-		<div className="p-6 space-y-5">
-			<PageHeaderRowSkeleton statCount={4} />
+		<div className="sz-page space-y-5">
+			<PageHeaderRowSkeleton statCount={4} heading={header} />
 			<ToolbarSkeleton filterCount={3} />
 			<PropertyGridSkeleton count={6} />
 		</div>
@@ -525,25 +671,25 @@ export function PropertiesPageSkeleton() {
 }
 
 /** My Documents page skeleton. */
-export function DocumentsPageSkeleton() {
+export function DocumentsPageSkeleton({ header }: { header?: ReactNode } = {}) {
 	return (
-		<div className="p-6 space-y-5">
-			<PageHeaderRowSkeleton statCount={4} />
+		<div className="sz-page space-y-5">
+			<PageHeaderRowSkeleton statCount={4} heading={header} />
 			<ToolbarSkeleton filterCount={3} withActions />
-			<div className="flex flex-wrap gap-5">
+			<MasonryGrid minColWidth={220} maxCols={4}>
 				{Array.from({ length: 8 }).map((_, i) => (
 					<DocumentCardSkeleton key={i} />
 				))}
-			</div>
+			</MasonryGrid>
 		</div>
 	);
 }
 
 /** Analytics page skeleton — top stats + 3-up + wide + 3-up. */
-export function AnalyticsPageSkeleton() {
+export function AnalyticsPageSkeleton({ header }: { header?: ReactNode } = {}) {
 	return (
-		<div className="p-6 space-y-5">
-			<PageHeaderRowSkeleton statCount={4} />
+		<div className="sz-page space-y-5">
+			<PageHeaderRowSkeleton statCount={4} heading={header} />
 			<div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-4">
 				<div className="col-span-4 sm:col-span-6 lg:col-span-6">
 					<ChartSkeleton height={220} />
@@ -578,7 +724,7 @@ export function AnalyticsPageSkeleton() {
 export function MapPageSkeleton() {
 	return (
 		<div className="flex h-full w-full">
-			<aside className="w-[220px] shrink-0 border-r border-border p-4 space-y-3 overflow-y-auto">
+			<aside className="w-80 shrink-0 border-r border-border p-4 space-y-3 overflow-y-auto">
 				<SkeletonText width="w-24" className="h-4" />
 				<Skeleton className="h-8 w-full" />
 				<div className="flex flex-wrap gap-1.5">
@@ -605,16 +751,66 @@ export function MapPageSkeleton() {
 	);
 }
 
-/** Marketplace listing grid page. */
-export function MarketplacePageSkeleton() {
+/** Marketplace listing page — category pills + filter sidebar + card grid. */
+export function MarketplacePageSkeleton({
+	header,
+}: { header?: ReactNode } = {}) {
 	return (
-		<div className="p-6 space-y-5">
-			<PageHeaderRowSkeleton statCount={3} />
-			<ToolbarSkeleton filterCount={3} />
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-				{Array.from({ length: 8 }).map((_, i) => (
-					<MarketplaceCardSkeleton key={i} />
+		<div className="sz-page space-y-5">
+			{header}
+			{/* Category pills row */}
+			<div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+				{Array.from({ length: 9 }).map((_, i) => (
+					<Skeleton key={i} shape="pill" className="h-8 w-24 shrink-0" />
 				))}
+			</div>
+
+			{/* Sidebar + grid */}
+			<div className="flex flex-col lg:flex-row gap-6 items-start">
+				<aside className="hidden lg:flex w-60 shrink-0 flex-col gap-4 sticky top-24">
+					{/* Search */}
+					<Skeleton className="h-9 w-full" />
+					{/* Filter sections */}
+					{[
+						{ rows: 2 },
+						{ rows: 5, withInputs: true },
+						{ rows: 1 },
+						{ rows: 5 },
+					].map((s, i) => (
+						<div
+							key={i}
+							className="bg-card border border-border rounded-xl p-4 space-y-3"
+						>
+							<SkeletonText width="w-20" className="h-3.5" />
+							{s.withInputs && (
+								<div className="flex gap-2">
+									<Skeleton className="h-8 flex-1" />
+									<Skeleton className="h-8 flex-1" />
+								</div>
+							)}
+							{Array.from({ length: s.rows }).map((_, j) => (
+								<div key={j} className="flex items-center justify-between">
+									<SkeletonText width="w-24" className="h-2.5" />
+									<SkeletonText width="w-8" className="h-2.5" />
+								</div>
+							))}
+						</div>
+					))}
+				</aside>
+
+				<div className="flex-1 min-w-0 w-full">
+					<SkeletonText width="w-32" className="h-3 mb-3" />
+					<div
+						className="grid gap-4"
+						style={{
+							gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+						}}
+					>
+						{Array.from({ length: 8 }).map((_, i) => (
+							<MarketplaceCardSkeleton key={i} />
+						))}
+					</div>
+				</div>
 			</div>
 		</div>
 	);
@@ -683,22 +879,14 @@ export function UploadZonesSkeleton() {
 }
 
 /**
- * Full create/edit property page skeleton — header bar + upload zones +
- * masonry of form-section cards + sticky action footer. Mirrors the real
- * layout in `CreatePropertyForm` (`docs` columns fold per breakpoint).
+ * Full create/edit property page skeleton — upload zones + masonry of
+ * form-section cards + sticky action footer. Mirrors the real layout in
+ * `CreatePropertyForm`. The sticky page header is rendered separately by
+ * the route's `loading.tsx` so the back link / breadcrumb is real.
  */
 export function CreatePropertyFormSkeleton() {
 	return (
 		<div className="flex flex-col h-full">
-			{/* Sticky page header */}
-			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4">
-				<div className="flex items-center gap-3">
-					<Skeleton className="h-8 w-24" />
-					<Skeleton shape="text" className="h-3 w-3" />
-					<SkeletonText width="w-40" className="h-4" />
-				</div>
-			</div>
-
 			{/* Body */}
 			<div className="px-4 sm:px-8 pt-6 pb-0 space-y-5 flex-1">
 				<UploadZonesSkeleton />

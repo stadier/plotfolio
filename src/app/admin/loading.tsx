@@ -1,15 +1,16 @@
 import AppShell from "@/components/layout/AppShell";
 import {
-    PageHeadingSkeleton,
-    SummaryStatRowSkeleton,
-    TableRowsSkeleton,
+	SummaryStatRowSkeleton,
+	TableRowsSkeleton,
 } from "@/components/ui/skeletons";
 
 export default function Loading() {
 	return (
 		<AppShell>
-			<div className="p-6 space-y-5">
-				<PageHeadingSkeleton />
+			<div className="sz-page space-y-5">
+				<h1 className="font-headline text-sm font-semibold text-primary">
+					Admin
+				</h1>
 				<SummaryStatRowSkeleton count={4} />
 				<TableRowsSkeleton rows={8} columns={5} />
 			</div>

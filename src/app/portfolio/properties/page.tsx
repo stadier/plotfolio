@@ -13,6 +13,7 @@ import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
 import {
+	PageHero,
 	PropertiesPageSkeleton,
 	PropertyGridSkeleton,
 } from "@/components/ui/skeletons";
@@ -1028,7 +1029,15 @@ export default function PropertiesPage() {
 	if (authLoading || !user || loading) {
 		return (
 			<AppShell>
-				<PropertiesPageSkeleton />
+				<PropertiesPageSkeleton
+					header={
+						<PageHero
+							icon={Home}
+							title="My Properties"
+							description="Manage your properties — documents, valuations, and transaction records"
+						/>
+					}
+				/>
 			</AppShell>
 		);
 	}
