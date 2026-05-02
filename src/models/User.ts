@@ -43,6 +43,17 @@ export interface IUser {
 	verificationDocumentType?: string;
 	verificationNotes?: string;
 	verificationRejectionReason?: string;
+	/** Per-user behaviour preferences. */
+	settings?: UserSettings;
+}
+
+export interface UserSettings {
+	/**
+	 * Run AI extraction (OCR, field extraction, indexing) on uploaded documents.
+	 * Disabled by default — this is a premium feature. When false, document
+	 * uploads only store the file and skip all AI work.
+	 */
+	aiDocumentProcessing?: boolean;
 }
 
 export interface UserSealDoc {
@@ -161,6 +172,12 @@ const UserSchema = new Schema<IUser & Document>(
 		verificationDocumentType: String,
 		verificationNotes: String,
 		verificationRejectionReason: String,
+		settings: {
+			type: {
+				aiDocumentProcessing: { type: Boolean, default: false },
+			},
+			default: () => ({ aiDocumentProcessing: false }),
+		},
 	},
 	{ timestamps: true },
 );

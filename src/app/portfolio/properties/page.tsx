@@ -12,7 +12,9 @@ import StatusToggle from "@/components/property/StatusToggle";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
+import { PropertyGridSkeleton } from "@/components/ui/skeletons";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
+import usePersistedState from "@/hooks/usePersistedState";
 import {
 	queryKeys,
 	useMyProperties,
@@ -886,10 +888,19 @@ export default function PropertiesPage() {
 	const [filterType, setFilterType] = useState<string>("");
 	const [filterStatus, setFilterStatus] = useState<string>("");
 	const [sortBy, setSortBy] = useState<string>("newest");
-	const [viewMode, setViewMode] = useState<"card" | "table">("card");
-	const [mediaView, setMediaView] = useState<"typed" | "tight" | "slideshow">(
-		"typed",
+	const [viewMode, setViewMode] = usePersistedState<"card" | "table">(
+		"plotfolio:properties:viewMode",
+		"card",
+		{
+			validate: (v): v is "card" | "table" => v === "card" || v === "table",
+		},
 	);
+	const [mediaView, setMediaView] = usePersistedState<
+		"typed" | "tight" | "slideshow"
+	>("plotfolio:properties:mediaView", "typed", {
+		validate: (v): v is "typed" | "tight" | "slideshow" =>
+			v === "typed" || v === "tight" || v === "slideshow",
+	});
 	const animate = useAnimateOnce("properties");
 
 	// AI document counts per property
@@ -1219,26 +1230,7 @@ export default function PropertiesPage() {
 				)}
 
 				{/* States */}
-				{loading && (
-					<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-						{[1, 2, 3].map((i) => (
-							<div
-								key={i}
-								className="bg-card border border-border rounded-xl p-5 animate-pulse"
-							>
-								<div className="h-5 bg-surface-container-highest rounded mb-2 w-3/4" />
-								<div className="h-4 bg-surface-container-highest rounded mb-4 w-1/2" />
-								<div className="h-44 bg-surface-container-highest rounded-lg mb-4" />
-								<div className="grid grid-cols-2 gap-3">
-									<div className="h-10 bg-surface-container-highest rounded" />
-									<div className="h-10 bg-surface-container-highest rounded" />
-									<div className="h-10 bg-surface-container-highest rounded" />
-									<div className="h-10 bg-surface-container-highest rounded" />
-								</div>
-							</div>
-						))}
-					</div>
-				)}
+				{loading && <PropertyGridSkeleton count={6} />}
 
 				{error && <div className="text-center py-16 text-red-500">{error}</div>}
 

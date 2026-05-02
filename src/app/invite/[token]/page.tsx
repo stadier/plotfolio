@@ -79,7 +79,16 @@ export default function AcceptInvitePage() {
 				return;
 			}
 			setAccepted(true);
-			setTimeout(() => router.push("/portfolio/team"), 2000);
+			// Hard navigation so the root layout re-runs and the QueryProvider
+			// persister picks up the new user-scoped storage key (the user just
+			// signed up / logged in via this flow).
+			setTimeout(() => {
+				if (typeof window !== "undefined") {
+					window.location.assign("/portfolio/team");
+				} else {
+					router.push("/portfolio/team");
+				}
+			}, 2000);
 		} catch {
 			setAcceptError("Network error");
 		}

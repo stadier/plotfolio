@@ -7,7 +7,9 @@ import SummaryStatCard from "@/components/property/SummaryStatCard";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SignaturePad from "@/components/ui/SignaturePad";
+import { DocumentCardSkeleton } from "@/components/ui/skeletons";
 import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
+import { useUploads } from "@/components/uploads/UploadContext";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { PropertyAPI } from "@/lib/api";
 import { AIDocument, AIDocumentType } from "@/types/document";
@@ -23,7 +25,6 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Download,
-	Eye,
 	FileText,
 	HardDrive,
 	Heading1,
@@ -204,19 +205,25 @@ function AIDocumentCard({
 	const canEdit = kind === "html";
 
 	return (
-		<div className="w-full max-w-xs flex flex-col rounded-xl bg-card border border-border group relative hover:shadow-md transition-all">
+		<div
+			className="w-full max-w-xs flex flex-col rounded-xl bg-card border border-border group relative hover:shadow-md transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+			role="button"
+			tabIndex={0}
+			onClick={onPreview}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onPreview();
+				}
+			}}
+		>
 			<DocumentThumbnail doc={doc} kind={kind} />
 
 			{/* Hover actions */}
-			<div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-				<button
-					type="button"
-					onClick={onPreview}
-					className="w-6 h-6 rounded bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-blue-500 transition-colors"
-					title="View"
-				>
-					<Eye className="w-3.5 h-3.5" />
-				</button>
+			<div
+				className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1"
+				onClick={(e) => e.stopPropagation()}
+			>
 				{canEdit && onEdit && (
 					<button
 						type="button"
@@ -281,7 +288,10 @@ function AIDocumentCard({
 							No properties linked
 						</span>
 					)}
-					<details className="mt-1 group/details">
+					<details
+						className="mt-1 group/details"
+						onClick={(e) => e.stopPropagation()}
+					>
 						<summary className="text-badge text-primary cursor-pointer select-none hover:underline">
 							Edit links
 						</summary>
@@ -329,7 +339,7 @@ function AIDocumentCard({
 // ── Upload Modal ───────────────────────────────────────────────────────────
 
 function UploadDocumentModal({
-	userId,
+	userId: _userId,
 	properties,
 	onClose,
 	onUploaded,
@@ -347,20 +357,45 @@ function UploadDocumentModal({
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [dragOver, setDragOver] = useState(false);
+	const { enqueue: enqueueUploads } = useUploads();
 
 	async function handleUpload() {
 		if (!file) return;
 		setUploading(true);
 		setError(null);
 		try {
-			const result = await PropertyAPI.uploadDocument(file, userId, {
-				propertyIds: selectedPropertyIds.length
-					? selectedPropertyIds
-					: undefined,
-				documentType,
-			});
-			if (!result) throw new Error("Upload failed");
-			onUploaded(result.document);
+			// Hand off to the global upload tray and close the modal right
+			// away. The actual bytes go directly to storage and the document
+			// list refetches when each file finishes attaching.
+			const propertyIds = selectedPropertyIds.length
+				? selectedPropertyIds
+				: undefined;
+			enqueueUploads([
+				{
+					file,
+					scope: "user-document",
+					attach: async ({ key }) => {
+						const r = await fetch("/api/documents/attach", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								key,
+								name: file.name,
+								size: file.size,
+								mime: file.type || "application/octet-stream",
+								documentType,
+								propertyIds,
+							}),
+						});
+						if (!r.ok) {
+							const data = await r.json().catch(() => ({}));
+							throw new Error(data.error || "Document attach failed");
+						}
+						const data = (await r.json()) as { document?: AIDocument };
+						if (data.document) onUploaded(data.document);
+					},
+				},
+			]);
 			onClose();
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Upload failed");
@@ -1890,16 +1925,9 @@ export default function DocumentsPage() {
 
 				{/* Loading state */}
 				{loading && (
-					<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-						{[1, 2, 3, 4, 5, 6].map((i) => (
-							<div
-								key={i}
-								className="bg-card border border-border rounded-xl p-5 animate-pulse max-w-xs"
-							>
-								<div className="h-28 bg-surface-container-highest rounded-lg mb-3" />
-								<div className="h-4 bg-surface-container-highest rounded mb-2 w-3/4" />
-								<div className="h-3 bg-surface-container-highest rounded w-1/2" />
-							</div>
+					<div className="flex flex-wrap gap-5">
+						{Array.from({ length: 6 }).map((_, i) => (
+							<DocumentCardSkeleton key={i} />
 						))}
 					</div>
 				)}
@@ -2030,16 +2058,6 @@ export default function DocumentsPage() {
 										</td>
 										<td className="px-4 py-3 whitespace-nowrap">
 											<div className="flex items-center justify-end gap-1">
-												<button
-													onClick={(e) => {
-														e.stopPropagation();
-														setPreviewDoc(doc);
-													}}
-													className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
-													title="Preview"
-												>
-													<Eye className="w-3.5 h-3.5" />
-												</button>
 												{canEditDocument(doc) && (
 													<button
 														onClick={(e) => {

@@ -2,6 +2,8 @@
 
 import { useAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import Skeleton from "@/components/ui/Skeleton";
+import { ChatMessagesSkeleton } from "@/components/ui/skeletons";
 import { ChatAPI } from "@/lib/api";
 import type { Chat, ChatMessage } from "@/types/chat";
 import { ArrowLeft, Building2, Send } from "lucide-react";
@@ -148,7 +150,7 @@ export default function ChatConversationPage({
 						<ArrowLeft className="w-4 h-4" />
 					</Link>
 					{loading ? (
-						<div className="h-5 w-32 bg-surface-container rounded animate-pulse" />
+						<Skeleton className="h-5 w-32" />
 					) : (
 						<>
 							<Avatar
@@ -182,9 +184,7 @@ export default function ChatConversationPage({
 				{/* Messages */}
 				<div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
 					{loading ? (
-						<div className="flex items-center justify-center h-full text-outline text-sm">
-							Loading…
-						</div>
+						<ChatMessagesSkeleton />
 					) : !chat || chat.messages.length === 0 ? (
 						<div className="flex flex-col items-center justify-center h-full gap-2 text-center">
 							<p className="text-on-surface-variant text-sm">

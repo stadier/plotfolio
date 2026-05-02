@@ -1,5 +1,6 @@
 "use client";
 
+import Skeleton from "@/components/ui/Skeleton";
 import { useCurrencyConverter } from "@/hooks/useCurrencyConverter";
 import { cachedGetJSON } from "@/lib/clientCache";
 import { Property } from "@/types/property";
@@ -164,7 +165,7 @@ export default function PropertyDrawer({
 								)}
 							</>
 						) : (
-							<div className="h-5 w-40 bg-surface-container-highest dark:bg-surface-container rounded animate-pulse" />
+							<Skeleton className="h-5 w-40" />
 						)}
 					</div>
 					<div className="flex items-center gap-1 shrink-0">
@@ -207,10 +208,7 @@ export default function PropertyDrawer({
 					{loading && (
 						<div className="space-y-4 px-6 py-5">
 							{[1, 2, 3].map((i) => (
-								<div
-									key={i}
-									className="h-28 bg-surface-container-high dark:bg-surface-container rounded-xl animate-pulse"
-								/>
+								<Skeleton key={i} shape="card" className="h-28" />
 							))}
 						</div>
 					)}

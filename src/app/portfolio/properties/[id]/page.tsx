@@ -5,6 +5,7 @@ import PropertyFullView from "@/components/property/PropertyFullView";
 import ShareModal from "@/components/property/ShareModal";
 import StatusToggle from "@/components/property/StatusToggle";
 import BackButton from "@/components/ui/BackButton";
+import { PropertyDetailSkeleton } from "@/components/ui/skeletons";
 import { useProperty, useUpdateProperty } from "@/hooks/usePropertyQueries";
 import { FileText, Handshake, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
@@ -36,10 +37,8 @@ export default function PropertyDetailPage({
 	if (loading) {
 		return (
 			<AppShell>
-				<div className="flex flex-1 items-center justify-center h-full">
-					<div className="text-on-surface-variant animate-pulse font-body">
-						Loading property…
-					</div>
+				<div className="p-6">
+					<PropertyDetailSkeleton />
 				</div>
 			</AppShell>
 		);

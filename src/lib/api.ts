@@ -1,4 +1,5 @@
 import {
+	cachePatterns,
 	cachedAuthGetJSON,
 	cachedGetJSON,
 	invalidateCachedGet,
@@ -92,7 +93,7 @@ export class PropertyAPI {
 			}
 
 			const created = await response.json();
-			invalidateCachedGet(`${API_BASE_URL}/properties`);
+			invalidateCachedGet(cachePatterns.properties);
 			return created;
 		} catch (error) {
 			console.error("Error creating property:", error);
@@ -118,8 +119,7 @@ export class PropertyAPI {
 			}
 
 			const updated = await response.json();
-			invalidateCachedGet(`${API_BASE_URL}/properties`);
-			invalidateCachedGet(`${API_BASE_URL}/properties/${id}`);
+			invalidateCachedGet(cachePatterns.properties);
 			return updated;
 		} catch (error) {
 			console.error("Error updating property:", error);
@@ -133,8 +133,7 @@ export class PropertyAPI {
 				method: "DELETE",
 			});
 			if (response.ok) {
-				invalidateCachedGet(`${API_BASE_URL}/properties`);
-				invalidateCachedGet(`${API_BASE_URL}/properties/${id}`);
+				invalidateCachedGet(cachePatterns.properties);
 			}
 			return response.ok;
 		} catch (error) {
@@ -322,7 +321,16 @@ export class PropertyAPI {
 				body: formData,
 			});
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
-			return await response.json();
+			const result = (await response.json()) as DocumentProcessingResult;
+			// Newly uploaded doc must invalidate document list caches AND any
+			// property the doc was attached to (PropertyService hydrates
+			// `documents[]` via the propertyIds join, so the property GET cache
+			// is now stale).
+			invalidateCachedGet(cachePatterns.documents);
+			if (options?.propertyIds?.length) {
+				invalidateCachedGet(cachePatterns.properties);
+			}
+			return result;
 		} catch (error) {
 			console.error("Error uploading document:", error);
 			return null;
@@ -339,8 +347,7 @@ export class PropertyAPI {
 			if (!response.ok) return null;
 			const data = (await response.json()) as { document?: AIDocument };
 			if (!data.document) return null;
-			invalidateCachedGet(`${API_BASE_URL}/documents/${id}`);
-			invalidateCachedGet(`${API_BASE_URL}/documents?`);
+			invalidateCachedGet(cachePatterns.documents);
 			return data.document;
 		} catch (error) {
 			console.error("Error re-extracting document:", error);
@@ -364,8 +371,11 @@ export class PropertyAPI {
 				body: JSON.stringify(updates),
 			});
 			if (response.ok) {
-				invalidateCachedGet(`${API_BASE_URL}/documents/${id}`);
-				invalidateCachedGet(`${API_BASE_URL}/documents?`);
+				invalidateCachedGet(cachePatterns.documents);
+				// Property hydration includes documents — clear property caches too
+				if (updates.propertyIds) {
+					invalidateCachedGet(cachePatterns.properties);
+				}
 			}
 			return response.ok;
 		} catch (error) {
@@ -417,8 +427,9 @@ export class PropertyAPI {
 				method: "DELETE",
 			});
 			if (response.ok) {
-				invalidateCachedGet(`${API_BASE_URL}/documents/${id}`);
-				invalidateCachedGet(`${API_BASE_URL}/documents?`);
+				invalidateCachedGet(cachePatterns.documents);
+				// Property hydration includes documents, so clear those too
+				invalidateCachedGet(cachePatterns.properties);
 			}
 			return response.ok;
 		} catch (error) {
@@ -879,19 +890,26 @@ export class PortfolioAPI {
 		file: File,
 	): Promise<{ avatar?: string; error?: string }> {
 		try {
-			const form = new FormData();
-			form.append("file", file);
+			// Direct browser → B2 upload, then attach the resulting key.
+			const { uploadDirect } = await import("@/lib/uploadClient");
+			const { key } = await uploadDirect(file, {
+				scope: "portfolio-avatar",
+				portfolioId: id,
+			});
 			const res = await fetch(`${API_BASE_URL}/portfolios/${id}/avatar`, {
-				method: "PUT",
-				body: form,
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ key }),
 			});
 			const data = await res.json();
 			if (!res.ok) return { error: data.error || "Upload failed" };
 			invalidateCachedGet(`${API_BASE_URL}/portfolios`);
 			invalidateCachedGet(`${API_BASE_URL}/portfolios/${id}`);
 			return { avatar: data.avatar };
-		} catch {
-			return { error: "Network error" };
+		} catch (err) {
+			return {
+				error: err instanceof Error ? err.message : "Network error",
+			};
 		}
 	}
 

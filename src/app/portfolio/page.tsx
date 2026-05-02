@@ -12,6 +12,10 @@ import ValueTrendWidget from "@/components/dashboard/ValueTrendWidget";
 import AppShell from "@/components/layout/AppShell";
 import { usePortfolio } from "@/components/PortfolioContext";
 import PropertyDrawer from "@/components/property/PropertyDrawer";
+import {
+	MetricGridSkeleton,
+	PageHeadingSkeleton,
+} from "@/components/ui/skeletons";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
 import { useMyProperties, useOwnerBookings } from "@/hooks/usePropertyQueries";
 import { PropertyAPI } from "@/lib/api";
@@ -140,15 +144,8 @@ export default function DashboardV2Page() {
 				<div className="px-(--size-page-px) pt-(--size-page-py)">
 					{loading && (
 						<div className="space-y-6 max-w-6xl">
-							<div className="h-12 w-72 bg-card rounded-2xl animate-pulse" />
-							<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-								{Array.from({ length: 4 }).map((_, i) => (
-									<div
-										key={i}
-										className="h-20 bg-card rounded-2xl animate-pulse"
-									/>
-								))}
-							</div>
+							<PageHeadingSkeleton />
+							<MetricGridSkeleton />
 						</div>
 					)}
 

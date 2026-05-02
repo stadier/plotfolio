@@ -58,7 +58,14 @@ export default function LoginPage() {
 				if (result.error) {
 					setError(result.error);
 				} else {
-					router.replace("/portfolio");
+					// Hard navigation so the root layout re-runs and the
+					// QueryProvider persister picks up the new user-scoped
+					// storage key.
+					if (typeof window !== "undefined") {
+						window.location.assign("/portfolio");
+					} else {
+						router.replace("/portfolio");
+					}
 				}
 			} catch {
 				setError("Google sign-in failed. Please try again.");
@@ -154,7 +161,15 @@ export default function LoginPage() {
 			if (result.error) {
 				setError(result.error);
 			} else {
-				router.replace("/portfolio");
+				// Hard navigation so the root layout re-runs and the
+				// QueryProvider persister picks up the new user-scoped
+				// storage key. router.replace would keep the previous
+				// persister scope.
+				if (typeof window !== "undefined") {
+					window.location.assign("/portfolio");
+				} else {
+					router.replace("/portfolio");
+				}
 			}
 		} catch {
 			setError("Something went wrong. Please try again.");

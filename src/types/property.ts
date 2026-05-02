@@ -37,11 +37,30 @@ export enum MediaType {
 	AUDIO = "audio",
 }
 
+/**
+ * Lifecycle of a media item.
+ * - `uploading`: the client is still PUTting bytes to storage; the row is
+ *   already persisted so the user can navigate away.
+ * - `processing`: bytes are uploaded; a background job is generating a
+ *   thumbnail or doing post-processing.
+ * - `ready`: fully usable, all derivatives present.
+ * - `failed`: upload or processing errored — see `error`.
+ */
+export type PropertyMediaStatus =
+	| "uploading"
+	| "processing"
+	| "ready"
+	| "failed";
+
 export interface PropertyMedia {
 	url: string;
 	type: MediaType;
 	thumbnail?: string; // optional preview image for video/audio
 	caption?: string;
+	/** Defaults to "ready" for legacy items written before status existed. */
+	status?: PropertyMediaStatus;
+	/** Set when status === "failed". */
+	error?: string;
 }
 
 export interface Property {

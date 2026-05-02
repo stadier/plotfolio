@@ -5,6 +5,7 @@ import AppShell from "@/components/layout/AppShell";
 import PropertyFullView from "@/components/property/PropertyFullView";
 import ShareModal from "@/components/property/ShareModal";
 import BackButton from "@/components/ui/BackButton";
+import { PropertyDetailSkeleton } from "@/components/ui/skeletons";
 import { useProperty } from "@/hooks/usePropertyQueries";
 import { PropertyAPI } from "@/lib/api";
 import { DocumentAccessRequest } from "@/types/property";
@@ -60,10 +61,8 @@ export default function MarketplaceListingPage({
 	if (loading) {
 		return (
 			<AppShell>
-				<div className="flex flex-1 items-center justify-center h-full">
-					<div className="text-on-surface-variant animate-pulse font-body">
-						Loading listing…
-					</div>
+				<div className="p-6">
+					<PropertyDetailSkeleton />
 				</div>
 			</AppShell>
 		);

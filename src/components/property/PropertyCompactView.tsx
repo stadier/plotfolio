@@ -73,15 +73,23 @@ function MediaUploadButton({
 		setUploading(true);
 		setUploadError(null);
 		try {
-			const formData = new FormData();
-			formData.append("file", file);
-			formData.append("type", detectType(file));
-			const res = await fetch(`/api/properties/${propertyId}/media`, {
+			const { uploadDirect } = await import("@/lib/uploadClient");
+			const mediaType = detectType(file);
+			const uploaded = await uploadDirect(file, {
+				scope: "property-media",
+				propertyId,
+			});
+			const res = await fetch(`/api/properties/${propertyId}/media/attach`, {
 				method: "POST",
-				body: formData,
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					key: uploaded.key,
+					type: mediaType,
+					mime: file.type || undefined,
+				}),
 			});
 			if (!res.ok) {
-				const err = await res.json();
+				const err = await res.json().catch(() => ({}));
 				throw new Error(err.error ?? "Upload failed");
 			}
 			onUploaded?.();

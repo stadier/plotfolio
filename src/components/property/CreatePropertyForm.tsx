@@ -7,6 +7,10 @@ import MasonryGrid from "@/components/ui/MasonryGrid";
 import WitnessTagInput, {
 	type WitnessEntry,
 } from "@/components/ui/WitnessTagInput";
+import {
+	type EnqueueInput,
+	useUploads,
+} from "@/components/uploads/UploadContext";
 import { queryKeys, useProviderSettings } from "@/hooks/usePropertyQueries";
 import { invalidateCachedGet } from "@/lib/clientCache";
 import {
@@ -444,6 +448,7 @@ export default function CreatePropertyForm({
 	const { user } = useAuth();
 	const { activePortfolio } = usePortfolio();
 	const queryClient = useQueryClient();
+	const { enqueue: enqueueUploads } = useUploads();
 	const { data: providerSettings } = useProviderSettings();
 	const useGoogleMapPicker =
 		(providerSettings?.mapRenderer ?? PROVIDER_DEFAULTS.mapRenderer) ===
@@ -1077,51 +1082,100 @@ export default function CreatePropertyForm({
 					isEdit ? "Failed to update property" : "Failed to create property",
 				);
 
-			// Delete removed existing documents
-			for (const docId of removedDocIds) {
-				await fetch(`/api/properties/${id}/documents?docId=${docId}`, {
-					method: "DELETE",
-				});
-			}
+			// Delete removed existing documents (these are tiny — fire and forget
+			// in parallel so the user doesn't wait on a serial loop).
+			void Promise.all(
+				removedDocIds.map((docId) =>
+					fetch(`/api/properties/${id}/documents?docId=${docId}`, {
+						method: "DELETE",
+					}),
+				),
+			);
 
-			// Upload new documents to the property
+			// Delete removed existing media (same: fire and forget in parallel).
+			void Promise.all(
+				removedMediaUrls.map((url) =>
+					fetch(`/api/properties/${id}/media?url=${encodeURIComponent(url)}`, {
+						method: "DELETE",
+					}),
+				),
+			);
+
+			// Hand new uploads off to the global upload tray. The user can
+			// navigate away immediately — files upload directly to storage in
+			// the background and the property auto-refreshes when each one
+			// finishes attaching.
+			const uploadInputs: EnqueueInput[] = [];
+
 			for (const file of uploadedFiles) {
-				const formData = new FormData();
-				formData.append("file", file);
-				formData.append("name", file.name);
-				formData.append("type", inferDocumentType(file));
-
-				await fetch(`/api/properties/${id}/documents`, {
-					method: "POST",
-					body: formData,
+				const docType = inferDocumentType(file);
+				uploadInputs.push({
+					file,
+					scope: "property-document",
+					propertyId: id,
+					attach: async ({ key }) => {
+						const r = await fetch(`/api/properties/${id}/documents/attach`, {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								key,
+								name: file.name,
+								type: docType,
+								size: file.size,
+								mime: file.type || "application/octet-stream",
+							}),
+						});
+						if (!r.ok) {
+							const data = await r.json().catch(() => ({}));
+							throw new Error(data.error || "Document attach failed");
+						}
+					},
+					invalidateKeys: [
+						queryKeys.properties.detail(id),
+						queryKeys.properties.all,
+					],
+					invalidateUrlPatterns: [/\/api\/properties(?:\/|\?|$)/],
 				});
 			}
 
-			// Delete removed existing media
-			for (const url of removedMediaUrls) {
-				await fetch(
-					`/api/properties/${id}/media?url=${encodeURIComponent(url)}`,
-					{ method: "DELETE" },
-				);
-			}
-
-			// Upload new media files
 			for (const file of uploadedMedia) {
 				let mediaType: MediaType = MediaType.IMAGE;
 				if (file.type.startsWith("video/")) mediaType = MediaType.VIDEO;
 				else if (file.type.startsWith("audio/")) mediaType = MediaType.AUDIO;
-
-				const formData = new FormData();
-				formData.append("file", file);
-				formData.append("type", mediaType);
-
-				await fetch(`/api/properties/${id}/media`, {
-					method: "POST",
-					body: formData,
+				uploadInputs.push({
+					file,
+					scope: "property-media",
+					propertyId: id,
+					attach: async ({ key }) => {
+						const r = await fetch(`/api/properties/${id}/media/attach`, {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								key,
+								type: mediaType,
+								mime: file.type || undefined,
+							}),
+						});
+						if (!r.ok) {
+							const data = await r.json().catch(() => ({}));
+							throw new Error(data.error || "Media attach failed");
+						}
+					},
+					invalidateKeys: [
+						queryKeys.properties.detail(id),
+						queryKeys.properties.all,
+					],
+					invalidateUrlPatterns: [/\/api\/properties(?:\/|\?|$)/],
 				});
 			}
 
-			// Invalidate property queries so lists update immediately
+			if (uploadInputs.length > 0) {
+				enqueueUploads(uploadInputs);
+			}
+
+			// Invalidate property queries so lists update with the property
+			// itself immediately (uploads will trigger their own invalidations
+			// when they finish).
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.all,
 			});

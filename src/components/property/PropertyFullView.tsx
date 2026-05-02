@@ -11,7 +11,7 @@ import FileUploader from "@/components/ui/FileUploader";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { queryKeys, useUpdateProperty } from "@/hooks/usePropertyQueries";
-import { invalidateCachedGet } from "@/lib/clientCache";
+import { cachePatterns, invalidateCachedGet } from "@/lib/clientCache";
 import { countryFlag } from "@/lib/locale";
 import { toPlotWords } from "@/lib/plotwords";
 import { formatCurrency, getPropertyMedia } from "@/lib/utils";
@@ -93,6 +93,7 @@ interface PendingMedia {
 	thumbnailFile?: File;
 	uploadedMedia?: PropertyMedia;
 	status: "uploading" | "uploaded" | "failed";
+	progress?: number;
 	error?: string;
 }
 
@@ -191,12 +192,15 @@ function MediaGallery({
 					return { ...current, media: sortedMedia };
 				},
 			);
-			invalidateCachedGet(`/api/properties/${propertyId}`);
+			invalidateCachedGet(cachePatterns.properties);
 
 			// Kick off a background refetch but don't block the UI on it —
 			// the property GET is heavy and made the save spinner feel slow.
 			void queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.detail(propertyId),
+			});
+			void queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.all,
 			});
 		} finally {
 			setSavingOrder(false);
@@ -320,9 +324,12 @@ function MediaGallery({
 					};
 				},
 			);
-			invalidateCachedGet(`/api/properties/${propertyId}`);
+			invalidateCachedGet(cachePatterns.properties);
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.detail(propertyId),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.all,
 			});
 		} catch (err) {
 			console.error("Failed to delete media:", err);
@@ -336,21 +343,52 @@ function MediaGallery({
 	async function uploadSingle(id: number, file: File, thumbnailFile?: File) {
 		if (!propertyId) return;
 		try {
-			const formData = new FormData();
-			formData.append("file", file);
-			formData.append("type", detectMediaType(file));
-			if (thumbnailFile) {
-				formData.append("thumbnail", thumbnailFile);
-			}
-			const res = await fetch(`/api/properties/${propertyId}/media`, {
-				method: "POST",
-				body: formData,
+			// Direct-to-storage upload: bytes go browser → B2, then we record
+			// the metadata server-side. Avoids the previous double-hop where
+			// every byte was buffered in the Next.js server first.
+			const { uploadDirect } = await import("@/lib/uploadClient");
+			const mediaType = detectMediaType(file);
+
+			const uploaded = await uploadDirect(file, {
+				scope: "property-media",
+				propertyId,
+				onProgress: (percent) => {
+					setPendingMedia((prev) =>
+						prev.map((p) => (p.id === id ? { ...p, progress: percent } : p)),
+					);
+				},
 			});
-			if (!res.ok) {
-				const err = await res.json();
+
+			// Optional caller-provided thumbnail (e.g. from a video frame
+			// captured client-side). The server also auto-generates one for
+			// images, but uploading the supplied one is faster than re-rendering.
+			let thumbKey: string | undefined;
+			if (thumbnailFile) {
+				const thumbResult = await uploadDirect(thumbnailFile, {
+					scope: "property-thumb",
+					propertyId,
+				});
+				thumbKey = thumbResult.key;
+			}
+
+			const attachRes = await fetch(
+				`/api/properties/${propertyId}/media/attach`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						key: uploaded.key,
+						type: mediaType,
+						mime: file.type || undefined,
+						thumbKey,
+					}),
+				},
+			);
+			if (!attachRes.ok) {
+				const err = await attachRes.json().catch(() => ({}));
 				throw new Error(err.error ?? "Upload failed");
 			}
-			const data = (await res.json()) as { media?: PropertyMedia };
+			const data = (await attachRes.json()) as { media?: PropertyMedia };
 			if (!data.media) {
 				throw new Error("Upload response missing media payload");
 			}
@@ -408,7 +446,7 @@ function MediaGallery({
 					};
 				},
 			);
-			invalidateCachedGet(`/api/properties/${propertyId}`);
+			invalidateCachedGet(cachePatterns.properties);
 			setPendingMedia((prev) =>
 				prev.map((p) =>
 					p.id === id
@@ -423,6 +461,9 @@ function MediaGallery({
 			);
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.detail(propertyId),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.all,
 			});
 		} catch (err) {
 			const error = err instanceof Error ? err.message : "Upload failed";

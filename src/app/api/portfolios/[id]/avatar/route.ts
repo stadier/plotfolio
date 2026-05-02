@@ -95,3 +95,63 @@ export async function PUT(
 		);
 	}
 }
+
+/**
+ * POST /api/portfolios/[id]/avatar
+ *
+ * Direct-upload variant: stores an already-uploaded B2 object as the
+ * portfolio's avatar.
+ */
+export async function POST(
+	req: NextRequest,
+	{ params }: { params: Promise<{ id: string }> },
+) {
+	try {
+		const cookieStore = await cookies();
+		const session = cookieStore.get(SESSION_COOKIE)?.value;
+		if (!session) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+		const [, userId] = session.split(":");
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		const { id } = await params;
+		await connectDB();
+
+		const isAdmin = await checkPortfolioAccess(userId, id, PortfolioRole.ADMIN);
+		if (!isAdmin) {
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+		}
+
+		const body = (await req.json()) as { key?: string };
+		const key = body.key;
+		if (!key || !key.startsWith(`portfolios/${id}/`)) {
+			return NextResponse.json(
+				{ error: "Invalid key for this portfolio" },
+				{ status: 400 },
+			);
+		}
+
+		const avatarUrl = `/api/portfolios/${id}/avatar/view`;
+		const updated = await PortfolioModel.findOneAndUpdate(
+			{ id },
+			{ $set: { avatar: avatarUrl, avatarKey: key } },
+			{ new: true },
+		).lean();
+		if (!updated) {
+			return NextResponse.json(
+				{ error: "Portfolio not found" },
+				{ status: 404 },
+			);
+		}
+		return NextResponse.json({ avatar: avatarUrl });
+	} catch (error) {
+		console.error("Portfolio avatar attach error:", error);
+		return NextResponse.json(
+			{ error: "Failed to set avatar" },
+			{ status: 500 },
+		);
+	}
+}

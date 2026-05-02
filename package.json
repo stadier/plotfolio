@@ -13,7 +13,9 @@
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1018.0",
 		"@aws-sdk/s3-request-presigner": "^3.1037.0",
+		"@tanstack/query-sync-storage-persister": "^5.100.7",
 		"@tanstack/react-query": "^5.96.2",
+		"@tanstack/react-query-persist-client": "^5.100.7",
 		"@types/leaflet": "^1.9.21",
 		"@types/mapbox-gl": "^3.4.1",
 		"@vis.gl/react-google-maps": "^1.7.0",

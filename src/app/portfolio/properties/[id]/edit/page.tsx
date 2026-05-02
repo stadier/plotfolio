@@ -3,6 +3,7 @@
 import AppShell from "@/components/layout/AppShell";
 import CreatePropertyForm from "@/components/property/CreatePropertyForm";
 import BackButton from "@/components/ui/BackButton";
+import { FormSkeleton, PageHeadingSkeleton } from "@/components/ui/skeletons";
 import { useProperty } from "@/hooks/usePropertyQueries";
 import Link from "next/link";
 import { use } from "react";
@@ -18,10 +19,9 @@ export default function EditPropertyPage({
 	if (isLoading) {
 		return (
 			<AppShell>
-				<div className="flex flex-1 items-center justify-center h-full">
-					<div className="text-on-surface-variant animate-pulse font-body">
-						Loading property…
-					</div>
+				<div className="p-6 space-y-6">
+					<PageHeadingSkeleton />
+					<FormSkeleton rows={6} />
 				</div>
 			</AppShell>
 		);

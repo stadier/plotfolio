@@ -12,4 +12,12 @@ export const b2 = new S3Client({
 		accessKeyId: B2_KEY_ID,
 		secretAccessKey: B2_APP_KEY,
 	},
+	// AWS SDK v3 (≥ 3.729) injects an `x-amz-checksum-crc32` header and
+	// `x-amz-sdk-checksum-algorithm=CRC32` query param into every PutObject
+	// by default. Backblaze B2 doesn't recognise those checksums, and for
+	// presigned browser uploads they also fail the CORS preflight because
+	// the browser would need to send the matching `x-amz-checksum-*`
+	// header. Disable both so signed URLs work cleanly with B2.
+	requestChecksumCalculation: "WHEN_REQUIRED",
+	responseChecksumValidation: "WHEN_REQUIRED",
 });

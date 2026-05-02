@@ -102,6 +102,9 @@ export async function GET() {
 				displayCurrency: (user as any).displayCurrency,
 				isAdmin: !!(user as any).isAdmin,
 				verificationStatus: (user as any).verificationStatus,
+				settings: {
+					aiDocumentProcessing: !!(user as any).settings?.aiDocumentProcessing,
+				},
 			},
 			portfolios,
 		});

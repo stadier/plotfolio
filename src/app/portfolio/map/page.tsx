@@ -482,7 +482,7 @@ export default function Home() {
 							onGridComplete={handleGridSelection}
 							onGridCancel={() => setIsSelectingGrid(false)}
 							useImageMarkers={useImageMarkers}
-							className="w-full h-full"
+							className="w-full h-full mt-2"
 						/>
 					)}
 

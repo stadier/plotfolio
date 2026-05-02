@@ -14,6 +14,7 @@ import StatusBarChart from "@/components/analytics/StatusBarChart";
 import ValueByCountryChart from "@/components/analytics/ValueByCountryChart";
 import AppShell from "@/components/layout/AppShell";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
+import { ChartSkeleton, MetricGridSkeleton } from "@/components/ui/skeletons";
 import { useMyProperties } from "@/hooks/usePropertyQueries";
 import { formatCurrencyCompact } from "@/lib/utils";
 import {
@@ -120,15 +121,8 @@ export default function AnalyticsPage() {
 
 				{loading ? (
 					<div className="space-y-6">
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-							{Array.from({ length: 4 }).map((_, i) => (
-								<div
-									key={i}
-									className="h-28 bg-card rounded-2xl animate-pulse border border-border"
-								/>
-							))}
-						</div>
-						<div className="h-80 bg-card rounded-2xl animate-pulse border border-border" />
+						<MetricGridSkeleton />
+						<ChartSkeleton height={320} />
 					</div>
 				) : (
 					<>

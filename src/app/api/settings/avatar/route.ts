@@ -81,3 +81,52 @@ export async function PUT(req: NextRequest) {
 		);
 	}
 }
+
+/**
+ * POST /api/settings/avatar
+ *
+ * Direct-upload variant: the client uploaded the avatar straight to B2 via
+ * a presigned URL and now hands us the resulting object key.
+ */
+export async function POST(req: NextRequest) {
+	try {
+		const cookieStore = await cookies();
+		const session = cookieStore.get(SESSION_COOKIE)?.value;
+		if (!session) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+		const [, userId] = session.split(":");
+		if (!userId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+
+		const body = (await req.json()) as { key?: string };
+		const key = body.key;
+		if (!key || !key.startsWith(`avatars/${userId}/`)) {
+			return NextResponse.json(
+				{ error: "Invalid key for this user" },
+				{ status: 400 },
+			);
+		}
+
+		await connectDB();
+		const { publicUrlForKey } = await import("@/lib/uploadScopes");
+		const avatarUrl = publicUrlForKey(key);
+
+		const user = await UserModel.findOneAndUpdate(
+			{ id: userId },
+			{ $set: { avatar: avatarUrl } },
+			{ new: true },
+		).lean();
+		if (!user) {
+			return NextResponse.json({ error: "User not found" }, { status: 404 });
+		}
+		return NextResponse.json({ avatar: avatarUrl });
+	} catch (error) {
+		console.error("Avatar attach error:", error);
+		return NextResponse.json(
+			{ error: "Failed to set avatar" },
+			{ status: 500 },
+		);
+	}
+}

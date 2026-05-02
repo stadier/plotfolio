@@ -271,11 +271,13 @@ function ProfileSection() {
 		setAvatarUploading(true);
 		setError(null);
 		try {
-			const fd = new FormData();
-			fd.append("file", file);
+			// Direct-to-storage upload, then attach the resulting key.
+			const { uploadDirect } = await import("@/lib/uploadClient");
+			const { key } = await uploadDirect(file, { scope: "avatar" });
 			const res = await fetch("/api/settings/avatar", {
-				method: "PUT",
-				body: fd,
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ key }),
 			});
 			const data = await res.json();
 			if (!res.ok) throw new Error(data.error || "Upload failed");
@@ -871,6 +873,67 @@ function AdvancedSection() {
 						);
 					})}
 				</div>
+			)}
+		</Section>
+	);
+}
+
+/* ─── AI document processing toggle ──────────────────────────── */
+
+function AIPreferencesSection() {
+	const { user, refresh } = useAuth();
+	const [enabled, setEnabled] = useState(
+		!!user?.settings?.aiDocumentProcessing,
+	);
+	const [saving, setSaving] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		setEnabled(!!user?.settings?.aiDocumentProcessing);
+	}, [user?.settings?.aiDocumentProcessing]);
+
+	const toggle = async (next: boolean) => {
+		const previous = enabled;
+		setEnabled(next); // optimistic
+		setSaving(true);
+		setError(null);
+		try {
+			const res = await fetch("/api/settings/preferences", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ aiDocumentProcessing: next }),
+			});
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				throw new Error(data.error || "Failed to update preference");
+			}
+			await refresh();
+		} catch (err) {
+			setEnabled(previous);
+			setError(err instanceof Error ? err.message : "Failed to save");
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<Section
+			title="Document AI"
+			description="Premium feature — automatically extract fields, summaries, and key dates from documents you upload."
+			className="md:col-span-2 xl:col-span-3"
+		>
+			<SettingsToggle
+				label={
+					saving ? "AI document processing — saving…" : "AI document processing"
+				}
+				description="When off, documents you upload are stored as-is — no OCR, field extraction, or indexing runs. Turn on to enable AI processing."
+				checked={enabled}
+				onChange={toggle}
+			/>
+			{error && (
+				<p className="typo-caption text-error mt-2" role="alert">
+					{error}
+				</p>
 			)}
 		</Section>
 	);
@@ -1785,7 +1848,12 @@ export default function SettingsPage() {
 						{activeTab === "branding" && <BrandingSection />}
 						{activeTab === "billing" && <BillingSection />}
 						{activeTab === "privacy" && <SecuritySection />}
-						{activeTab === "advanced" && <AdvancedSection />}
+						{activeTab === "advanced" && (
+							<>
+								<AIPreferencesSection />
+								<AdvancedSection />
+							</>
+						)}
 						{activeTab === "danger" && <DangerSection />}
 					</div>
 				</div>

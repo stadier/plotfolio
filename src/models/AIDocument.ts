@@ -43,6 +43,12 @@ interface IAIDocument extends MongooseDocument {
 	extractedData?: Record<string, unknown>;
 	confidence?: number;
 	indexed: boolean;
+	/**
+	 * Upload + processing lifecycle. Defaults to "ready" so existing
+	 * records (which never had a status) keep behaving normally.
+	 */
+	uploadStatus?: "uploading" | "processing" | "ready" | "failed";
+	uploadError?: string;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -96,6 +102,13 @@ const AIDocumentSchema = new Schema<IAIDocument>(
 		extractedData: { type: Schema.Types.Mixed },
 		confidence: { type: Number, min: 0, max: 1 },
 		indexed: { type: Boolean, default: false },
+		uploadStatus: {
+			type: String,
+			enum: ["uploading", "processing", "ready", "failed"],
+			default: "ready",
+			index: true,
+		},
+		uploadError: { type: String },
 	},
 	{ timestamps: true },
 );

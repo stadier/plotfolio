@@ -52,7 +52,6 @@ export function useMyProperties(
 			return PropertyAPI.getMyProperties(ownerId, portfolioId, isOwnPortfolio);
 		},
 		enabled: !!ownerId,
-		refetchOnMount: "always",
 		...options,
 	});
 }

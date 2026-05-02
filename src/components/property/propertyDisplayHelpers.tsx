@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import FileUploader from "@/components/ui/FileUploader";
 import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
-import { invalidateCachedGet } from "@/lib/clientCache";
+import { cachePatterns, invalidateCachedGet } from "@/lib/clientCache";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -792,9 +792,13 @@ export function DocumentsGrid({
 			const { document } = await res.json();
 			onUploaded(document);
 			setPendingDocs((prev) => prev.filter((p) => p.id !== id));
-			invalidateCachedGet(`/api/properties/${propertyId}`);
+			invalidateCachedGet(cachePatterns.properties);
+			invalidateCachedGet(cachePatterns.documents);
 			await queryClient.invalidateQueries({
 				queryKey: queryKeys.properties.detail(propertyId),
+			});
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.properties.all,
 			});
 		} catch (err) {
 			const error = err instanceof Error ? err.message : "Upload failed";

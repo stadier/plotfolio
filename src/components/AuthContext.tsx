@@ -36,6 +36,9 @@ export interface AuthUser {
 	displayCurrency?: string;
 	isAdmin?: boolean;
 	verificationStatus?: string;
+	settings?: {
+		aiDocumentProcessing?: boolean;
+	};
 }
 
 interface AuthContextValue {
@@ -54,9 +57,25 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-	const [user, setUser] = useState<AuthUser | null>(null);
-	const [loading, setLoading] = useState(true);
+export function AuthProvider({
+	children,
+	initialUser,
+}: {
+	children: ReactNode;
+	/**
+	 * Server-resolved user (from the root layout). Passing this prevents the
+	 * "log in button flashes briefly on refresh" problem by hydrating the
+	 * client with the correct auth state on the first paint, instead of
+	 * waiting for the client-side `/api/auth/me` round trip.
+	 */
+	initialUser?: AuthUser | null;
+}) {
+	const [user, setUser] = useState<AuthUser | null>(initialUser ?? null);
+	// If we already resolved the user on the server, we are not in a
+	// loading state from the consumer's perspective. The background
+	// `refresh()` call below will silently revalidate without forcing
+	// the UI to re-show skeletons / login button.
+	const [loading, setLoading] = useState(initialUser === undefined);
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const previousUserIdRef = useRef<string | null | undefined>(undefined);
@@ -179,7 +198,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		await fetch("/api/auth/logout", { method: "POST" });
 		transitionAuthCacheScope(null, true);
 		setUser(null);
-		router.push("/login");
+		// Hard navigation so the root layout re-runs and the QueryProvider's
+		// persister is recreated with the guest-scoped storage key. A soft
+		// router.push would leave the persister bound to the previous user.
+		if (typeof window !== "undefined") {
+			window.location.assign("/login");
+		} else {
+			router.push("/login");
+		}
 	}, [router, transitionAuthCacheScope]);
 
 	return (

@@ -47,23 +47,11 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		let properties = await PropertyService.getAllProperties();
-		if (ownerId && portfolioId) {
-			// Own portfolio: match by portfolio OR by ownership (handles stale portfolioId)
-			properties = properties.filter(
-				(p) => p.portfolioId === portfolioId || p.owner?.id === ownerId,
-			);
-		} else if (portfolioId) {
-			properties = properties.filter((p) => p.portfolioId === portfolioId);
-		} else if (ownerId) {
-			properties = properties.filter((p) => p.owner?.id === ownerId);
-		}
-		const filtered = status
-			? (() => {
-					const statuses = status.split(",");
-					return properties.filter((p) => statuses.includes(p.status));
-				})()
-			: properties;
+		const filtered = await PropertyService.findProperties({
+			ownerId,
+			portfolioId,
+			statuses: status ? status.split(",") : undefined,
+		});
 
 		if (include.includes("activeSale") && filtered.length > 0) {
 			const ids = filtered.map((p) => p.id);

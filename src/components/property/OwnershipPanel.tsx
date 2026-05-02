@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/AuthContext";
 import PrimaryButton from "@/components/ui/PrimaryButton";
+import Skeleton from "@/components/ui/Skeleton";
 import UserAvatar from "@/components/ui/UserAvatar";
 import UserLookupField, {
 	type LookedUpUser,
@@ -463,7 +464,10 @@ export function TransferOwnershipPanel({
 			)}
 
 			{loading ? (
-				<p className="text-xs text-outline animate-pulse">Loading transfers…</p>
+				<div className="space-y-2">
+					<Skeleton className="h-12 w-full" />
+					<Skeleton className="h-12 w-full" />
+				</div>
 			) : transfers.length === 0 ? (
 				<p className="text-xs text-outline">No transfers on record.</p>
 			) : (
@@ -882,7 +886,10 @@ export function OwnershipHistoryPanel({
 			)}
 
 			{loading ? (
-				<p className="text-xs text-outline animate-pulse">Loading history…</p>
+				<div className="space-y-2">
+					<Skeleton className="h-12 w-full" />
+					<Skeleton className="h-12 w-full" />
+				</div>
 			) : records.length === 0 ? (
 				<p className="text-xs text-outline">
 					No ownership history recorded yet.

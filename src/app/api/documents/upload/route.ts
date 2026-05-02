@@ -262,8 +262,29 @@ export async function POST(req: NextRequest) {
 			}
 		}
 		const skipIndexing = formData.get("skipIndexing") === "true";
-		const skipAi = formData.get("skipAi") === "true";
+		let skipAi = formData.get("skipAi") === "true";
 		const forceUpload = formData.get("forceUpload") === "true";
+
+		// Honour the per-user "AI document processing" preference. Unless the
+		// user has explicitly opted in (it's a paid feature), every upload
+		// behaves as if `skipAi=true` so the file is stored as-is and no
+		// OCR / extraction work runs.
+		if (!skipAi && userId) {
+			try {
+				const { UserModel } = await import("@/models/User");
+				await connectDB();
+				const u = await UserModel.findOne({ id: userId })
+					.select("settings")
+					.lean<{ settings?: { aiDocumentProcessing?: boolean } }>();
+				if (!u?.settings?.aiDocumentProcessing) {
+					skipAi = true;
+				}
+			} catch (err) {
+				// If the lookup fails, fall back to the safer default (no AI).
+				console.warn("Could not read AI preference, defaulting to skipAi", err);
+				skipAi = true;
+			}
+		}
 
 		if (!file || !userId) {
 			return NextResponse.json(

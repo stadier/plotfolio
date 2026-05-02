@@ -3,6 +3,7 @@
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { MarketplaceCardSkeleton } from "@/components/ui/skeletons";
 import { useAllProperties } from "@/hooks/usePropertyQueries";
 import { formatCurrency, getPropertyImageUrls } from "@/lib/utils";
 import { Bookmark, Heart, MapPin, ShoppingBag, Tag } from "lucide-react";
@@ -58,10 +59,7 @@ export default function FavouritesPage() {
 						}}
 					>
 						{Array.from({ length: 4 }).map((_, i) => (
-							<div
-								key={i}
-								className="bg-surface-container rounded-2xl h-72 animate-pulse"
-							/>
+							<MarketplaceCardSkeleton key={i} />
 						))}
 					</div>
 				)}

@@ -196,6 +196,12 @@ const PropertySchema = new Schema<Property & Document>(
 				},
 				thumbnail: { type: String },
 				caption: { type: String },
+				status: {
+					type: String,
+					enum: ["uploading", "processing", "ready", "failed"],
+					default: "ready",
+				},
+				error: { type: String },
 			},
 		],
 		zoning: { type: String, enum: [...Object.values(ZoningType), null] },
@@ -263,6 +269,13 @@ const SurveyDocumentSchema = new Schema(
 		timestamps: true,
 	},
 );
+
+// Indexes for common list-endpoint filters. `unique: true` on `id` already
+// creates an index, but adding the others ensures `?ownerId=...` /
+// `?portfolioId=...&status=...` queries don't collection-scan.
+PropertySchema.index({ "owner.id": 1 });
+PropertySchema.index({ portfolioId: 1, status: 1 });
+PropertySchema.index({ status: 1 });
 
 // Create models
 export const PropertyModel =
@@ -358,23 +371,72 @@ export class PropertyService {
 		}));
 	}
 
-	static async getAllProperties(): Promise<Property[]> {
-		const properties = await PropertyModel.find({}).lean();
+	/**
+	 * List properties matching an optional filter. Filters are pushed down to
+	 * Mongo (rather than fetching the entire collection and filtering in JS)
+	 * so the list endpoint scales as the user base grows.
+	 */
+	static async findProperties(
+		filter: {
+			ownerId?: string | null;
+			portfolioId?: string | null;
+			statuses?: string[];
+			includeDocuments?: boolean;
+		} = {},
+	): Promise<Property[]> {
+		const { ownerId, portfolioId, statuses, includeDocuments = true } = filter;
+		const query: Record<string, unknown> = {};
+		// Caller may supply both ownerId and portfolioId ("my own portfolio")
+		// in which case match either condition to handle stale portfolioIds.
+		if (ownerId && portfolioId) {
+			query.$or = [{ portfolioId }, { "owner.id": ownerId }];
+		} else if (portfolioId) {
+			query.portfolioId = portfolioId;
+		} else if (ownerId) {
+			query["owner.id"] = ownerId;
+		}
+		if (statuses && statuses.length > 0) {
+			query.status = { $in: statuses };
+		}
+
+		const properties = await PropertyModel.find(query).lean();
 		const cleaned = properties.map((prop) => {
 			const { _id, __v, ...cleanProp } = prop as any;
 			return sanitizeProperty(cleanProp);
 		}) as Property[];
-		return this.hydrateDocuments(cleaned);
+		return includeDocuments ? this.hydrateDocuments(cleaned) : cleaned;
+	}
+
+	static async getAllProperties(): Promise<Property[]> {
+		return this.findProperties();
 	}
 
 	static async getPropertyById(id: string): Promise<Property | null> {
-		const property = await PropertyModel.findOne({ id }).lean();
+		// Lazy import to avoid circular module init.
+		const { AIDocumentModel } = await import("@/models/AIDocument");
+
+		// Run the property fetch and the document join in parallel — they only
+		// share the id from the URL, so there's no reason to serialize them.
+		const [property, docs] = await Promise.all([
+			PropertyModel.findOne({ id }).lean(),
+			AIDocumentModel.find({ propertyIds: id }).sort({ createdAt: -1 }).lean(),
+		]);
 		if (!property) return null;
 
 		const { _id, __v, ...cleanProp } = property as any;
 		const sanitized = sanitizeProperty(cleanProp) as Property;
-		const [hydrated] = await this.hydrateDocuments([sanitized]);
-		return hydrated;
+		sanitized.documents = (docs as any[]).map((d) => ({
+			id: String(d._id),
+			name: d.fileName,
+			url: d.fileUrl,
+			size: d.fileSize,
+			type: d.documentType,
+			uploadDate: d.createdAt,
+			accessLevel: d.accessLevel ?? DocumentAccessLevel.PUBLIC,
+			watermark: d.watermark ?? null,
+			aiProcessed: d.aiProcessed ?? false,
+		})) as PropertyDocument[];
+		return sanitized;
 	}
 
 	static async createProperty(property: Property): Promise<Property> {
@@ -400,16 +462,30 @@ export class PropertyService {
 				documents?: unknown;
 			};
 		void _ignoredDocs;
-		const updated = await PropertyModel.findOneAndUpdate({ id }, safeUpdates, {
-			new: true,
-		}).lean();
+		// Run the update and the document join in parallel \u2014 the docs query
+		// only needs the id, not the updated property.
+		const { AIDocumentModel } = await import("@/models/AIDocument");
+		const [updated, docs] = await Promise.all([
+			PropertyModel.findOneAndUpdate({ id }, safeUpdates, { new: true }).lean(),
+			AIDocumentModel.find({ propertyIds: id }).sort({ createdAt: -1 }).lean(),
+		]);
 
 		if (!updated) return null;
 
 		const { _id, __v, ...cleanProp } = updated as any;
 		const sanitized = sanitizeProperty(cleanProp) as Property;
-		const [hydrated] = await this.hydrateDocuments([sanitized]);
-		return hydrated;
+		sanitized.documents = (docs as any[]).map((d) => ({
+			id: String(d._id),
+			name: d.fileName,
+			url: d.fileUrl,
+			size: d.fileSize,
+			type: d.documentType,
+			uploadDate: d.createdAt,
+			accessLevel: d.accessLevel ?? DocumentAccessLevel.PUBLIC,
+			watermark: d.watermark ?? null,
+			aiProcessed: d.aiProcessed ?? false,
+		})) as PropertyDocument[];
+		return sanitized;
 	}
 
 	static async deleteProperty(id: string): Promise<boolean> {

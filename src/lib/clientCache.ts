@@ -1,89 +1,111 @@
-import { getScopedCacheKey } from "@/lib/cacheScope";
+"use client";
 
-const STORAGE_PREFIX = "plotfolio:get-cache:";
+import { getScopedCacheKey } from "@/lib/cacheScope";
+import { queryClient } from "@/lib/queryClient";
+import type { QueryKey } from "@tanstack/react-query";
+
+/**
+ * URL → JSON cache helpers, delegating to the shared TanStack QueryClient.
+ *
+ * This file used to maintain its OWN memory + localStorage cache, which
+ * lived in parallel to the React Query cache. That meant any URL could
+ * end up cached in both places, and invalidating one wouldn't refresh
+ * the other (e.g. uploading a property image and then opening the
+ * drawer would show the property without the new media because
+ * `PropertyDrawer` reads from `cachedGetJSON` while the rest of the app
+ * uses React Query).
+ *
+ * Now there is exactly one cache (the singleton QueryClient). The
+ * `cachedGetJSON` / `invalidateCachedGet` API is preserved so existing
+ * callers don't have to be touched, but internally everything goes
+ * through `queryClient.fetchQuery` / `queryClient.invalidateQueries`.
+ */
+
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 
-type CacheRecord<T> = {
-	expiresAt: number;
-	data: T;
+/** Query-key namespace for URL-based cache entries created via `cachedGetJSON`. */
+const URL_QUERY_KEY_PREFIX = "cachedGet" as const;
+
+/**
+ * Map URL patterns to the structured React Query key prefixes used by
+ * the typed hooks (see `usePropertyQueries.ts`). When `invalidateCachedGet`
+ * is called with one of these patterns we invalidate BOTH the URL-keyed
+ * entries AND the structured-key entries so both naming schemes stay in
+ * sync.
+ *
+ * `sampleUrl` is a representative URL for the feature area — used to
+ * decide whether an arbitrary `match` argument overlaps with this entry
+ * by simply testing the sample URL against the match.
+ */
+const URL_TO_QUERY_KEY: ReadonlyArray<{
+	sampleUrl: string;
+	queryKey: readonly unknown[];
+}> = [
+	{ sampleUrl: "/api/properties/x", queryKey: ["properties"] },
+	{ sampleUrl: "/api/documents/x", queryKey: ["documents"] },
+	{ sampleUrl: "/api/portfolios/x", queryKey: ["portfolios"] },
+	{ sampleUrl: "/api/chat/x", queryKey: ["chats"] },
+	{ sampleUrl: "/api/bookings/x", queryKey: ["bookings"] },
+	{ sampleUrl: "/api/transfers/x", queryKey: ["transfers"] },
+	{ sampleUrl: "/api/properties/x/transfers", queryKey: ["transfers"] },
+	{ sampleUrl: "/api/subscriptions/x", queryKey: ["subscriptions"] },
+];
+
+/**
+ * Common URL-pattern regexes. Kept for backward-compatible imports — every
+ * existing call site (`invalidateCachedGet(cachePatterns.properties)`)
+ * keeps working unchanged.
+ */
+export const cachePatterns = {
+	properties: /\/api\/properties(\/|\?|$)/,
+	property: (id: string) =>
+		new RegExp(
+			`/api/properties/${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(/|\\?|$)`,
+		),
+	documents: /\/api\/documents(\/|\?|$)/,
+	portfolios: /\/api\/portfolios(\/|\?|$)/,
+	chats: /\/api\/chat(\/|\?|$)/,
+	bookings: /\/api\/bookings(\/|\?|$)/,
+	transfers: /\/api\/(transfers|properties\/[^/?]+\/transfers)(\/|\?|$)/,
 };
 
-const memoryCache = new Map<string, CacheRecord<unknown>>();
-const inFlight = new Map<string, Promise<unknown>>();
-
-function canUseStorage(): boolean {
-	return typeof window !== "undefined" && typeof localStorage !== "undefined";
-}
-
-function readStorageRecord<T>(key: string): CacheRecord<T> | null {
-	if (!canUseStorage()) return null;
-	try {
-		const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-		if (!raw) return null;
-		const parsed = JSON.parse(raw) as CacheRecord<T>;
-		if (
-			typeof parsed !== "object" ||
-			parsed === null ||
-			typeof parsed.expiresAt !== "number" ||
-			!("data" in parsed)
-		) {
-			return null;
-		}
-		return parsed;
-	} catch {
-		return null;
-	}
-}
-
-function writeStorageRecord<T>(key: string, value: CacheRecord<T>) {
-	if (!canUseStorage()) return;
-	try {
-		localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(value));
-	} catch {
-		// Ignore quota and serialization failures.
-	}
-}
-
-function removeStorageRecord(key: string) {
-	if (!canUseStorage()) return;
-	try {
-		localStorage.removeItem(`${STORAGE_PREFIX}${key}`);
-	} catch {
-		// ignore
-	}
+function urlQueryKey(cacheKey: string): QueryKey {
+	return [URL_QUERY_KEY_PREFIX, cacheKey];
 }
 
 export function invalidateCachedGet(match?: string | RegExp) {
+	// Full reset.
 	if (!match) {
-		memoryCache.clear();
-		inFlight.clear();
-		if (canUseStorage()) {
-			for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-				const key = localStorage.key(i);
-				if (key?.startsWith(STORAGE_PREFIX)) {
-					localStorage.removeItem(key);
-				}
-			}
-		}
+		queryClient.clear();
 		return;
 	}
 
 	const matches = (key: string) =>
 		typeof match === "string" ? key.includes(match) : match.test(key);
 
-	for (const key of Array.from(memoryCache.keys())) {
-		if (matches(key)) memoryCache.delete(key);
-	}
-	for (const key of Array.from(inFlight.keys())) {
-		if (matches(key)) inFlight.delete(key);
-	}
+	// 1. Invalidate URL-keyed entries written by `cachedGetJSON`.
+	queryClient.invalidateQueries({
+		predicate: (query) => {
+			const k = query.queryKey;
+			return (
+				Array.isArray(k) &&
+				k[0] === URL_QUERY_KEY_PREFIX &&
+				typeof k[1] === "string" &&
+				matches(k[1] as string)
+			);
+		},
+	});
 
-	if (canUseStorage()) {
-		for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-			const fullKey = localStorage.key(i);
-			if (!fullKey?.startsWith(STORAGE_PREFIX)) continue;
-			const key = fullKey.slice(STORAGE_PREFIX.length);
-			if (matches(key)) localStorage.removeItem(fullKey);
+	// 2. Also invalidate any structured query keys whose feature area is
+	// covered by the URL pattern. e.g. invalidating `/api/properties` should
+	// also clear the `["properties", "detail", id]` entries used by hooks.
+	const seen = new Set<string>();
+	for (const { sampleUrl, queryKey } of URL_TO_QUERY_KEY) {
+		const key = JSON.stringify(queryKey);
+		if (seen.has(key)) continue;
+		if (matches(sampleUrl)) {
+			seen.add(key);
+			queryClient.invalidateQueries({ queryKey: queryKey as unknown[] });
 		}
 	}
 }
@@ -99,56 +121,33 @@ export async function cachedGetJSON<T>(
 ): Promise<T> {
 	const ttlMs = options?.ttlMs ?? DEFAULT_TTL_MS;
 	const cacheKey = options?.cacheKey ?? url;
-	const now = Date.now();
+	const queryKey = urlQueryKey(cacheKey);
 
-	if (!options?.force) {
-		const memo = memoryCache.get(cacheKey) as CacheRecord<T> | undefined;
-		if (memo && memo.expiresAt > now) {
-			return memo.data;
-		}
-
-		const stored = readStorageRecord<T>(cacheKey);
-		if (stored && stored.expiresAt > now) {
-			memoryCache.set(cacheKey, stored as CacheRecord<unknown>);
-			return stored.data;
-		}
-		if (stored) {
-			removeStorageRecord(cacheKey);
-		}
-
-		const pending = inFlight.get(cacheKey) as Promise<T> | undefined;
-		if (pending) return pending;
+	if (options?.force) {
+		// Drop the existing entry so `fetchQuery` re-runs the queryFn instead
+		// of returning the stale cached value.
+		queryClient.removeQueries({ queryKey, exact: true });
 	}
 
-	const request = fetch(url, {
-		...options?.fetchInit,
-		method: "GET",
-		// Use "no-store" so the browser's HTTP cache doesn't override our
-		// own localStorage-based TTL cache. With "force-cache", the browser
-		// would keep serving stale responses even after we call
-		// invalidateCachedGet(), causing uploaded media/docs to be invisible
-		// on subsequent fetches until the HTTP cache entry happens to expire.
-		cache: options?.fetchInit?.cache ?? "no-store",
-	}).then(async (response) => {
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-		const data = (await response.json()) as T;
-		const record: CacheRecord<T> = {
-			expiresAt: now + ttlMs,
-			data,
-		};
-		memoryCache.set(cacheKey, record as CacheRecord<unknown>);
-		writeStorageRecord(cacheKey, record);
-		return data;
+	return queryClient.fetchQuery<T>({
+		queryKey,
+		staleTime: ttlMs,
+		gcTime: Math.max(ttlMs * 2, 60 * 1000),
+		queryFn: async () => {
+			const response = await fetch(url, {
+				...options?.fetchInit,
+				method: "GET",
+				// Use "no-store" so the browser's HTTP cache doesn't shadow
+				// our own TTL. With "force-cache" the browser would keep
+				// serving stale responses even after invalidation.
+				cache: options?.fetchInit?.cache ?? "no-store",
+			});
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			return (await response.json()) as T;
+		},
 	});
-
-	inFlight.set(cacheKey, request as Promise<unknown>);
-	try {
-		return await request;
-	} finally {
-		inFlight.delete(cacheKey);
-	}
 }
 
 export async function cachedAuthGetJSON<T>(

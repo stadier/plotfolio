@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import { ChatListSkeleton } from "@/components/ui/skeletons";
 import { ChatAPI } from "@/lib/api";
 import type { ChatSummary } from "@/types/chat";
 import { MessageSquare, Search } from "lucide-react";
@@ -106,9 +107,7 @@ export default function ChatInboxPage() {
 				</div>
 
 				{loading ? (
-					<div className="flex items-center justify-center py-16 text-outline text-sm">
-						Loading…
-					</div>
+					<ChatListSkeleton count={6} />
 				) : filtered.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-16 text-center gap-3">
 						<MessageSquare className="w-10 h-10 text-outline" />
