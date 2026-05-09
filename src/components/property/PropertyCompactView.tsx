@@ -11,6 +11,7 @@ import {
 import UserAvatar from "@/components/ui/UserAvatar";
 import { ChatAPI } from "@/lib/api";
 import { getPropertyMedia } from "@/lib/utils";
+import { generateVideoThumbnail } from "@/lib/videoThumbnail";
 import {
 	DocumentAccessRequest,
 	MediaType,
@@ -75,10 +76,22 @@ function MediaUploadButton({
 		try {
 			const { uploadDirect } = await import("@/lib/uploadClient");
 			const mediaType = detectType(file);
+			// Capture a poster frame client-side for videos so the gallery has
+			// a thumbnail without any server-side video decoding.
+			const thumbnailFile =
+				mediaType === "video" ? await generateVideoThumbnail(file) : null;
 			const uploaded = await uploadDirect(file, {
 				scope: "property-media",
 				propertyId,
 			});
+			let thumbKey: string | undefined;
+			if (thumbnailFile) {
+				const thumbResult = await uploadDirect(thumbnailFile, {
+					scope: "property-thumb",
+					propertyId,
+				});
+				thumbKey = thumbResult.key;
+			}
 			const res = await fetch(`/api/properties/${propertyId}/media/attach`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -86,6 +99,7 @@ function MediaUploadButton({
 					key: uploaded.key,
 					type: mediaType,
 					mime: file.type || undefined,
+					thumbKey,
 				}),
 			});
 			if (!res.ok) {

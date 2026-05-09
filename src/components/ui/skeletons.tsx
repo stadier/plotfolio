@@ -316,7 +316,7 @@ export function PropertyListItemSkeleton({
 /** Grid of property cards (uses MasonryGrid to match the real properties page). */
 export function PropertyGridSkeleton({ count = 6 }: { count?: number }) {
 	return (
-		<MasonryGrid>
+		<MasonryGrid minColWidth={370} maxColWidth={370}>
 			{Array.from({ length: count }).map((_, i) => (
 				<PropertyCardSkeleton key={i} />
 			))}

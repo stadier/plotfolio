@@ -18,6 +18,7 @@ import {
 	readTextFromFile,
 } from "@/lib/documentExtractor";
 import { getPropertyMedia } from "@/lib/utils";
+import { generateVideoThumbnail } from "@/lib/videoThumbnail";
 import {
 	DocumentType,
 	MediaType,
@@ -1142,11 +1143,28 @@ export default function CreatePropertyForm({
 				let mediaType: MediaType = MediaType.IMAGE;
 				if (file.type.startsWith("video/")) mediaType = MediaType.VIDEO;
 				else if (file.type.startsWith("audio/")) mediaType = MediaType.AUDIO;
+				// Capture a poster frame client-side for videos so the gallery has
+				// a thumbnail without any server-side video decoding. Generated up
+				// front (rather than inside `attach`) so a slow decode doesn't
+				// block the main upload from starting.
+				const thumbnailFile =
+					mediaType === MediaType.VIDEO
+						? await generateVideoThumbnail(file)
+						: null;
 				uploadInputs.push({
 					file,
 					scope: "property-media",
 					propertyId: id,
 					attach: async ({ key }) => {
+						let thumbKey: string | undefined;
+						if (thumbnailFile) {
+							const { uploadDirect } = await import("@/lib/uploadClient");
+							const thumbResult = await uploadDirect(thumbnailFile, {
+								scope: "property-thumb",
+								propertyId: id,
+							});
+							thumbKey = thumbResult.key;
+						}
 						const r = await fetch(`/api/properties/${id}/media/attach`, {
 							method: "POST",
 							headers: { "Content-Type": "application/json" },
@@ -1154,6 +1172,7 @@ export default function CreatePropertyForm({
 								key,
 								type: mediaType,
 								mime: file.type || undefined,
+								thumbKey,
 							}),
 						});
 						if (!r.ok) {

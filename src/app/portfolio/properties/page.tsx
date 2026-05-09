@@ -1257,7 +1257,7 @@ export default function PropertiesPage() {
 				)}
 
 				{!loading && filtered.length > 0 && viewMode === "card" && (
-					<MasonryGrid>
+					<MasonryGrid minColWidth={370} maxColWidth={370}>
 						{filtered.map((property, i) => (
 							<div
 								key={property.id}

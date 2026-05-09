@@ -15,6 +15,7 @@ import { cachePatterns, invalidateCachedGet } from "@/lib/clientCache";
 import { countryFlag } from "@/lib/locale";
 import { toPlotWords } from "@/lib/plotwords";
 import { formatCurrency, getPropertyMedia } from "@/lib/utils";
+import { generateVideoThumbnail } from "@/lib/videoThumbnail";
 import {
 	DocumentAccessRequest,
 	MediaType,
@@ -247,55 +248,6 @@ function MediaGallery({
 		if (file.type.startsWith("video/")) return "video";
 		if (file.type.startsWith("audio/")) return "audio";
 		return "image";
-	}
-
-	async function generateVideoThumbnail(file: File): Promise<File | null> {
-		const videoUrl = URL.createObjectURL(file);
-		try {
-			const video = document.createElement("video");
-			video.src = videoUrl;
-			video.muted = true;
-			video.playsInline = true;
-			video.preload = "metadata";
-
-			await new Promise<void>((resolve, reject) => {
-				video.addEventListener("loadeddata", () => resolve(), { once: true });
-				video.addEventListener(
-					"error",
-					() => reject(new Error("Failed to load video for thumbnail")),
-					{ once: true },
-				);
-			});
-
-			if (!video.videoWidth || !video.videoHeight) return null;
-
-			const canvas = document.createElement("canvas");
-			const maxWidth = 960;
-			const targetWidth = Math.min(video.videoWidth, maxWidth);
-			const targetHeight = Math.round(
-				(targetWidth / video.videoWidth) * video.videoHeight,
-			);
-			canvas.width = targetWidth;
-			canvas.height = targetHeight;
-
-			const ctx = canvas.getContext("2d");
-			if (!ctx) return null;
-			ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
-
-			const blob = await new Promise<Blob | null>((resolve) => {
-				canvas.toBlob(resolve, "image/jpeg", 0.82);
-			});
-			if (!blob) return null;
-
-			const baseName = file.name.replace(/\.[^.]+$/, "") || "video";
-			return new File([blob], `${baseName}-thumbnail.jpg`, {
-				type: "image/jpeg",
-			});
-		} catch {
-			return null;
-		} finally {
-			URL.revokeObjectURL(videoUrl);
-		}
 	}
 
 	async function deleteMedia(item: PropertyMedia) {
@@ -1966,6 +1918,12 @@ export default function PropertyFullView({
 	const [docsOpen, setDocsOpen] = useState(detailsInitiallyOpen);
 	const [linkedDocsOpen, setLinkedDocsOpen] = useState(detailsInitiallyOpen);
 	const [overviewOpen, setOverviewOpen] = useState(detailsInitiallyOpen);
+	// Lightbox state for the mobile-only Media accordion below. The main
+	// `<MediaGallery>` manages its own lightbox internally; this one only
+	// drives the accordion grid.
+	const [accordionLightbox, setAccordionLightbox] = useState<number | null>(
+		null,
+	);
 	const [mapOpen, setMapOpen] = useState(detailsInitiallyOpen);
 	const [ownershipOpen, setOwnershipOpen] = useState(detailsInitiallyOpen);
 	const [marketOpen, setMarketOpen] = useState(detailsInitiallyOpen);
@@ -2230,7 +2188,19 @@ export default function PropertyFullView({
 						contentClassName="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2"
 					>
 						{mediaItems.map((item, idx) => (
-							<div key={idx} className="rounded-lg overflow-hidden">
+							<div
+								key={idx}
+								role="button"
+								tabIndex={0}
+								onClick={() => setAccordionLightbox(idx)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										setAccordionLightbox(idx);
+									}
+								}}
+								className="rounded-lg overflow-hidden cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+							>
 								{item.type === MediaType.VIDEO ? (
 									<div className="relative">
 										{item.thumbnail ? (
@@ -2636,6 +2606,17 @@ export default function PropertyFullView({
 							</div>
 						</div>
 					</div>
+				)}
+
+				{accordionLightbox !== null && (
+					<MediaLightbox
+						media={mediaItems}
+						currentIndex={accordionLightbox}
+						name={property.name}
+						onClose={() => setAccordionLightbox(null)}
+						onPrev={() => setAccordionLightbox(accordionLightbox - 1)}
+						onNext={() => setAccordionLightbox(accordionLightbox + 1)}
+					/>
 				)}
 			</div>
 		</div>

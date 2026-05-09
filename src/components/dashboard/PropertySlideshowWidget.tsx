@@ -125,17 +125,35 @@ function MediaMosaic({ property }: { property: Property }) {
 		);
 	}
 
+	const right = visible.slice(1);
+	// Use a row count that matches the number of right-column tiles so
+	// each one fills its share vertically (no empty space at the bottom).
+	const gridRowsClass =
+		right.length === 1
+			? "grid-rows-1"
+			: right.length === 2
+				? "grid-rows-2"
+				: "grid-rows-3";
+	const heroRowSpanClass =
+		right.length === 1
+			? "row-span-1"
+			: right.length === 2
+				? "row-span-2"
+				: "row-span-3";
+
 	return (
-		<div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-0.5 bg-card/20">
+		<div
+			className={`absolute inset-0 grid grid-cols-3 ${gridRowsClass} gap-0.5 bg-card/20`}
+		>
 			<MediaTile
 				url={visible[0].url}
 				type={visible[0].type}
 				thumbnail={visible[0].thumbnail}
 				caption={visible[0].caption}
-				className="col-span-2 row-span-3"
+				className={`col-span-2 ${heroRowSpanClass}`}
 			/>
-			{visible.slice(1).map((item, idx) => {
-				const isLastVisible = idx === visible.slice(1).length - 1;
+			{right.map((item, idx) => {
+				const isLastVisible = idx === right.length - 1;
 				return (
 					<MediaTile
 						key={`${item.url}-${idx + 1}`}
