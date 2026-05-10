@@ -24,7 +24,6 @@ import {
 	useMyProperties,
 	useUpdateProperty,
 } from "@/hooks/usePropertyQueries";
-import { PropertyAPI } from "@/lib/api";
 import { formatCurrency, getPropertyMedia } from "@/lib/utils";
 import {
 	MediaType,
@@ -637,7 +636,6 @@ function PropertyCard({
 	onSelect,
 	sharedFrom,
 	canEdit = true,
-	aiDocCount = 0,
 	onStatusToggle,
 	statusTogglePending = false,
 	mediaView = "typed",
@@ -646,12 +644,13 @@ function PropertyCard({
 	onSelect: (id: string) => void;
 	sharedFrom?: string | null;
 	canEdit?: boolean;
-	aiDocCount?: number;
 	onStatusToggle?: (id: string, newStatus: PropertyStatus) => void;
 	statusTogglePending?: boolean;
 	mediaView?: "typed" | "tight" | "slideshow";
 }) {
-	const docCount = (property.documents?.length ?? 0) + aiDocCount;
+	// `property.documents` is already hydrated from the unified AIDocument
+	// collection on the server, so it's the single source of truth for counts.
+	const docCount = property.documents?.length ?? 0;
 	const hasWorth = property.currentValue != null;
 	const worthChange =
 		hasWorth && (property.purchasePrice ?? 0) > 0
@@ -907,23 +906,6 @@ export default function PropertiesPage() {
 	});
 	const animate = useAnimateOnce("properties");
 
-	// AI document counts per property
-	const [aiDocCounts, setAiDocCounts] = useState<Map<string, number>>(
-		new Map(),
-	);
-	useEffect(() => {
-		if (!user?.id) return;
-		PropertyAPI.listDocuments({ userId: user.id }).then((docs) => {
-			const counts = new Map<string, number>();
-			for (const doc of docs) {
-				for (const pid of doc.propertyIds ?? []) {
-					counts.set(pid, (counts.get(pid) ?? 0) + 1);
-				}
-			}
-			setAiDocCounts(counts);
-		});
-	}, [user?.id]);
-
 	// Filtered + sorted list
 	const filtered = useMemo(() => {
 		let list = properties;
@@ -999,9 +981,10 @@ export default function PropertiesPage() {
 		0,
 	);
 	const totalArea = properties.reduce((sum, p) => sum + (p.area ?? 0), 0);
-	const totalDocs =
-		properties.reduce((sum, p) => sum + (p.documents?.length ?? 0), 0) +
-		Array.from(aiDocCounts.values()).reduce((a, b) => a + b, 0);
+	const totalDocs = properties.reduce(
+		(sum, p) => sum + (p.documents?.length ?? 0),
+		0,
+	);
 
 	const summaryStats = [
 		{
@@ -1269,7 +1252,6 @@ export default function PropertiesPage() {
 									onSelect={setSelectedId}
 									sharedFrom={sharedPortfolioName}
 									canEdit={activePermissions.canEditProperties}
-									aiDocCount={aiDocCounts.get(property.id) ?? 0}
 									onStatusToggle={
 										activePermissions.canEditProperties
 											? handleStatusToggle
@@ -1406,8 +1388,7 @@ export default function PropertiesPage() {
 												{(property.quantity ?? 1) > 1 ? property.quantity : "—"}
 											</td>
 											<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
-												{(property.documents?.length ?? 0) +
-													(aiDocCounts.get(property.id) ?? 0)}
+												{property.documents?.length ?? 0}
 											</td>
 											<td className="px-4 py-3 text-center whitespace-nowrap">
 												{activePermissions.canEditProperties && (
