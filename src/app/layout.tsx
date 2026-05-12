@@ -27,9 +27,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+	metadataBase: new URL("https://plotfolio.app"),
 	title: "Plotfolio",
 	description:
 		"Manage your property portfolio with interactive maps, survey document integration, and portfolio tracking.",
+	alternates: {
+		canonical: "/",
+	},
 };
 
 export default async function RootLayout({
