@@ -49,11 +49,15 @@ async function extractTextWithVisionLLM(
 /* ── PDF text extraction via pdf-parse (server-side, no worker needed) ── */
 
 async function extractTextFromPDFBuffer(buffer: Buffer): Promise<string> {
-	// Import from the lib path to skip pdf-parse v1's index.js test-file side-effect.
-	// This path uses a standalone pre-bundled pdfjs with no worker thread requirement.
-	const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default;
-	const result = await pdfParse(buffer);
-	return result.text ?? "";
+	// pdf-parse v2: class-based API. Pass the buffer as `data`, then call getText().
+	const { PDFParse } = await import("pdf-parse");
+	const parser = new PDFParse({ data: buffer });
+	try {
+		const result = await parser.getText();
+		return result.text ?? "";
+	} finally {
+		await parser.destroy();
+	}
 }
 
 /* ── Tesseract.js fallback (server-side) ─────────────── */
