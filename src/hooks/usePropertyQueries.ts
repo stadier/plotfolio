@@ -17,6 +17,8 @@ export const queryKeys = {
 		my: (ownerId: string, portfolioId?: string) =>
 			["properties", "my", ownerId, portfolioId ?? ""] as const,
 		detail: (id: string) => ["properties", "detail", id] as const,
+		children: (parentId: string) =>
+			["properties", "children", parentId] as const,
 		marketplace: ["properties", "marketplace"] as const,
 	},
 	bookings: {
@@ -64,6 +66,21 @@ export function useProperty(
 		queryKey: queryKeys.properties.detail(id),
 		queryFn: () => PropertyAPI.getProperty(id),
 		enabled: !!id,
+		...options,
+	});
+}
+
+export function useChildProperties(
+	parentId: string | undefined | null,
+	options?: Partial<UseQueryOptions<Property[]>>,
+) {
+	return useQuery({
+		queryKey: queryKeys.properties.children(parentId ?? ""),
+		queryFn: async () => {
+			if (!parentId) return [];
+			return PropertyAPI.getChildProperties(parentId);
+		},
+		enabled: !!parentId,
 		...options,
 	});
 }

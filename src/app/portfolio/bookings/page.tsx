@@ -8,12 +8,15 @@ import {
 	Calendar,
 	Check,
 	Clock,
+	Home,
 	Loader2,
 	MessageSquare,
+	RefreshCw,
 	RotateCcw,
 	User,
 	X,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 /* ─── Labels ──────────────────────────────────────────────────── */
@@ -191,11 +194,12 @@ function BookingCard({
 	booking,
 	onAction,
 	acting,
+	viewMode,
 }: {
 	booking: Booking;
 	onAction: (
 		id: string,
-		action: "confirm" | "decline" | "reschedule",
+		action: "confirm" | "decline" | "reschedule" | "cancel",
 		extra?: {
 			proposedDate: string;
 			proposedTime: string;
@@ -203,12 +207,14 @@ function BookingCard({
 		},
 	) => void;
 	acting: string | null;
+	viewMode: "incoming" | "outgoing";
 }) {
 	const [rescheduleOpen, setRescheduleOpen] = useState(false);
 	const style =
 		STATUS_STYLES[booking.status] ?? STATUS_STYLES[BookingStatus.PENDING];
 	const isPending = booking.status === BookingStatus.PENDING;
 	const isActing = acting === booking.id;
+	const isOutgoing = viewMode === "outgoing";
 
 	const displayDate = new Date(booking.date + "T00:00:00").toLocaleDateString(
 		"en-US",
@@ -229,13 +235,42 @@ function BookingCard({
 				</span>
 			</div>
 
-			{/* Requester */}
+			{/* Property (link to listing) */}
+			{booking.property && (
+				<Link
+					href={`/property/${booking.property.id}`}
+					className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors"
+				>
+					<Home className="w-3.5 h-3.5 shrink-0" />
+					<span className="font-medium text-on-surface truncate">
+						{booking.property.name}
+					</span>
+				</Link>
+			)}
+
+			{/* Counterparty: requester (incoming) or owner (outgoing) */}
 			<div className="flex items-center gap-2 text-sm text-on-surface-variant">
 				<User className="w-3.5 h-3.5 shrink-0" />
-				<span className="font-medium text-on-surface">
-					{booking.requesterName}
-				</span>
-				<span className="text-outline">({booking.requesterEmail})</span>
+				{isOutgoing ? (
+					<>
+						<span className="text-outline">Owner:</span>
+						<span className="font-medium text-on-surface">
+							{booking.ownerInfo?.name || "Unknown"}
+						</span>
+						{booking.ownerInfo?.email && (
+							<span className="text-outline truncate">
+								({booking.ownerInfo.email})
+							</span>
+						)}
+					</>
+				) : (
+					<>
+						<span className="font-medium text-on-surface">
+							{booking.requesterName}
+						</span>
+						<span className="text-outline">({booking.requesterEmail})</span>
+					</>
+				)}
 			</div>
 
 			{/* Date & time */}
@@ -262,7 +297,7 @@ function BookingCard({
 			{booking.status === BookingStatus.RESCHEDULED && booking.proposedDate && (
 				<div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm space-y-1">
 					<p className="font-medium text-purple-800">
-						You proposed:{" "}
+						{isOutgoing ? "Owner proposed:" : "You proposed:"}{" "}
 						{new Date(booking.proposedDate + "T00:00:00").toLocaleDateString(
 							"en-US",
 							{
@@ -279,8 +314,8 @@ function BookingCard({
 				</div>
 			)}
 
-			{/* Actions for pending bookings */}
-			{isPending && (
+			{/* Actions for pending bookings — owner side */}
+			{isPending && !isOutgoing && (
 				<div className="flex items-center gap-2 pt-1">
 					<button
 						type="button"
@@ -312,6 +347,25 @@ function BookingCard({
 					>
 						<X className="w-3.5 h-3.5" />
 						Decline
+					</button>
+				</div>
+			)}
+
+			{/* Actions for pending bookings — requester (outgoing) side */}
+			{isPending && isOutgoing && (
+				<div className="flex items-center gap-2 pt-1">
+					<button
+						type="button"
+						disabled={isActing}
+						onClick={() => onAction(booking.id, "cancel")}
+						className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+					>
+						{isActing ? (
+							<Loader2 className="w-3.5 h-3.5 animate-spin" />
+						) : (
+							<X className="w-3.5 h-3.5" />
+						)}
+						Cancel Request
 					</button>
 				</div>
 			)}
@@ -354,17 +408,33 @@ export default function BookingsPage() {
 	const [bookings, setBookings] = useState<Booking[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [acting, setActing] = useState<string | null>(null);
+	const [scope, setScope] = useState<"incoming" | "outgoing">("incoming");
 	const [filter, setFilter] = useState<
 		"all" | "pending" | "confirmed" | "past"
 	>("all");
 
-	const load = useCallback(async () => {
-		if (!user) return;
-		setLoading(true);
-		const data = await BookingAPI.getBookings({ ownerId: user.id });
-		setBookings(data);
-		setLoading(false);
-	}, [user]);
+	const [refreshing, setRefreshing] = useState(false);
+
+	const load = useCallback(
+		async (opts?: { force?: boolean; silent?: boolean }) => {
+			if (!user) return;
+			if (opts?.silent) {
+				setRefreshing(true);
+			} else {
+				setLoading(true);
+			}
+			const params =
+				scope === "incoming" ? { ownerId: user.id } : { requesterId: user.id };
+			const data = await BookingAPI.getBookings({
+				...params,
+				force: opts?.force,
+			});
+			setBookings(data);
+			setLoading(false);
+			setRefreshing(false);
+		},
+		[user, scope],
+	);
 
 	useEffect(() => {
 		load();
@@ -373,7 +443,7 @@ export default function BookingsPage() {
 	const handleAction = useCallback(
 		async (
 			id: string,
-			action: "confirm" | "decline" | "reschedule",
+			action: "confirm" | "decline" | "reschedule" | "cancel",
 			extra?: {
 				proposedDate: string;
 				proposedTime: string;
@@ -385,9 +455,11 @@ export default function BookingsPage() {
 				confirm: BookingStatus.CONFIRMED,
 				decline: BookingStatus.CANCELLED,
 				reschedule: BookingStatus.RESCHEDULED,
+				cancel: BookingStatus.CANCELLED,
 			};
 			const update: Parameters<typeof BookingAPI.updateBooking>[1] = {
 				status: statusMap[action],
+				initiatedBy: action === "cancel" ? "requester" : "owner",
 			};
 			if (action === "reschedule" && extra) {
 				update.proposedDate = extra.proposedDate;
@@ -435,13 +507,55 @@ export default function BookingsPage() {
 		<AppShell>
 			<div className="sz-page max-w-3xl">
 				{/* Header */}
-				<div className="mb-6">
-					<h1 className="text-2xl font-bold font-headline text-on-surface">
-						Booking Requests
-					</h1>
-					<p className="text-sm text-on-surface-variant mt-1">
-						Manage visit and consultation requests from interested buyers
-					</p>
+				<div className="mb-4 flex items-start justify-between gap-3">
+					<div>
+						<h1 className="text-2xl font-bold font-headline text-on-surface">
+							Bookings
+						</h1>
+						<p className="text-sm text-on-surface-variant mt-1">
+							{scope === "incoming"
+								? "Manage visit and consultation requests from interested buyers"
+								: "Track the bookings you've requested on other people's properties"}
+						</p>
+					</div>
+					<button
+						type="button"
+						onClick={() => load({ force: true, silent: true })}
+						disabled={refreshing || loading}
+						title="Refresh bookings"
+						className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold border border-border text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-50"
+					>
+						<RefreshCw
+							className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+						/>
+						Refresh
+					</button>
+				</div>
+
+				{/* Scope toggle: incoming (as owner) vs outgoing (as requester) */}
+				<div className="inline-flex p-1 mb-6 rounded-md bg-surface-container-high">
+					{(
+						[
+							{ key: "incoming", label: "Received" },
+							{ key: "outgoing", label: "My Requests" },
+						] as const
+					).map((s) => (
+						<button
+							key={s.key}
+							type="button"
+							onClick={() => {
+								setScope(s.key);
+								setFilter("all");
+							}}
+							className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
+								scope === s.key
+									? "bg-card text-on-surface shadow-sm"
+									: "text-on-surface-variant hover:text-on-surface"
+							}`}
+						>
+							{s.label}
+						</button>
+					))}
 				</div>
 
 				{/* Tabs */}
@@ -476,11 +590,17 @@ export default function BookingsPage() {
 					<div className="flex flex-col items-center justify-center py-20 text-center">
 						<Calendar className="w-10 h-10 text-outline mb-3" />
 						<p className="text-sm text-on-surface-variant">
-							{filter === "pending"
-								? "No pending requests"
-								: filter === "confirmed"
-									? "No confirmed bookings"
-									: "No booking requests yet"}
+							{scope === "outgoing"
+								? filter === "pending"
+									? "No pending requests you've sent"
+									: filter === "confirmed"
+										? "No confirmed requests you've sent"
+										: "You haven't requested any bookings yet"
+								: filter === "pending"
+									? "No pending requests"
+									: filter === "confirmed"
+										? "No confirmed bookings"
+										: "No booking requests yet"}
 						</p>
 					</div>
 				) : (
@@ -491,6 +611,7 @@ export default function BookingsPage() {
 								booking={booking}
 								onAction={handleAction}
 								acting={acting}
+								viewMode={scope}
 							/>
 						))}
 					</div>

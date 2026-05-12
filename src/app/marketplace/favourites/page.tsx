@@ -2,10 +2,12 @@
 
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
+import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { MarketplaceCardSkeleton } from "@/components/ui/skeletons";
 import { useAllProperties } from "@/hooks/usePropertyQueries";
-import { formatCurrency, getPropertyImageUrls } from "@/lib/utils";
+import { getPropertyImageUrls } from "@/lib/utils";
 import { Bookmark, Heart, MapPin, ShoppingBag, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -51,17 +53,11 @@ export default function FavouritesPage() {
 
 				{/* Loading */}
 				{(loading || favsLoading) && (
-					<div
-						className="grid gap-4"
-						style={{
-							gridTemplateColumns:
-								"repeat(auto-fill, minmax(min(240px, 100%), 1fr))",
-						}}
-					>
+					<MasonryGrid minColWidth={240} maxColWidth={320} gap={16}>
 						{Array.from({ length: 4 }).map((_, i) => (
 							<MarketplaceCardSkeleton key={i} />
 						))}
-					</div>
+					</MasonryGrid>
 				)}
 
 				{/* Empty state */}
@@ -89,13 +85,7 @@ export default function FavouritesPage() {
 
 				{/* Favourite listings grid */}
 				{!loading && !favsLoading && properties.length > 0 && (
-					<div
-						className="grid gap-4 items-start"
-						style={{
-							gridTemplateColumns:
-								"repeat(auto-fill, minmax(min(240px, 100%), 1fr))",
-						}}
-					>
+					<MasonryGrid minColWidth={240} maxColWidth={320} gap={16}>
 						{properties.map((property) => {
 							const askingPrice =
 								property.currentValue ?? property.purchasePrice ?? 0;
@@ -151,13 +141,17 @@ export default function FavouritesPage() {
 										</div>
 										{property.area != null && (
 											<div className="text-xs text-on-surface-variant mb-3">
-												{property.area.toLocaleString()} sqm
+												<AbbreviatedNumber mode="area" value={property.area} />
 											</div>
 										)}
 										<div className="flex items-center gap-1.5 mb-3">
 											<Tag className="w-3.5 h-3.5 text-gray-400" />
 											<span className="text-sm font-bold text-on-surface">
-												{formatCurrency(askingPrice)}
+												<AbbreviatedNumber
+													mode="currency"
+													country={property.country}
+													value={askingPrice}
+												/>
 											</span>
 										</div>
 										<div className="pt-3 border-t border-border">
@@ -174,7 +168,7 @@ export default function FavouritesPage() {
 								</Link>
 							);
 						})}
-					</div>
+					</MasonryGrid>
 				)}
 			</div>
 		</AppShell>

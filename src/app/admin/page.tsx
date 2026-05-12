@@ -2,22 +2,23 @@
 
 import { useAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import NumberInput from "@/components/ui/NumberInput";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import { AdminAPI } from "@/lib/salesApi";
 import { cn } from "@/lib/utils";
 import {
-	FeePaidBy,
-	FeeType,
-	PlatformSettings,
-	VerificationRequest,
-	VerificationStatus,
+    FeePaidBy,
+    FeeType,
+    PlatformSettings,
+    VerificationRequest,
+    VerificationStatus,
 } from "@/types/sale";
 import {
-	BadgeCheck,
-	Loader2,
-	Settings as SettingsIcon,
-	ShieldCheck,
-	XCircle,
+    BadgeCheck,
+    Loader2,
+    Settings as SettingsIcon,
+    ShieldCheck,
+    XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -178,13 +179,10 @@ export default function AdminPage() {
 								<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 									Fee percent
 								</label>
-								<input
-									type="number"
-									step="0.1"
+								<NumberInput
 									value={settings.feePercent ?? 0}
-									onChange={(e) =>
-										updateSetting({ feePercent: parseFloat(e.target.value) })
-									}
+									onValueChange={(v) => updateSetting({ feePercent: v ?? 0 })}
+									maxFractionDigits={2}
 									className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body max-w-32"
 								/>
 							</div>
@@ -195,13 +193,10 @@ export default function AdminPage() {
 								<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 									Flat fee amount
 								</label>
-								<input
-									type="number"
+								<NumberInput
 									value={settings.flatFeeAmount ?? 0}
-									onChange={(e) =>
-										updateSetting({
-											flatFeeAmount: parseFloat(e.target.value),
-										})
+									onValueChange={(v) =>
+										updateSetting({ flatFeeAmount: v ?? 0 })
 									}
 									className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body max-w-32"
 								/>
@@ -230,13 +225,10 @@ export default function AdminPage() {
 								<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 									Buyer share %
 								</label>
-								<input
-									type="number"
+								<NumberInput
 									value={settings.splitBuyerPercent ?? 50}
-									onChange={(e) =>
-										updateSetting({
-											splitBuyerPercent: parseFloat(e.target.value),
-										})
+									onValueChange={(v) =>
+										updateSetting({ splitBuyerPercent: v ?? 0 })
 									}
 									className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body max-w-32"
 								/>
@@ -248,12 +240,9 @@ export default function AdminPage() {
 								<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 									Min fee
 								</label>
-								<input
-									type="number"
+								<NumberInput
 									value={settings.minFeeAmount ?? 0}
-									onChange={(e) =>
-										updateSetting({ minFeeAmount: parseFloat(e.target.value) })
-									}
+									onValueChange={(v) => updateSetting({ minFeeAmount: v ?? 0 })}
 									className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body"
 								/>
 							</div>
@@ -261,12 +250,9 @@ export default function AdminPage() {
 								<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 									Max fee
 								</label>
-								<input
-									type="number"
+								<NumberInput
 									value={settings.maxFeeAmount ?? 0}
-									onChange={(e) =>
-										updateSetting({ maxFeeAmount: parseFloat(e.target.value) })
-									}
+									onValueChange={(v) => updateSetting({ maxFeeAmount: v ?? 0 })}
 									className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body"
 								/>
 							</div>

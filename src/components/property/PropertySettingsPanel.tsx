@@ -3,12 +3,14 @@
 import { Property, PropertySettings } from "@/types/property";
 import {
 	BookOpen,
+	Calculator,
 	Check,
 	DollarSign,
 	History,
 	Loader2,
 	MapPin,
 	Phone,
+	Ruler,
 	Settings,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,9 +21,29 @@ interface SettingRow {
 	label: string;
 	description: string;
 	defaultValue: boolean;
+	/** When true, the row is only shown for container properties. */
+	containerOnly?: boolean;
 }
 
 const SETTINGS_ROWS: SettingRow[] = [
+	{
+		key: "autoComputeWorth",
+		icon: Calculator,
+		label: "Auto-compute worth from units",
+		description:
+			"Container worth is the sum of all child unit values. Turns off automatically when you set a value manually.",
+		defaultValue: true,
+		containerOnly: true,
+	},
+	{
+		key: "autoComputeArea",
+		icon: Ruler,
+		label: "Auto-compute area from units",
+		description:
+			"Container area is the sum of all child unit areas. Turns off automatically when you set an area manually.",
+		defaultValue: true,
+		containerOnly: true,
+	},
 	{
 		key: "showOwnershipHistory",
 		icon: History,
@@ -152,7 +174,9 @@ export default function PropertySettingsPanel({
 				Control what visitors see on your public property listing.
 			</p>
 
-			{SETTINGS_ROWS.map((row) => {
+			{SETTINGS_ROWS.filter(
+				(row) => !row.containerOnly || property.isContainer,
+			).map((row) => {
 				const Icon = row.icon;
 				const value = getValue(row);
 				const isSaving = savingKey === row.key;

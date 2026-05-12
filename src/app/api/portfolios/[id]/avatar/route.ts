@@ -127,7 +127,7 @@ export async function POST(
 
 		const body = (await req.json()) as { key?: string };
 		const key = body.key;
-		if (!key || !key.startsWith(`portfolios/${id}/`)) {
+		if (!key || !key.startsWith(`portfolio-avatars/${id}/`)) {
 			return NextResponse.json(
 				{ error: "Invalid key for this portfolio" },
 				{ status: 400 },

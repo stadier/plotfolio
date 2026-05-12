@@ -70,6 +70,45 @@ export function formatArea(
 	return `${area.toLocaleString()} sqm`;
 }
 
+/**
+ * Compact number (e.g. 1234567 → "1.2M", 2_500_000_000 → "2.5B").
+ * Numbers below 1,000 are returned as-is. Numbers below 10,000 keep grouping commas.
+ */
+export function formatNumberCompact(value: number, fractionDigits = 1): string {
+	if (!Number.isFinite(value)) return String(value);
+	const abs = Math.abs(value);
+	if (abs < 1000) {
+		return new Intl.NumberFormat("en-US").format(value);
+	}
+	return new Intl.NumberFormat("en-US", {
+		notation: "compact",
+		compactDisplay: "short",
+		maximumFractionDigits: fractionDigits,
+	}).format(value);
+}
+
+/** Full number with thousands separators (e.g. 1234567 → "1,234,567"). */
+export function formatNumberFull(value: number): string {
+	if (!Number.isFinite(value)) return String(value);
+	return new Intl.NumberFormat("en-US").format(value);
+}
+
+/** Compact area string ("1.2M sqm") with optional unit. */
+export function formatAreaCompact(
+	area: number,
+	unit: "sqm" | "acres" = "sqm",
+): string {
+	return `${formatNumberCompact(area)} ${unit}`;
+}
+
+/** Full area string with thousands separators ("1,234,567 sqm"). */
+export function formatAreaFull(
+	area: number,
+	unit: "sqm" | "acres" = "sqm",
+): string {
+	return `${formatNumberFull(area)} ${unit}`;
+}
+
 export function formatDate(date: Date): string {
 	return new Intl.DateTimeFormat("en-US", {
 		year: "numeric",

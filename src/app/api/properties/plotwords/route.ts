@@ -1,12 +1,14 @@
 import connectDB from "@/lib/mongoose";
-import { isPlotWordsCode, toPlotWords } from "@/lib/plotwords";
+import { isPlotWordsCode } from "@/lib/plotwords";
 import { PropertyModel } from "@/models/Property";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/properties/plotwords?code=calm.brook.shine
  *
- * Resolves a PlotWords code to matching properties.
+ * Resolves a PlotWords code to its matching property. Codes are unique
+ * per property (allocated at create-time / via the backfill route), so
+ * this endpoint returns at most one result.
  */
 export async function GET(request: NextRequest) {
 	const code = request.nextUrl.searchParams.get("code")?.trim().toLowerCase();
@@ -21,25 +23,7 @@ export async function GET(request: NextRequest) {
 	try {
 		await connectDB();
 
-		// PlotWords is persisted on records, so we can do a direct indexed-style lookup.
-		let matches = await PropertyModel.find({ plotWords: code }).lean();
-
-		// Fallback: compute from coordinates to support records not yet backfilled
-		// or records whose coordinates changed after backfill.
-		if (matches.length === 0) {
-			const allWithCoords = await PropertyModel.find({
-				"coordinates.lat": { $exists: true },
-				"coordinates.lng": { $exists: true },
-			}).lean();
-
-			matches = allWithCoords.filter((p) => {
-				const lat = p.coordinates?.lat;
-				const lng = p.coordinates?.lng;
-				if (typeof lat !== "number" || typeof lng !== "number") return false;
-				if (lat === 0 && lng === 0) return false;
-				return toPlotWords(lat, lng) === code;
-			});
-		}
+		const matches = await PropertyModel.find({ plotWords: code }).lean();
 
 		const properties = matches
 			.filter((p) => typeof p.id === "string" && p.id.length > 0)
@@ -50,6 +34,7 @@ export async function GET(request: NextRequest) {
 				coordinates: p.coordinates,
 				propertyType: p.propertyType,
 				status: p.status,
+				shortCode: p.shortCode,
 				plotWords: code,
 			}));
 

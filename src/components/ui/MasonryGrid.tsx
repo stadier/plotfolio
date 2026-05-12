@@ -1,11 +1,11 @@
 "use client";
 
 import React, {
-    ReactNode,
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
+	ReactNode,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
 } from "react";
 
 interface MasonryGridProps {
@@ -76,7 +76,9 @@ export default function MasonryGrid({
 		}
 		// Grow each column up to effectiveMax to consume available width,
 		// but never beyond — extra space is left empty on the right.
-		const available = (width - gap * (cols - 1)) / cols;
+		// Floor the result to avoid sub-pixel overflow that would otherwise
+		// push a column off the row.
+		const available = Math.floor((width - gap * (cols - 1)) / cols);
 		const next = Math.max(minColWidth, Math.min(effectiveMax, available));
 		setNumCols(cols);
 		setColWidth(next);
@@ -98,13 +100,13 @@ export default function MasonryGrid({
 	return (
 		<div
 			ref={containerRef}
-			className="flex items-start justify-start flex-wrap"
+			className="flex items-start justify-start flex-nowrap w-full"
 			style={{ gap: `${gap}px` }}
 		>
 			{columns.map((col, ci) => (
 				<div
 					key={ci}
-					className="flex flex-col min-w-0"
+					className="flex flex-col min-w-0 shrink-0"
 					style={{ gap: `${gap}px`, width: `${colWidth}px` }}
 				>
 					{col}

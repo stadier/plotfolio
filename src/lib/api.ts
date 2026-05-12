@@ -142,6 +142,44 @@ export class PropertyAPI {
 		}
 	}
 
+	static async getChildProperties(parentId: string): Promise<Property[]> {
+		try {
+			const data = await cachedAuthGetJSON<unknown>(
+				`${API_BASE_URL}/properties?parentId=${encodeURIComponent(parentId)}`,
+				{ ttlMs: 60 * 1000 },
+			);
+			return Array.isArray(data) ? data : [];
+		} catch (error) {
+			console.error("Error fetching child properties:", error);
+			return [];
+		}
+	}
+
+	static async createBulkProperties(
+		properties: Omit<Property, "id">[],
+	): Promise<{
+		createdCount: number;
+		created: Property[];
+		errors: { index: number; message: string }[];
+	} | null> {
+		try {
+			const response = await fetch(`${API_BASE_URL}/properties/bulk`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ properties }),
+			});
+			if (!response.ok && response.status !== 207) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const data = await response.json();
+			invalidateCachedGet(cachePatterns.properties);
+			return data;
+		} catch (error) {
+			console.error("Error bulk creating properties:", error);
+			return null;
+		}
+	}
+
 	static async getMarketplaceListings(): Promise<Property[]> {
 		try {
 			const data = await cachedGetJSON<unknown>(
@@ -748,6 +786,7 @@ export class BookingAPI {
 	static async getBookings(params: {
 		ownerId?: string;
 		requesterId?: string;
+		force?: boolean;
 	}): Promise<Booking[]> {
 		try {
 			const search = new URLSearchParams();
@@ -755,7 +794,7 @@ export class BookingAPI {
 			if (params.requesterId) search.set("requesterId", params.requesterId);
 			const data = await cachedGetJSON<{ bookings?: Booking[] }>(
 				`${API_BASE_URL}/bookings?${search.toString()}`,
-				{ ttlMs: 60 * 1000 },
+				{ ttlMs: 60 * 1000, force: params.force },
 			);
 			return data.bookings ?? [];
 		} catch {
@@ -770,6 +809,7 @@ export class BookingAPI {
 			ownerMessage?: string;
 			proposedDate?: string;
 			proposedTime?: string;
+			initiatedBy?: "owner" | "requester";
 		},
 	): Promise<{ booking?: Booking; error?: string }> {
 		try {

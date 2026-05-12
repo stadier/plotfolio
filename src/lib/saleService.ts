@@ -39,6 +39,52 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
 	return { id: "platform", ...DEFAULT_PLATFORM_SETTINGS } as PlatformSettings;
 }
 
+/**
+ * Map a Sale lifecycle status onto the corresponding Property status so
+ * that the property listing always reflects what's happening on the sale.
+ * Returns `null` for sale statuses that should not change the property
+ * (DRAFT — sale is still being set up; COMPLETED — handled by
+ * `completeSale` which transfers ownership).
+ */
+export function mapSaleStatusToPropertyStatus(
+	saleStatus: SaleStatus,
+): PropertyStatus | null {
+	switch (saleStatus) {
+		case SaleStatus.ACTIVE:
+			return PropertyStatus.FOR_SALE;
+		case SaleStatus.UNDER_OFFER:
+		case SaleStatus.UNDER_CONTRACT:
+		case SaleStatus.SIGNING:
+		case SaleStatus.AWAITING_PAYMENT:
+		case SaleStatus.PAYMENT_RECEIVED:
+		case SaleStatus.STAMPING:
+			return PropertyStatus.UNDER_CONTRACT;
+		case SaleStatus.CANCELLED:
+		case SaleStatus.DISPUTED:
+			// Release the listing — back to the seller's hands.
+			return PropertyStatus.OWNED;
+		default:
+			return null;
+	}
+}
+
+/**
+ * Apply the property-status mapping for a given sale. No-op when the
+ * mapping is null or the property is already in the target status.
+ */
+export async function syncPropertyStatusForSale(
+	propertyId: string,
+	saleStatus: SaleStatus,
+): Promise<void> {
+	const target = mapSaleStatusToPropertyStatus(saleStatus);
+	if (!target) return;
+	await connectDB();
+	await PropertyModel.updateOne(
+		{ id: propertyId, status: { $ne: target } },
+		{ $set: { status: target } },
+	);
+}
+
 interface CreateSaleInput {
 	type: SaleType;
 	propertyId: string;
@@ -115,14 +161,15 @@ export async function createSale(input: CreateSaleInput): Promise<Sale> {
 		witnesses: [],
 	});
 
-	// Mark property as UNDER_CONTRACT (or keep FOR_SALE for active auctions
-	// where seller wants to keep accepting offers — controlled by settings)
+	// Mark property status to reflect the new sale.
+	// - acceptedOfferId  → UNDER_CONTRACT (paperwork in progress)
+	// - auction or private sale (default) → FOR_SALE (publicly listed)
 	if (input.acceptedOfferId) {
 		await PropertyModel.updateOne(
 			{ id: input.propertyId },
 			{ $set: { status: PropertyStatus.UNDER_CONTRACT } },
 		);
-	} else if (input.type === SaleType.AUCTION) {
+	} else {
 		await PropertyModel.updateOne(
 			{ id: input.propertyId },
 			{ $set: { status: PropertyStatus.FOR_SALE } },

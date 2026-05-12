@@ -1,14 +1,9 @@
 "use client";
 
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
 import UserAvatar from "@/components/ui/UserAvatar";
-import {
-	cn,
-	formatArea,
-	formatCurrency,
-	formatDate,
-	getPropertyMedia,
-} from "@/lib/utils";
+import { cn, formatDate, getPropertyMedia } from "@/lib/utils";
 import {
 	MediaType,
 	Property,
@@ -48,6 +43,7 @@ const statusColors = {
 	[PropertyStatus.FOR_RENT]: "bg-teal-100 text-teal-800",
 	[PropertyStatus.FOR_LEASE]: "bg-cyan-100 text-cyan-800",
 	[PropertyStatus.UNDER_CONTRACT]: "bg-yellow-100 text-yellow-800",
+	[PropertyStatus.RESERVED]: "bg-amber-100 text-amber-800",
 	[PropertyStatus.RENTED]: "bg-purple-100 text-purple-800",
 	[PropertyStatus.LEASED]: "bg-indigo-100 text-indigo-800",
 	[PropertyStatus.DEVELOPMENT]: "bg-orange-100 text-orange-800",
@@ -177,7 +173,10 @@ export default function PropertyCard({
 		>
 			{/* Property Media Slideshow or Placeholder */}
 			<div
-				className="h-48 bg-gray-200 dark:bg-surface-container rounded-t-xl relative overflow-hidden group"
+				className={cn(
+					"bg-gray-200 dark:bg-surface-container rounded-t-xl relative overflow-hidden group",
+					mediaItems.length > 0 ? "h-48" : "h-12",
+				)}
 				onMouseEnter={() => setPaused(true)}
 				onMouseLeave={() => setPaused(false)}
 			>
@@ -342,9 +341,11 @@ export default function PropertyCard({
 						<div>
 							<div className="text-on-surface-variant">Value</div>
 							<div className="font-medium">
-								{property.currentValue
-									? formatCurrency(property.currentValue)
-									: formatCurrency(property.purchasePrice)}
+								<AbbreviatedNumber
+									mode="currency"
+									country={property.country}
+									value={property.currentValue ?? property.purchasePrice ?? 0}
+								/>
 							</div>
 						</div>
 					</div>
@@ -353,7 +354,9 @@ export default function PropertyCard({
 						<Square className="w-4 h-4 text-blue-600 mr-1" />
 						<div>
 							<div className="text-on-surface-variant">Area</div>
-							<div className="font-medium">{formatArea(property.area)}</div>
+							<div className="font-medium">
+								<AbbreviatedNumber mode="area" value={property.area} />
+							</div>
 						</div>
 					</div>
 

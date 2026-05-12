@@ -17,7 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface ShareModalProps {
 	property: Pick<
 		Property,
-		"id" | "name" | "address" | "propertyType" | "coordinates" | "shortCode"
+		"id" | "name" | "address" | "propertyType" | "coordinates" | "shortCode" | "plotWords"
 	>;
 	open: boolean;
 	onClose: () => void;
@@ -69,9 +69,11 @@ export default function ShareModal({
 	const hasCoords =
 		property.coordinates &&
 		(property.coordinates.lat !== 0 || property.coordinates.lng !== 0);
-	const plotWordsCode = hasCoords
-		? toPlotWords(property.coordinates.lat, property.coordinates.lng)
-		: null;
+	const plotWordsCode =
+		property.plotWords ??
+		(hasCoords
+			? toPlotWords(property.coordinates.lat, property.coordinates.lng)
+			: null);
 
 	useEffect(() => {
 		const dialog = dialogRef.current;

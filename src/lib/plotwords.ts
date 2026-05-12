@@ -783,16 +783,38 @@ function quantise(lat: number, lng: number): number {
 	return latIdx * LNG_STEPS + lngIdx;
 }
 
+function codeFromIdx(idx: number): string {
+	// Normalise negative offsets into the positive triplet space.
+	const TRIPLET_SPACE = N * N * N;
+	const safe = ((idx % TRIPLET_SPACE) + TRIPLET_SPACE) % TRIPLET_SPACE;
+	const w1 = ADJECTIVES[safe % N];
+	const w2 = NOUNS[Math.floor(safe / N) % N];
+	const w3 = VERBS[Math.floor(safe / (N * N)) % N];
+	return `${w1}.${w2}.${w3}`;
+}
+
 /**
  * Convert coordinates to a three-word PlotWords code.
  * Example: toPlotWords(6.524, 3.379) → "calm.brook.shine"
+ *
+ * This is the *natural* code for the ~1km cell containing (lat, lng).
+ * Two properties whose coordinates fall in the same cell will share the
+ * same natural code — use `plotWordsAt(lat, lng, offset)` together with a
+ * uniqueness check (see `allocateUniquePlotWords` in `models/Property`)
+ * to assign collision-free codes to individual properties.
  */
 export function toPlotWords(lat: number, lng: number): string {
-	const idx = quantise(lat, lng);
-	const w1 = ADJECTIVES[idx % N];
-	const w2 = NOUNS[Math.floor(idx / N) % N];
-	const w3 = VERBS[Math.floor(idx / (N * N)) % N];
-	return `${w1}.${w2}.${w3}`;
+	return codeFromIdx(quantise(lat, lng));
+}
+
+/**
+ * Deterministic neighbour of the natural code at (lat, lng), offset by
+ * `offset` positions in the triplet space. `offset === 0` returns the
+ * natural code (equivalent to `toPlotWords`). Used to resolve collisions
+ * when multiple properties share the same cell.
+ */
+export function plotWordsAt(lat: number, lng: number, offset: number): string {
+	return codeFromIdx(quantise(lat, lng) + offset);
 }
 
 /**

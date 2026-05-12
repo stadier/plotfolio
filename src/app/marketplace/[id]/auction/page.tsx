@@ -2,7 +2,9 @@
 
 import { useAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import BackButton from "@/components/ui/BackButton";
+import NumberInput from "@/components/ui/NumberInput";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import { useProperty } from "@/hooks/usePropertyQueries";
 import { BidAPI, SaleAPI } from "@/lib/salesApi";
@@ -143,7 +145,7 @@ export default function AuctionPage({
 
 					<div className="text-3xl font-headline font-bold text-on-surface">
 						{sale.currency}{" "}
-						{(highest?.amount ?? sale.askingPrice).toLocaleString()}
+						<AbbreviatedNumber value={highest?.amount ?? sale.askingPrice} />
 					</div>
 					<div className="text-xs text-on-surface-variant font-body mt-1">
 						{highest
@@ -175,10 +177,9 @@ export default function AuctionPage({
 
 					{user && user.id !== sale.sellerId ? (
 						<div className="mt-5 space-y-2">
-							<input
-								type="number"
-								value={bidAmount}
-								onChange={(e) => setBidAmount(e.target.value)}
+							<NumberInput
+								value={bidAmount === "" ? null : Number(bidAmount)}
+								onValueChange={(v) => setBidAmount(v == null ? "" : String(v))}
 								placeholder={`Min ${sale.currency} ${minNext.toLocaleString()}`}
 								className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body"
 							/>
@@ -235,7 +236,7 @@ export default function AuctionPage({
 									</div>
 									<div className="text-right">
 										<div className="font-headline font-bold text-on-surface">
-											{b.currency} {b.amount.toLocaleString()}
+											{b.currency} <AbbreviatedNumber value={b.amount} />
 										</div>
 										<div className="text-badge uppercase tracking-widest font-headline font-bold text-on-surface-variant">
 											{b.status}

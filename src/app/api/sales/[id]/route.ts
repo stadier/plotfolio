@@ -1,6 +1,8 @@
 import connectDB from "@/lib/mongoose";
+import { syncPropertyStatusForSale } from "@/lib/saleService";
 import { getSessionUser } from "@/lib/session";
 import { SaleModel } from "@/models/Sale";
+import { SaleStatus } from "@/types/sale";
 import { NextRequest, NextResponse } from "next/server";
 
 /** GET /api/sales/[id] */
@@ -74,6 +76,21 @@ export async function PATCH(
 		}
 
 		await sale.save();
+
+		// Keep the underlying property status in sync with the sale lifecycle
+		// (e.g. activating a draft private sale → property becomes FOR_SALE,
+		// cancelling a sale → property reverts to OWNED).
+		if (typeof body.status === "string") {
+			try {
+				await syncPropertyStatusForSale(
+					sale.propertyId,
+					body.status as SaleStatus,
+				);
+			} catch (syncErr) {
+				console.error("Failed to sync property status for sale:", syncErr);
+			}
+		}
+
 		const obj = sale.toObject();
 		const { _id, __v, ...clean } = obj as any;
 		return NextResponse.json(clean);

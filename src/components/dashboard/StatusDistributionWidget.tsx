@@ -30,6 +30,11 @@ const STATUS_COLORS: Record<
 		text: "text-orange-600 dark:text-orange-300",
 		label: "Contract",
 	},
+	[PropertyStatus.RESERVED]: {
+		bg: "bg-orange-400 dark:bg-orange-300",
+		text: "text-orange-500 dark:text-orange-200",
+		label: "Reserved",
+	},
 	[PropertyStatus.RENTED]: {
 		bg: "bg-purple-500 dark:bg-purple-400",
 		text: "text-purple-600 dark:text-purple-400",

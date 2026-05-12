@@ -1,4 +1,4 @@
-import { formatCurrencyCompact } from "@/lib/utils";
+import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import { Property } from "@/types/property";
 import { CheckCircle2 } from "lucide-react";
 
@@ -98,7 +98,10 @@ export default function ValueTrendWidget({
 				<div>
 					<p className="typo-badge text-outline font-medium">Value</p>
 					<div className="flex items-center gap-2">
-						<span className="font-headline text-lg font-extrabold text-on-surface">
+						<span
+							className="font-headline text-lg font-extrabold text-on-surface"
+							title={formatCurrencyFull(currentValue)}
+						>
 							{formatCurrencyCompact(currentValue)}
 						</span>
 					</div>

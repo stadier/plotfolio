@@ -3,40 +3,40 @@
 import { useAuth } from "@/components/AuthContext";
 import MediaLightbox from "@/components/property/MediaLightbox";
 import {
-	DocumentsGrid,
-	formatCurrency,
-	formatDate,
-	getStatusColor,
+    DocumentsGrid,
+    formatDate,
+    getStatusColor,
 } from "@/components/property/propertyDisplayHelpers";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { ChatAPI } from "@/lib/api";
 import { getPropertyMedia } from "@/lib/utils";
 import { generateVideoThumbnail } from "@/lib/videoThumbnail";
 import {
-	DocumentAccessRequest,
-	MediaType,
-	Property,
-	PropertyMedia,
+    DocumentAccessRequest,
+    MediaType,
+    Property,
+    PropertyMedia,
 } from "@/types/property";
 import {
-	Bath,
-	BedDouble,
-	Calendar,
-	Car,
-	Check,
-	Loader2,
-	Mail,
-	MapPin,
-	MessageSquare,
-	Mic,
-	Phone,
-	Play,
-	Plus,
-	Ruler,
-	Sparkles,
-	Tag,
-	Upload,
-	Wallet,
+    Bath,
+    BedDouble,
+    Calendar,
+    Car,
+    Check,
+    Loader2,
+    Mail,
+    MapPin,
+    MessageSquare,
+    Mic,
+    Phone,
+    Play,
+    Plus,
+    Ruler,
+    Sparkles,
+    Tag,
+    Upload,
+    Wallet,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -410,7 +410,7 @@ function StatPill({
 	icon: React.ComponentType<
 		React.SVGProps<SVGSVGElement> & { className?: string }
 	>;
-	label: string;
+	label: React.ReactNode;
 }) {
 	return (
 		<span className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant">
@@ -695,7 +695,11 @@ function TitleSection({
 					{areaInSqft > 0 && (
 						<StatPill
 							icon={Ruler}
-							label={`${areaInSqft.toLocaleString()} sq ft`}
+							label={
+								<>
+									<AbbreviatedNumber value={areaInSqft} /> sq ft
+								</>
+							}
 						/>
 					)}
 					{(property.quantity ?? 1) > 1 && (
@@ -709,7 +713,11 @@ function TitleSection({
 				<span
 					className={`font-bold text-primary font-headline ${compact ? "text-lg" : "text-2xl"}`}
 				>
-					{formatCurrency(askingPrice)}
+					<AbbreviatedNumber
+						mode="currency"
+						country={property.country}
+						value={askingPrice}
+					/>
 				</span>
 				{actions}
 			</div>

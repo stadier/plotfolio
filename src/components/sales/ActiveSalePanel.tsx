@@ -2,18 +2,20 @@
 
 import { useAuth } from "@/components/AuthContext";
 import OffersPanel from "@/components/sales/OffersPanel";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
+import NumberInput from "@/components/ui/NumberInput";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import { BidAPI, SaleAPI } from "@/lib/salesApi";
 import { formatCurrency } from "@/lib/utils";
 import { Bid, Sale, SaleStatus, SaleType } from "@/types/sale";
 import {
-	ArrowRight,
-	Clock,
-	Gavel,
-	Handshake,
-	Loader2,
-	Timer,
-	TrendingUp,
+    ArrowRight,
+    Clock,
+    Gavel,
+    Handshake,
+    Loader2,
+    Timer,
+    TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -173,7 +175,11 @@ export default function ActiveSalePanel({
 							{topBid ? "Top bid" : "Starting bid"}
 						</span>
 						<span className="text-lg font-bold text-on-surface">
-							{formatCurrency(topBid?.amount ?? sale.askingPrice, country)}
+							<AbbreviatedNumber
+								mode="currency"
+								country={country}
+								value={topBid?.amount ?? sale.askingPrice}
+							/>
 						</span>
 						{sale.reservePrice != null && (
 							<span
@@ -221,7 +227,11 @@ export default function ActiveSalePanel({
 										</span>
 									</div>
 									<span className="font-mono font-semibold text-on-surface">
-										{formatCurrency(b.amount, country)}
+										<AbbreviatedNumber
+											mode="currency"
+											country={country}
+											value={b.amount}
+										/>
 									</span>
 								</div>
 							))}
@@ -233,13 +243,10 @@ export default function ActiveSalePanel({
 							onSubmit={handlePlaceBid}
 							className="flex flex-col sm:flex-row gap-2 pt-1"
 						>
-							<input
-								type="number"
-								min={minBid}
-								step="any"
+							<NumberInput
 								placeholder={`Min ${formatCurrency(minBid, country)}`}
-								value={bidAmount}
-								onChange={(e) => setBidAmount(e.target.value)}
+								value={bidAmount === "" ? null : Number(bidAmount)}
+								onValueChange={(v) => setBidAmount(v == null ? "" : String(v))}
 								className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40"
 							/>
 							<PrimaryButton type="submit" disabled={placing}>
@@ -292,7 +299,11 @@ export default function ActiveSalePanel({
 							Asking
 						</span>
 						<span className="text-lg font-bold text-on-surface">
-							{formatCurrency(sale.askingPrice, country)}
+							<AbbreviatedNumber
+								mode="currency"
+								country={country}
+								value={sale.askingPrice}
+							/>
 						</span>
 					</div>
 					{!compact && (

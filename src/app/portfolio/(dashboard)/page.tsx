@@ -18,9 +18,10 @@ import {
 	PageHeadingSkeleton,
 } from "@/components/ui/skeletons";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
+import useDelayedFlag from "@/hooks/useDelayedFlag";
 import { useMyProperties, useOwnerBookings } from "@/hooks/usePropertyQueries";
 import { PropertyAPI } from "@/lib/api";
-import { formatCurrencyCompact } from "@/lib/utils";
+import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import { Building2, FileText, MapPin, TrendingUp, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -29,11 +30,12 @@ import { useEffect, useState } from "react";
 interface StatCardProps {
 	label: string;
 	value: string;
+	fullValue?: string;
 	icon: React.ReactNode;
 	accent: string; // tailwind bg class for the icon circle
 }
 
-function StatCard({ label, value, icon, accent }: StatCardProps) {
+function StatCard({ label, value, fullValue, icon, accent }: StatCardProps) {
 	return (
 		<div className="bg-card sz-card border border-border flex items-center gap-3 max-w-xs widget-card animate-fade-in-up py-3!">
 			<div
@@ -45,7 +47,10 @@ function StatCard({ label, value, icon, accent }: StatCardProps) {
 				<p className="typo-caption font-semibold text-outline uppercase tracking-widest leading-tight">
 					{label}
 				</p>
-				<p className="font-headline text-base sm:typo-stat font-extrabold text-primary truncate">
+				<p
+					className="font-headline text-base sm:typo-stat font-extrabold text-primary truncate"
+					title={fullValue}
+				>
 					{value}
 				</p>
 			</div>
@@ -66,6 +71,9 @@ export default function DashboardV2Page() {
 		activePortfolio?.createdBy === user?.id,
 	);
 	const { data: bookings = [] } = useOwnerBookings(user?.id);
+	// Only show the skeleton if loading takes long enough to be perceptible —
+	// new accounts with empty data resolve instantly and shouldn't flicker.
+	const showSkeleton = useDelayedFlag(authLoading || !user || loading, 250);
 
 	// Fetch AI document count
 	const [aiDocCount, setAiDocCount] = useState(0);
@@ -77,11 +85,7 @@ export default function DashboardV2Page() {
 	}, [user?.id]);
 
 	if (authLoading || !user || loading) {
-		return (
-			<AppShell>
-				<DashboardSkeleton />
-			</AppShell>
-		);
+		return <AppShell>{showSkeleton ? <DashboardSkeleton /> : null}</AppShell>;
 	}
 
 	const totalWorth = properties.reduce(
@@ -141,48 +145,32 @@ export default function DashboardV2Page() {
 						</div>
 					)}
 
-					{/* Empty state */}
-					{!loading && properties.length === 0 && (
-						<div className="flex flex-col items-center justify-center py-16 text-center mx-auto max-w-2xl pt-30">
-							<img
-								src="/empty-dashboard.png"
-								alt="No properties illustration"
-								className="w-[clamp(16rem,50vw,38rem)] h-auto object-contain mb-8"
-							/>
-							<h3 className="font-headline typo-section-title font-bold text-primary mb-2">
-								No portfolio data yet
-							</h3>
-							<p className="text-on-surface-variant typo-body mb-6">
-								Add your first property to start managing your portfolio.
-							</p>
-						</div>
-					)}
-
-					{!loading && properties.length > 0 && (
-						<>
-							{/* ── Welcome header + Summary stats (full width) ── */}
-							<div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 animate-fade-in">
-								<div className="shrink-0">
-									<p className="typo-caption text-outline font-semibold uppercase tracking-widest mb-1">
-										{dateStr}
+					{/* ── Welcome header + Summary stats (full width) ── */}
+					{!loading && (
+						<div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 animate-fade-in">
+							<div className="shrink-0">
+								<p className="typo-caption text-outline font-semibold uppercase tracking-widest mb-1">
+									{dateStr}
+								</p>
+								<h1 className="font-headline typo-page-title font-extrabold text-primary">
+									{greeting}, {user.displayName || user.name}
+								</h1>
+								{activePortfolio && (
+									<p className="typo-body text-on-surface-variant mt-0.5">
+										Workspace:{" "}
+										<span className="font-bold text-secondary">
+											{activePortfolio.name}
+										</span>
 									</p>
-									<h1 className="font-headline typo-page-title font-extrabold text-primary">
-										{greeting}, {user.displayName || user.name}
-									</h1>
-									{activePortfolio && (
-										<p className="typo-body text-on-surface-variant mt-0.5">
-											Workspace:{" "}
-											<span className="font-bold text-secondary">
-												{activePortfolio.name}
-											</span>
-										</p>
-									)}
-								</div>
+								)}
+							</div>
 
+							{properties.length > 0 && (
 								<div className="flex flex-wrap items-stretch gap-3">
 									<StatCard
 										label="Portfolio Value"
 										value={formatCurrencyCompact(totalWorth)}
+										fullValue={formatCurrencyFull(totalWorth)}
 										icon={
 											<Wallet className="sz-icon text-blue-600 dark:text-blue-400" />
 										}
@@ -223,8 +211,25 @@ export default function DashboardV2Page() {
 										accent="bg-amber-50 dark:bg-amber-500/20"
 									/>
 								</div>
-							</div>
-						</>
+							)}
+						</div>
+					)}
+
+					{/* Empty state */}
+					{!loading && properties.length === 0 && (
+						<div className="flex flex-col items-center justify-center py-16 text-center mx-auto max-w-2xl">
+							<img
+								src="/empty-dashboard.png"
+								alt="No properties illustration"
+								className="w-[clamp(16rem,50vw,38rem)] h-auto object-contain mb-8"
+							/>
+							<h3 className="font-headline typo-section-title font-bold text-primary mb-2">
+								No portfolio data yet
+							</h3>
+							<p className="text-on-surface-variant typo-body mb-6">
+								Add your first property to start managing your portfolio.
+							</p>
+						</div>
 					)}
 				</div>
 

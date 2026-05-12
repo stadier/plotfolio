@@ -11,7 +11,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const now = new Date();
 
 	const staticEntries: MetadataRoute.Sitemap = [
-		{ url: `${base}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
+		{
+			url: `${base}/`,
+			lastModified: now,
+			changeFrequency: "weekly",
+			priority: 1,
+		},
 		{
 			url: `${base}/marketplace`,
 			lastModified: now,

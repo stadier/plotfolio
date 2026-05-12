@@ -87,7 +87,7 @@ export default function StatusToggle({
 							You are changing this property from
 							<span className="font-semibold text-on-surface">
 								{" "}
-								{currentLabel}
+								{currentLabel}{" "}
 							</span>
 							to
 							<span className="font-semibold text-on-surface">

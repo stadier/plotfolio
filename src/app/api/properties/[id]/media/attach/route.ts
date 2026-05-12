@@ -94,7 +94,29 @@ export async function POST(
 			}
 		}
 
-		const url = publicUrlForKey(key);
+		// HEIC/HEIF images aren't renderable by browsers — convert to JPEG
+		// synchronously before recording so every consumer sees a usable URL.
+		// Original HEIC bytes are left in B2 untouched.
+		let effectiveKey = key;
+		let effectiveMime = mime;
+		if (type === MediaType.IMAGE && isHeicKey(key, mime)) {
+			try {
+				const converted = await convertHeicToJpeg({ key, propertyId: id });
+				effectiveKey = converted.key;
+				effectiveMime = "image/jpeg";
+			} catch (err) {
+				console.error("HEIC conversion failed:", err);
+				return NextResponse.json(
+					{
+						error:
+							"Could not process HEIC image. Please convert to JPEG or PNG and try again.",
+					},
+					{ status: 415 },
+				);
+			}
+		}
+
+		const url = publicUrlForKey(effectiveKey);
 		const clientThumbnailUrl =
 			thumbKey && thumbKey.startsWith(expectedPrefix)
 				? publicUrlForKey(thumbKey)
@@ -129,9 +151,9 @@ export async function POST(
 		if (needsServerThumb) {
 			void renderImageThumbnail({
 				propertyId: id,
-				key,
+				key: effectiveKey,
 				url,
-				mime: mime ?? "image/jpeg",
+				mime: effectiveMime ?? "image/jpeg",
 			}).catch((err) => {
 				console.error("Thumbnail render failed:", err);
 			});
@@ -198,4 +220,69 @@ async function renderImageThumbnail(input: {
 			},
 		},
 	);
+}
+
+/** Returns true if the upload key/mime indicates a HEIC/HEIF image. */
+function isHeicKey(key: string, mime?: string): boolean {
+	if (mime && /^image\/(heic|heif)/i.test(mime)) return true;
+	return /\.(heic|heif)$/i.test(key);
+}
+
+/**
+ * Read a HEIC object from B2, decode it via libheif (heic-convert) into a
+ * JPEG buffer, then re-encode through sharp for EXIF rotation handling and
+ * upload as a sibling JPEG object. Returns the new key. The original HEIC
+ * bytes are left in place.
+ *
+ * sharp's bundled libvips does not ship with HEIC decoding support (codec
+ * licensing), so we cannot decode HEIC with sharp directly.
+ */
+async function convertHeicToJpeg(input: {
+	key: string;
+	propertyId: string;
+}): Promise<{ key: string }> {
+	const [{ default: sharp }, heicConvertModule] = await Promise.all([
+		import("sharp"),
+		import("heic-convert"),
+	]);
+	const heicConvert = heicConvertModule.default;
+
+	const obj = await b2.send(
+		new GetObjectCommand({ Bucket: B2_BUCKET, Key: input.key }),
+	);
+	const body = obj.Body as unknown as {
+		transformToByteArray?: () => Promise<Uint8Array>;
+	};
+	if (!body?.transformToByteArray) {
+		throw new Error("Empty HEIC object body");
+	}
+	const bytes = await body.transformToByteArray();
+
+	// heic-convert returns an ArrayBuffer of JPEG bytes. Despite its types
+	// claiming ArrayBufferLike, the implementation spreads the buffer, so we
+	// must pass an iterable view (Buffer/Uint8Array), not a raw ArrayBuffer.
+	const jpegArrayBuffer = await heicConvert({
+		buffer: Buffer.from(bytes) as unknown as ArrayBufferLike,
+		format: "JPEG",
+		quality: 0.88,
+	});
+
+	// Run through sharp once for EXIF auto-rotation; keep quality high since
+	// we're already paying the decode cost.
+	const jpegBuffer = await sharp(Buffer.from(jpegArrayBuffer))
+		.rotate()
+		.jpeg({ quality: 88 })
+		.toBuffer();
+
+	const jpegKey = `${input.key.replace(/\.(heic|heif)$/i, "")}.jpg`;
+	await b2.send(
+		new PutObjectCommand({
+			Bucket: B2_BUCKET,
+			Key: jpegKey,
+			Body: jpegBuffer,
+			ContentType: "image/jpeg",
+			CacheControl: "public, max-age=31536000",
+		}),
+	);
+	return { key: jpegKey };
 }

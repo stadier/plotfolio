@@ -1,10 +1,8 @@
 import AppShell from "@/components/layout/AppShell";
-import { DashboardSkeleton } from "@/components/ui/skeletons";
 
+// Render an empty shell during the route transition. The page itself handles
+// a delayed skeleton, so brand-new accounts with no data resolve instantly
+// without a skeleton flash.
 export default function Loading() {
-	return (
-		<AppShell>
-			<DashboardSkeleton />
-		</AppShell>
-	);
+	return <AppShell>{null}</AppShell>;
 }

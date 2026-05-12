@@ -83,15 +83,25 @@ export const SCOPE_CONFIG: Record<UploadScope, ScopeConfig> = {
 	},
 };
 
-/** Strip path traversal characters and clamp length. */
+/** Strip path traversal characters, collapse whitespace, and clamp length. */
 export function sanitizeFilename(raw: string): string {
-	const cleaned = raw.replace(/[^a-zA-Z0-9._\- ]/g, "_").slice(0, 200);
+	// Replace any run of whitespace with a single underscore, then strip
+	// anything outside the safe set. This avoids spaces in keys (which break
+	// public URLs and cause occasional signature / proxy edge cases).
+	const cleaned = raw
+		.replace(/\s+/g, "_")
+		.replace(/[^a-zA-Z0-9._-]/g, "_")
+		.slice(0, 200);
 	return cleaned.length > 0 ? cleaned : "file";
 }
 
 /** Build the public URL for a stored object. Bucket is public-read on B2. */
 export function publicUrlForKey(key: string): string {
-	return `${PUBLIC_BUCKET_BASE}/${key}`;
+	// Encode each path segment so spaces/unicode in legacy keys still produce
+	// a valid URL. New keys are sanitized to ASCII safe chars, so this is a
+	// no-op for them.
+	const encoded = key.split("/").map(encodeURIComponent).join("/");
+	return `${PUBLIC_BUCKET_BASE}/${encoded}`;
 }
 
 /** Returns true when the mime is allowed by the scope config. */

@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuth } from "@/components/AuthContext";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
+import NumberInput from "@/components/ui/NumberInput";
 import { useProperty } from "@/hooks/usePropertyQueries";
 import { OfferAPI } from "@/lib/salesApi";
 import { cn } from "@/lib/utils";
@@ -182,10 +184,9 @@ export default function OffersPanel({
 						<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 							Offer amount ({property?.currency ?? "USD"})
 						</label>
-						<input
-							type="number"
-							value={newAmount}
-							onChange={(e) => setNewAmount(e.target.value)}
+						<NumberInput
+							value={newAmount === "" ? null : Number(newAmount)}
+							onValueChange={(v) => setNewAmount(v == null ? "" : String(v))}
 							className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body"
 							placeholder="0.00"
 						/>
@@ -220,10 +221,11 @@ export default function OffersPanel({
 								<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 									Down payment
 								</label>
-								<input
-									type="number"
-									value={downPayment}
-									onChange={(e) => setDownPayment(e.target.value)}
+								<NumberInput
+									value={downPayment === "" ? null : Number(downPayment)}
+									onValueChange={(v) =>
+										setDownPayment(v == null ? "" : String(v))
+									}
 									className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body"
 								/>
 							</div>
@@ -291,10 +293,7 @@ export default function OffersPanel({
 									</div>
 									<div className="mt-1 flex items-center gap-1 text-on-surface-variant text-sm font-body">
 										<DollarSign className="w-3.5 h-3.5" />
-										{offer.currency}{" "}
-										{offer.amount.toLocaleString(undefined, {
-											maximumFractionDigits: 2,
-										})}
+										{offer.currency} <AbbreviatedNumber value={offer.amount} />
 										{offer.paymentType === "installment" && (
 											<span className="text-xs ml-1 text-blue-500">
 												· {offer.installmentPlan?.installmentCount}×
@@ -305,7 +304,7 @@ export default function OffersPanel({
 									{offer.counterAmount && (
 										<div className="mt-1 text-xs text-blue-600 font-body">
 											Countered at {offer.currency}{" "}
-											{offer.counterAmount.toLocaleString()}
+											<AbbreviatedNumber value={offer.counterAmount} />
 										</div>
 									)}
 									{offer.message && (
@@ -368,10 +367,11 @@ export default function OffersPanel({
 
 							{counterFor === offer.id && (
 								<div className="mt-3 flex gap-2">
-									<input
-										type="number"
-										value={counterAmount}
-										onChange={(e) => setCounterAmount(e.target.value)}
+									<NumberInput
+										value={counterAmount === "" ? null : Number(counterAmount)}
+										onValueChange={(v) =>
+											setCounterAmount(v == null ? "" : String(v))
+										}
 										placeholder="Counter amount"
 										className="flex-1 bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body text-sm"
 									/>

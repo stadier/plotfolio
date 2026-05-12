@@ -315,7 +315,7 @@ export default function MapLocationPicker({
 				</div>
 
 				{/* Search bar */}
-				<div className="px-5 py-3 border-b border-border">
+				<div className="relative z-layer-dropdown px-5 py-3 border-b border-border">
 					<AddressSearch
 						onPlaceSelect={handlePlaceSelect}
 						initialQuery={initialQuery}

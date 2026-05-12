@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
 		const status = searchParams.get("status");
 		const ownerId = searchParams.get("ownerId");
 		const portfolioId = searchParams.get("portfolioId");
+		const parentId = searchParams.get("parentId");
 		const include = (searchParams.get("include") ?? "")
 			.split(",")
 			.map((s) => s.trim());
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
 			ownerId,
 			portfolioId,
 			statuses: status ? status.split(",") : undefined,
+			parentPropertyId: parentId,
 		});
 
 		if (include.includes("activeSale") && filtered.length > 0) {

@@ -1,18 +1,19 @@
 "use client";
 
+import NumberInput from "@/components/ui/NumberInput";
 import {
-	ContractClause,
-	ContractParty,
-	ContractType,
-	SealConfig,
+    ContractClause,
+    ContractParty,
+    ContractType,
+    SealConfig,
 } from "@/types/seal";
 import {
-	Download,
-	FileText,
-	Loader2,
-	Plus,
-	Printer,
-	Trash2,
+    Download,
+    FileText,
+    Loader2,
+    Plus,
+    Printer,
+    Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -369,12 +370,10 @@ export default function DocumentGenerator({
 						<span className="typo-body-sm font-medium text-on-surface-variant mb-1.5 block">
 							Amount *
 						</span>
-						<input
-							type="number"
-							value={amount}
-							onChange={(e) => setAmount(e.target.value)}
+						<NumberInput
+							value={amount === "" ? null : Number(amount)}
+							onValueChange={(v) => setAmount(v == null ? "" : String(v))}
 							placeholder="0.00"
-							min={0}
 							className={inputClass}
 						/>
 					</label>

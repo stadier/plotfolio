@@ -1,0 +1,16 @@
+{
+	"CORSRules": [
+		{
+			"AllowedOrigins": [
+				"http://localhost:4600",
+				"http://localhost:3000",
+				"https://plotfolio.com",
+				"https://www.plotfolio.com"
+			],
+			"AllowedMethods": ["PUT", "GET", "HEAD", "POST", "DELETE"],
+			"AllowedHeaders": ["*"],
+			"ExposeHeaders": ["ETag"],
+			"MaxAgeSeconds": 3600
+		}
+	]
+}

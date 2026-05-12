@@ -14,16 +14,17 @@ import StatusBarChart from "@/components/analytics/StatusBarChart";
 import ValueByCountryChart from "@/components/analytics/ValueByCountryChart";
 import AppShell from "@/components/layout/AppShell";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import { ChartSkeleton, MetricGridSkeleton } from "@/components/ui/skeletons";
 import { useMyProperties } from "@/hooks/usePropertyQueries";
-import { formatCurrencyCompact } from "@/lib/utils";
+import { formatCurrencyFull } from "@/lib/utils";
 import {
-	BarChart3,
-	Building2,
-	DollarSign,
-	FileText,
-	Loader2,
-	Ruler,
+    BarChart3,
+    Building2,
+    DollarSign,
+    FileText,
+    Loader2,
+    Ruler,
 } from "lucide-react";
 
 export default function AnalyticsPage() {
@@ -88,20 +89,32 @@ export default function AnalyticsPage() {
 							{[
 								{
 									label: "Total Value",
-									value: formatCurrencyCompact(totalValue),
+									value: (
+										<AbbreviatedNumber mode="currency" value={totalValue} />
+									) as React.ReactNode,
+									fullValue: formatCurrencyFull(totalValue),
 									icon: DollarSign,
 								},
 								{
 									label: "Properties",
-									value: String(properties.length),
+									value: String(properties.length) as React.ReactNode,
+									fullValue: undefined,
 									icon: Building2,
 								},
 								{
 									label: "Total Area",
-									value: `${totalArea.toLocaleString()} sqm`,
+									value: (
+										<AbbreviatedNumber mode="area" value={totalArea} />
+									) as React.ReactNode,
+									fullValue: `${totalArea.toLocaleString()} sqm`,
 									icon: Ruler,
 								},
-								{ label: "Documents", value: String(docCount), icon: FileText },
+								{
+									label: "Documents",
+									value: String(docCount) as React.ReactNode,
+									fullValue: undefined,
+									icon: FileText,
+								},
 							].map((stat, i) => (
 								<div
 									key={stat.label}
@@ -111,6 +124,7 @@ export default function AnalyticsPage() {
 									<SummaryStatCard
 										label={stat.label}
 										value={stat.value}
+										fullValue={stat.fullValue}
 										icon={stat.icon}
 									/>
 								</div>
@@ -232,7 +246,10 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-2 gap-4 py-2">
 										<InsightRow
 											label="Avg Property Value"
-											value={formatCurrencyCompact(avgValue)}
+											value={
+												<AbbreviatedNumber mode="currency" value={avgValue} />
+											}
+											fullValue={formatCurrencyFull(avgValue)}
 										/>
 										<InsightRow
 											label="Most Common Type"
@@ -261,7 +278,13 @@ export default function AnalyticsPage() {
 										/>
 										<InsightRow
 											label="Total Investment"
-											value={formatCurrencyCompact(totalPurchase)}
+											value={
+												<AbbreviatedNumber
+													mode="currency"
+													value={totalPurchase}
+												/>
+											}
+											fullValue={formatCurrencyFull(totalPurchase)}
 										/>
 									</div>
 								</AnalyticsChartCard>
@@ -276,13 +299,23 @@ export default function AnalyticsPage() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function InsightRow({ label, value }: { label: string; value: string }) {
+function InsightRow({
+	label,
+	value,
+	fullValue,
+}: {
+	label: string;
+	value: React.ReactNode;
+	fullValue?: string;
+}) {
 	return (
 		<div className="flex flex-col gap-0.5">
 			<span className="typo-badge text-outline uppercase tracking-wide">
 				{label}
 			</span>
-			<span className="typo-body font-bold text-on-surface">{value}</span>
+			<span className="typo-body font-bold text-on-surface" title={fullValue}>
+				{value}
+			</span>
 		</div>
 	);
 }

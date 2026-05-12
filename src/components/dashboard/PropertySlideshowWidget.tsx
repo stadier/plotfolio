@@ -1,5 +1,6 @@
 "use client";
 
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
 import { formatCurrencyFull, getPropertyMedia } from "@/lib/utils";
 import { MediaType, Property, PropertyType } from "@/types/property";
@@ -309,11 +310,18 @@ export default function PropertySlideshowWidget({
 			{/* Details row */}
 			<div className="px-5 py-3.5 flex items-center justify-between">
 				<div>
-					<p className="font-headline typo-stat font-extrabold text-primary">
-						{formatCurrencyFull(worth, current.country)}
+					<p
+						className="font-headline typo-stat font-extrabold text-primary"
+						title={formatCurrencyFull(worth, current.country)}
+					>
+						<AbbreviatedNumber
+							mode="currency"
+							country={current.country}
+							value={worth}
+						/>
 					</p>
 					<p className="typo-caption text-outline">
-						{(current.area || 0).toLocaleString()} sqm
+						<AbbreviatedNumber mode="area" value={current.area || 0} />
 					</p>
 				</div>
 

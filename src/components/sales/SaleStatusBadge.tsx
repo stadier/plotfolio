@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCurrency } from "@/lib/utils";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import type { ActiveSaleSummary } from "@/types/property";
 import { Gavel, Handshake, Timer } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -81,7 +81,11 @@ export default function SaleStatusBadge({
 				<>
 					<Gavel className="w-3.5 h-3.5 text-amber-500" />
 					<span className="font-semibold text-on-surface">
-						{formatCurrency(topBid, country)}
+						<AbbreviatedNumber
+							mode="currency"
+							country={country}
+							value={topBid}
+						/>
 					</span>
 					<span>·</span>
 					<span>{sale.bidStats?.count ?? 0} bids</span>
@@ -100,7 +104,11 @@ export default function SaleStatusBadge({
 				<>
 					<Handshake className="w-3.5 h-3.5 text-blue-600" />
 					<span className="font-semibold text-on-surface">
-						{formatCurrency(sale.askingPrice, country)}
+						<AbbreviatedNumber
+							mode="currency"
+							country={country}
+							value={sale.askingPrice}
+						/>
 					</span>
 					<span>·</span>
 					<span>Accepting offers</span>

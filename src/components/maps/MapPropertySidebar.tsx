@@ -1,5 +1,6 @@
 "use client";
 
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import { Property, PropertyStatus, PropertyType } from "@/types/property";
 import { MapPin, Search } from "lucide-react";
 import { useState } from "react";
@@ -191,12 +192,18 @@ export default function MapPropertySidebar({
 										<div className="flex items-center gap-2 mt-1 text-xs text-outline">
 											<span>{getPropertyTypeLabel(property.propertyType)}</span>
 											<span>·</span>
-											<span>{formatArea(property.area)}</span>
+											<span>
+												<AbbreviatedNumber mode="area" value={property.area} />
+											</span>
 											{property.currentValue != null && (
 												<>
 													<span>·</span>
 													<span className="text-secondary font-medium">
-														${property.currentValue.toLocaleString()}
+														<AbbreviatedNumber
+															mode="currency"
+															country={property.country}
+															value={property.currentValue}
+														/>
 													</span>
 												</>
 											)}

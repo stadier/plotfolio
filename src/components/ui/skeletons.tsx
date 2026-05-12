@@ -800,16 +800,11 @@ export function MarketplacePageSkeleton({
 
 				<div className="flex-1 min-w-0 w-full">
 					<SkeletonText width="w-32" className="h-3 mb-3" />
-					<div
-						className="grid gap-4"
-						style={{
-							gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-						}}
-					>
+					<MasonryGrid minColWidth={240} maxColWidth={320} gap={16}>
 						{Array.from({ length: 8 }).map((_, i) => (
 							<MarketplaceCardSkeleton key={i} />
 						))}
-					</div>
+					</MasonryGrid>
 				</div>
 			</div>
 		</div>

@@ -1,37 +1,39 @@
 "use client";
 
 import { useAuth } from "@/components/AuthContext";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
+import NumberInput from "@/components/ui/NumberInput";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Skeleton from "@/components/ui/Skeleton";
 import UserAvatar from "@/components/ui/UserAvatar";
 import UserLookupField, {
-	type LookedUpUser,
-	type LookupStatus,
+    type LookedUpUser,
+    type LookupStatus,
 } from "@/components/ui/UserLookupField";
 import { OwnershipHistoryAPI, TransferAPI } from "@/lib/api";
 import {
-	OwnershipRecord,
-	OwnershipTransfer,
-	Property,
-	TransferStatus,
+    OwnershipRecord,
+    OwnershipTransfer,
+    Property,
+    TransferStatus,
 } from "@/types/property";
 import {
-	ArrowRight,
-	Building2,
-	Calendar,
-	Check,
-	ChevronDown,
-	ChevronUp,
-	Clock,
-	Gift,
-	Globe,
-	Landmark,
-	Plus,
-	Send,
-	Trash2,
-	User,
-	Users,
-	X,
+    ArrowRight,
+    Building2,
+    Calendar,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    Clock,
+    Gift,
+    Globe,
+    Landmark,
+    Plus,
+    Send,
+    Trash2,
+    User,
+    Users,
+    X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -128,9 +130,10 @@ function TransferCard({
 			{transfer.price ? (
 				<p className="text-xs text-on-surface-variant">
 					Sale price:{" "}
-					<span className="font-medium text-on-surface">
-						{transfer.price.toLocaleString()}
-					</span>
+					<AbbreviatedNumber
+						value={transfer.price}
+						className="font-medium text-on-surface"
+					/>
 				</p>
 			) : null}
 
@@ -416,12 +419,11 @@ export function TransferOwnershipPanel({
 							<span className="text-xs font-medium text-on-surface-variant">
 								Sale Price (optional)
 							</span>
-							<input
-								type="number"
-								min={0}
-								step="any"
-								value={form.price}
-								onChange={(e) => setForm({ ...form, price: e.target.value })}
+							<NumberInput
+								value={form.price === "" ? null : Number(form.price)}
+								onValueChange={(v) =>
+									setForm({ ...form, price: v == null ? "" : String(v) })
+								}
 								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="0"
 							/>
@@ -601,9 +603,10 @@ function RecordCard({
 						</span>
 					)}
 					{record.price ? (
-						<span className="font-medium text-on-surface">
-							{record.price.toLocaleString()}
-						</span>
+						<AbbreviatedNumber
+							value={record.price}
+							className="font-medium text-on-surface"
+						/>
 					) : null}
 				</div>
 
@@ -838,12 +841,11 @@ export function OwnershipHistoryPanel({
 							<span className="text-xs font-medium text-on-surface-variant">
 								Price
 							</span>
-							<input
-								type="number"
-								min={0}
-								step="any"
-								value={form.price}
-								onChange={(e) => setForm({ ...form, price: e.target.value })}
+							<NumberInput
+								value={form.price === "" ? null : Number(form.price)}
+								onValueChange={(v) =>
+									setForm({ ...form, price: v == null ? "" : String(v) })
+								}
 								className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-card text-on-surface text-sm"
 								placeholder="0"
 							/>

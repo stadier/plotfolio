@@ -1,4 +1,6 @@
-import { formatArea, formatCurrency } from "@/lib/utils";
+import AbbreviatedNumber, {
+    type AbbreviatedNumberProps,
+} from "@/components/ui/AbbreviatedNumber";
 import { Property, PropertyStatus, PropertyType } from "@/types/property";
 import { DollarSign, Home, MapPin, TrendingUp } from "lucide-react";
 
@@ -49,7 +51,14 @@ export default function DashboardOverview({
 		{} as Record<PropertyStatus, number>,
 	);
 
-	const stats = [
+	const stats: Array<{
+		title: string;
+		icon: typeof Home;
+		color: string;
+		bgColor: string;
+		value?: string;
+		abbrev?: AbbreviatedNumberProps;
+	}> = [
 		{
 			title: "Total Properties",
 			value: totalProperties.toString(),
@@ -59,21 +68,21 @@ export default function DashboardOverview({
 		},
 		{
 			title: "Total Value",
-			value: formatCurrency(totalValue),
+			abbrev: { mode: "currency", value: totalValue },
 			icon: DollarSign,
 			color: "text-primary",
 			bgColor: "bg-primary/10",
 		},
 		{
 			title: "Total Area",
-			value: formatArea(totalArea),
+			abbrev: { mode: "area", value: totalArea },
 			icon: MapPin,
 			color: "text-primary",
 			bgColor: "bg-primary/10",
 		},
 		{
 			title: "Average Value",
-			value: formatCurrency(averageValue),
+			abbrev: { mode: "currency", value: averageValue },
 			icon: TrendingUp,
 			color: "text-primary",
 			bgColor: "bg-primary/10",
@@ -97,7 +106,11 @@ export default function DashboardOverview({
 										{stat.title}
 									</p>
 									<p className="typo-stat font-bold text-on-surface mt-1">
-										{stat.value}
+										{stat.abbrev ? (
+											<AbbreviatedNumber {...stat.abbrev} />
+										) : (
+											stat.value
+										)}
 									</p>
 								</div>
 								<div className={`p-3 rounded-full ${stat.bgColor}`}>
@@ -196,9 +209,7 @@ export default function DashboardOverview({
 					</div>
 					<div className="p-4 bg-surface-container sz-radius-lg">
 						<div className="typo-stat font-bold text-on-surface">
-							{totalArea > 43560
-								? `${(totalArea / 43560).toFixed(1)} acres`
-								: formatArea(totalArea)}
+							<AbbreviatedNumber mode="area" value={totalArea} />
 						</div>
 						<div className="typo-body text-on-surface-variant">Total Land</div>
 					</div>

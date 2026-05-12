@@ -1,3 +1,4 @@
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import { BarChart3 } from "lucide-react";
 
 interface PortfolioStatsWidgetProps {
@@ -22,7 +23,7 @@ export default function PortfolioStatsWidget({
 				</div>
 				<span className="typo-caption text-on-surface-variant">Total Area</span>
 				<p className="font-headline typo-stat font-extrabold text-primary">
-					{(totalArea || 0).toLocaleString()} sqm
+					<AbbreviatedNumber mode="area" value={totalArea || 0} />
 				</p>
 			</div>
 			<div className="mt-4 pt-3 border-t border-border flex items-center justify-between">

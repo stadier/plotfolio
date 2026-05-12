@@ -2,12 +2,13 @@
 
 import AppShell from "@/components/layout/AppShell";
 import PropertyFullView from "@/components/property/PropertyFullView";
+import PropertyViewLayoutToggle from "@/components/property/PropertyViewLayoutToggle";
 import ShareModal from "@/components/property/ShareModal";
 import StatusToggle from "@/components/property/StatusToggle";
 import BackButton from "@/components/ui/BackButton";
 import { PropertyDetailSkeleton } from "@/components/ui/skeletons";
 import { useProperty, useUpdateProperty } from "@/hooks/usePropertyQueries";
-import { FileText, Handshake, Pencil, Share2 } from "lucide-react";
+import { FileText, Handshake, Layers, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 
@@ -33,6 +34,8 @@ export default function PropertyDetailPage({
 	const [shareOpen, setShareOpen] = useState(false);
 	const [contractOpen, setContractOpen] = useState(false);
 	const updateProperty = useUpdateProperty();
+	const parentId = property?.parentPropertyId ?? null;
+	const { data: parentProperty } = useProperty(parentId ?? "");
 
 	if (loading) {
 		return (
@@ -80,6 +83,19 @@ export default function PropertyDetailPage({
 				<div className="flex items-center gap-2 sm:gap-3 min-w-0">
 					<BackButton fallbackHref="/portfolio/properties" label="Properties" />
 					<span className="text-outline-variant hidden sm:inline">/</span>
+					{parentId && parentProperty && (
+						<>
+							<Link
+								href={`/portfolio/properties/${parentId}`}
+								className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold uppercase tracking-wide hover:bg-primary/20 transition-colors max-w-40"
+								title={`Back to ${parentProperty.name}`}
+							>
+								<Layers className="w-3 h-3 shrink-0" />
+								<span className="truncate">{parentProperty.name}</span>
+							</Link>
+							<span className="text-outline-variant">↳</span>
+						</>
+					)}
 					<h1 className="font-headline text-sm font-semibold text-primary truncate">
 						{property.name}
 					</h1>
@@ -93,6 +109,7 @@ export default function PropertyDetailPage({
 						}
 						isPending={updateProperty.isPending}
 					/>
+					<PropertyViewLayoutToggle className="ml-auto" />
 				</div>
 			</div>
 
@@ -134,6 +151,33 @@ export default function PropertyDetailPage({
 							</button>
 						</>
 					}
+					quickActions={[
+						{
+							label: "Initiate Sale",
+							description: "List or sell this property",
+							icon: Handshake,
+							href: `/portfolio/properties/${id}/sell`,
+							primary: true,
+						},
+						{
+							label: "Edit Property",
+							description: "Update details & media",
+							icon: Pencil,
+							href: `/portfolio/properties/${id}/edit`,
+						},
+						{
+							label: "Generate Contract",
+							description: "Create a legal document",
+							icon: FileText,
+							onClick: () => setContractOpen(true),
+						},
+						{
+							label: "Share",
+							description: "Send a link or invite",
+							icon: Share2,
+							onClick: () => setShareOpen(true),
+						},
+					]}
 					showContractGenerator={contractOpen}
 					onCloseContractGenerator={() => setContractOpen(false)}
 				/>

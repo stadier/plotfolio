@@ -3,6 +3,7 @@
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import PropertyFullView from "@/components/property/PropertyFullView";
+import PropertyViewLayoutToggle from "@/components/property/PropertyViewLayoutToggle";
 import ShareModal from "@/components/property/ShareModal";
 import BackButton from "@/components/ui/BackButton";
 import { PropertyDetailSkeleton } from "@/components/ui/skeletons";
@@ -96,6 +97,7 @@ export default function MarketplaceListingPage({
 					<span className="font-headline text-sm font-semibold text-primary truncate">
 						{property.name}
 					</span>
+					<PropertyViewLayoutToggle className="ml-auto" />
 				</div>
 			</div>
 

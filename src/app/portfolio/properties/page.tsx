@@ -3,6 +3,7 @@
 import { useRequireAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
 import { usePortfolio } from "@/components/PortfolioContext";
+import EstateCard from "@/components/property/EstateCard";
 import {
 	formatDate,
 	getStatusColor,
@@ -10,7 +11,9 @@ import {
 import PropertyDrawer from "@/components/property/PropertyDrawer";
 import StatusToggle from "@/components/property/StatusToggle";
 import SummaryStatCard from "@/components/property/SummaryStatCard";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import MasonryGrid from "@/components/ui/MasonryGrid";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import PropertyPlaceholderSvg from "@/components/ui/PropertyPlaceholderSvg";
 import {
 	PageHero,
@@ -18,13 +21,15 @@ import {
 	PropertyGridSkeleton,
 } from "@/components/ui/skeletons";
 import useAnimateOnce from "@/hooks/useAnimateOnce";
+import useDelayedFlag from "@/hooks/useDelayedFlag";
 import usePersistedState from "@/hooks/usePersistedState";
 import {
 	queryKeys,
+	useDeleteProperty,
 	useMyProperties,
 	useUpdateProperty,
 } from "@/hooks/usePropertyQueries";
-import { formatCurrency, getPropertyMedia } from "@/lib/utils";
+import { formatCurrencyFull, getPropertyMedia } from "@/lib/utils";
 import {
 	MediaType,
 	Property,
@@ -43,6 +48,7 @@ import {
 	ChevronRight,
 	FileText,
 	Home,
+	Layers,
 	LayoutGrid,
 	LayoutPanelTop,
 	List,
@@ -50,7 +56,9 @@ import {
 	Mic,
 	Pencil,
 	Play,
+	Plus,
 	Search,
+	Trash2,
 	TrendingUp,
 	Users,
 	X,
@@ -468,14 +476,14 @@ function PropertyMediaGrid({ property }: { property: Property }) {
 
 	if (groups.length === 0) {
 		return (
-			<div className="relative h-64 overflow-hidden">
+			<div className="relative h-12 overflow-hidden">
 				<PropertyPlaceholderSvg
 					seed={property.id || property.name}
 					hasBuilding={built}
 					className="absolute inset-0 opacity-70"
 				/>
-				<div className="absolute right-3 bottom-3 z-2">
-					<div className="rounded-full bg-white/95 px-2.5 py-1 typo-badge font-semibold uppercase tracking-[0.14em] text-slate-700 shadow-sm">
+				<div className="absolute right-3 top-1/2 -translate-y-1/2 z-2">
+					<div className="rounded-full bg-white/95 px-2.5 py-0.5 typo-badge font-semibold uppercase tracking-[0.14em] text-slate-700 shadow-sm">
 						{areaLabel}
 					</div>
 				</div>
@@ -549,14 +557,14 @@ function PropertyMediaTightGrid({ property }: { property: Property }) {
 
 	if (allMedia.length === 0) {
 		return (
-			<div className="relative h-64 overflow-hidden">
+			<div className="relative h-12 overflow-hidden">
 				<PropertyPlaceholderSvg
 					seed={property.id || property.name}
 					hasBuilding={built}
 					className="absolute inset-0 opacity-70"
 				/>
-				<div className="absolute right-3 bottom-3 z-2">
-					<div className="rounded-full bg-white/95 px-2.5 py-1 typo-badge font-semibold uppercase tracking-[0.14em] text-slate-700 shadow-sm">
+				<div className="absolute right-3 top-1/2 -translate-y-1/2 z-2">
+					<div className="rounded-full bg-white/95 px-2.5 py-0.5 typo-badge font-semibold uppercase tracking-[0.14em] text-slate-700 shadow-sm">
 						{areaLabel}
 					</div>
 				</div>
@@ -639,6 +647,7 @@ function PropertyCard({
 	onStatusToggle,
 	statusTogglePending = false,
 	mediaView = "typed",
+	parentName,
 }: {
 	property: Property;
 	onSelect: (id: string) => void;
@@ -647,6 +656,7 @@ function PropertyCard({
 	onStatusToggle?: (id: string, newStatus: PropertyStatus) => void;
 	statusTogglePending?: boolean;
 	mediaView?: "typed" | "tight" | "slideshow";
+	parentName?: string;
 }) {
 	// `property.documents` is already hydrated from the unified AIDocument
 	// collection on the server, so it's the single source of truth for counts.
@@ -660,6 +670,7 @@ function PropertyCard({
 			: null;
 
 	const allMedia = getPropertyMedia(property);
+	const isUnit = !!property.parentPropertyId;
 
 	return (
 		<div
@@ -674,7 +685,7 @@ function PropertyCard({
 					<PropertyMediaTightGrid property={property} />
 				) : (
 					/* unified slideshow across all media */
-					<div className="h-64">
+					<div className={allMedia.length > 0 ? "h-64" : "h-12"}>
 						{allMedia.length > 0 ? (
 							<MediaTypeSlideshow items={allMedia} alt={property.name} />
 						) : (
@@ -696,7 +707,9 @@ function PropertyCard({
 				<div className="flex items-start justify-between mb-3 gap-3">
 					<div className="flex-1 min-w-0">
 						<h3 className="font-semibold text-on-surface text-base truncate">
-							{property.name}
+							{parentName && property.name.startsWith(`${parentName} — `)
+								? property.name.slice(parentName.length + 3)
+								: property.name}
 						</h3>
 						<div className="flex items-center gap-1 mt-1 text-outline text-sm">
 							<MapPin className="w-3 h-3 shrink-0" />
@@ -708,7 +721,7 @@ function PropertyCard({
 					<div className="flex items-center gap-2 shrink-0">
 						{canEdit && (
 							<Link
-								href={`/portfolio/properties/${property.id}/edit`}
+								href={`/portfolio/properties/${property.id}/edit?from=list`}
 								onClick={(e) => e.stopPropagation()}
 								title="Edit property"
 								className="p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high opacity-0 group-hover:opacity-100 transition-all"
@@ -716,7 +729,6 @@ function PropertyCard({
 								<Pencil className="w-3.5 h-3.5" />
 							</Link>
 						)}
-						<PropertyKindBadge property={property} />
 					</div>
 				</div>
 
@@ -783,18 +795,30 @@ function PropertyCard({
 					<div>
 						<div className="text-xs text-outline mb-0.5">Purchase Price</div>
 						<div className="text-sm font-semibold text-on-surface">
-							{property.purchasePrice != null
-								? formatCurrency(property.purchasePrice, property.country)
-								: "—"}
+							{property.purchasePrice != null ? (
+								<AbbreviatedNumber
+									mode="currency"
+									country={property.country}
+									value={property.purchasePrice}
+								/>
+							) : (
+								"—"
+							)}
 						</div>
 					</div>
 					<div>
 						<div className="text-xs text-outline mb-0.5">Current Worth</div>
 						<div className="flex items-center gap-1">
 							<span className="text-sm font-semibold text-on-surface">
-								{hasWorth
-									? formatCurrency(property.currentValue!, property.country)
-									: "—"}
+								{hasWorth ? (
+									<AbbreviatedNumber
+										mode="currency"
+										country={property.country}
+										value={property.currentValue!}
+									/>
+								) : (
+									"—"
+								)}
 							</span>
 							{worthChange !== null && (
 								<span
@@ -809,9 +833,11 @@ function PropertyCard({
 					<div>
 						<div className="text-xs text-outline mb-0.5">Area</div>
 						<div className="text-sm font-medium text-on-surface-variant">
-							{property.area != null
-								? `${property.area.toLocaleString()} sqm`
-								: "—"}
+							{property.area != null ? (
+								<AbbreviatedNumber mode="area" value={property.area} />
+							) : (
+								"—"
+							)}
 						</div>
 					</div>
 					<div>
@@ -848,6 +874,19 @@ function PropertyCard({
 						</div>
 					)}
 				</div>
+
+				{/* Parent estate breadcrumb */}
+				{isUnit && parentName && (
+					<div className="mt-3 pt-3 border-t border-divider flex items-center gap-1.5 text-xs text-outline">
+						<Layers className="w-3 h-3 shrink-0" />
+						<span>
+							Part of{" "}
+							<span className="font-medium text-on-surface-variant">
+								{parentName}
+							</span>
+						</span>
+					</div>
+				)}
 			</div>
 		</div>
 	);
@@ -876,7 +915,26 @@ export default function PropertiesPage() {
 	const error = queryError ? "Failed to load properties" : null;
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const updateProperty = useUpdateProperty();
+	const deleteProperty = useDeleteProperty();
 	const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
+
+	const handleDeleteProperty = useCallback(
+		(id: string, name: string) => {
+			if (
+				!window.confirm(
+					`Delete “${name}”? This cannot be undone.`,
+				)
+			) {
+				return;
+			}
+			deleteProperty.mutate(id, {
+				onSuccess: () => {
+					setSelectedId((sel) => (sel === id ? null : sel));
+				},
+			});
+		},
+		[deleteProperty],
+	);
 
 	function handleStatusToggle(id: string, newStatus: PropertyStatus) {
 		setPendingToggleId(id);
@@ -890,6 +948,19 @@ export default function PropertiesPage() {
 	const [search, setSearch] = useState("");
 	const [filterType, setFilterType] = useState<string>("");
 	const [filterStatus, setFilterStatus] = useState<string>("");
+	const [containment, setContainment] = usePersistedState<
+		"all" | "standalone" | "containers" | "units"
+	>("plotfolio:properties:containment", "all", {
+		validate: (v): v is "all" | "standalone" | "containers" | "units" =>
+			v === "all" || v === "standalone" || v === "containers" || v === "units",
+	});
+	const [groupMode, setGroupMode] = usePersistedState<"flat" | "grouped">(
+		"plotfolio:properties:groupMode",
+		"grouped",
+		{
+			validate: (v): v is "flat" | "grouped" => v === "flat" || v === "grouped",
+		},
+	);
 	const [sortBy, setSortBy] = useState<string>("newest");
 	const [viewMode, setViewMode] = usePersistedState<"card" | "table">(
 		"plotfolio:properties:viewMode",
@@ -905,6 +976,42 @@ export default function PropertiesPage() {
 			v === "typed" || v === "tight" || v === "slideshow",
 	});
 	const animate = useAnimateOnce("properties");
+	// Suppress skeleton flicker for fast / empty fetches (e.g. brand new accounts).
+	const showSkeleton = useDelayedFlag(authLoading || !user || loading, 250);
+
+	// Estate awareness for table view: map every parent id to its children
+	// (computed from the full unfiltered list so aggregation is stable even
+	// when child rows are hidden by the grouping filter).
+	const childrenByParent = useMemo(() => {
+		const map = new Map<string, Property[]>();
+		for (const p of properties) {
+			if (!p.parentPropertyId) continue;
+			const arr = map.get(p.parentPropertyId);
+			if (arr) arr.push(p);
+			else map.set(p.parentPropertyId, [p]);
+		}
+		return map;
+	}, [properties]);
+
+	// Which estate rows are expanded in the table view.
+	const [expandedEstates, setExpandedEstates] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const toggleEstateRow = useCallback((id: string) => {
+		setExpandedEstates((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
+			return next;
+		});
+	}, []);
+
+	// Lookup map: property id → name (used to render parent estate breadcrumb on unit cards)
+	const propertyNameById = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const p of properties) map.set(p.id, p.name);
+		return map;
+	}, [properties]);
 
 	// Filtered + sorted list
 	const filtered = useMemo(() => {
@@ -927,6 +1034,26 @@ export default function PropertiesPage() {
 
 		if (filterStatus) {
 			list = list.filter((p) => p.status === filterStatus);
+		}
+
+		// Containment filter (estate vs unit vs standalone)
+		if (containment === "containers") {
+			list = list.filter((p) => p.isContainer);
+		} else if (containment === "units") {
+			list = list.filter((p) => !!p.parentPropertyId);
+		} else if (containment === "standalone") {
+			list = list.filter((p) => !p.isContainer && !p.parentPropertyId);
+		}
+
+		// In grouped mode, units that have a parent in the visible set are
+		// folded into their parent's hover-popout and hidden from the main grid.
+		if (groupMode === "grouped" && containment !== "units") {
+			const containerIds = new Set(
+				list.filter((p) => p.isContainer).map((p) => p.id),
+			);
+			list = list.filter(
+				(p) => !p.parentPropertyId || !containerIds.has(p.parentPropertyId),
+			);
 		}
 
 		// Sort
@@ -970,10 +1097,22 @@ export default function PropertiesPage() {
 		});
 
 		return list;
-	}, [properties, search, filterType, filterStatus, sortBy]);
+	}, [
+		properties,
+		search,
+		filterType,
+		filterStatus,
+		sortBy,
+		containment,
+		groupMode,
+	]);
 
 	const hasActiveFilters =
-		search || filterType || filterStatus || sortBy !== "newest";
+		search ||
+		filterType ||
+		filterStatus ||
+		sortBy !== "newest" ||
+		containment !== "all";
 
 	// Summary stats
 	const totalValue = properties.reduce(
@@ -986,7 +1125,12 @@ export default function PropertiesPage() {
 		0,
 	);
 
-	const summaryStats = [
+	const summaryStats: Array<{
+		label: string;
+		value: React.ReactNode;
+		fullValue?: string;
+		icon: typeof Building2;
+	}> = [
 		{
 			label: "Properties",
 			value: String(properties.length),
@@ -994,12 +1138,14 @@ export default function PropertiesPage() {
 		},
 		{
 			label: "Portfolio Worth",
-			value: formatCurrency(totalValue),
+			value: <AbbreviatedNumber mode="currency" value={totalValue} />,
+			fullValue: formatCurrencyFull(totalValue),
 			icon: TrendingUp,
 		},
 		{
 			label: "Total Area",
-			value: `${totalArea.toLocaleString()} sqm`,
+			value: <AbbreviatedNumber mode="area" value={totalArea} />,
+			fullValue: `${totalArea.toLocaleString()} sqm`,
 			icon: MapPin,
 		},
 		{
@@ -1012,15 +1158,17 @@ export default function PropertiesPage() {
 	if (authLoading || !user || loading) {
 		return (
 			<AppShell>
-				<PropertiesPageSkeleton
-					header={
-						<PageHero
-							icon={Home}
-							title="My Properties"
-							description="Manage your properties — documents, valuations, and transaction records"
-						/>
-					}
-				/>
+				{showSkeleton ? (
+					<PropertiesPageSkeleton
+						header={
+							<PageHero
+								icon={Home}
+								title="My Properties"
+								description="Manage your properties — documents, valuations, and transaction records"
+							/>
+						}
+					/>
+				) : null}
 			</AppShell>
 		);
 	}
@@ -1053,6 +1201,7 @@ export default function PropertiesPage() {
 									<SummaryStatCard
 										label={stat.label}
 										value={stat.value}
+										fullValue={stat.fullValue}
 										icon={stat.icon}
 									/>
 								</div>
@@ -1140,6 +1289,55 @@ export default function PropertiesPage() {
 							</select>
 							<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-outline pointer-events-none" />
 						</div>
+
+						{/* Containment filter */}
+						<div className="flex items-center rounded-md border border-border bg-card p-0.5">
+							{(
+								[
+									{ k: "all", label: "All" },
+									{ k: "containers", label: "Estates" },
+									{ k: "units", label: "Units" },
+									{ k: "standalone", label: "Standalone" },
+								] as const
+							).map((o) => (
+								<button
+									key={o.k}
+									type="button"
+									onClick={() => setContainment(o.k)}
+									className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-sm transition-colors ${
+										containment === o.k
+											? "bg-blue-600 text-white"
+											: "text-outline hover:text-on-surface-variant"
+									}`}
+									title={`Show ${o.label}`}
+								>
+									{o.label}
+								</button>
+							))}
+						</div>
+
+						{/* Group toggle (only meaningful when not filtered to units) */}
+						{containment !== "units" && (
+							<button
+								type="button"
+								onClick={() =>
+									setGroupMode(groupMode === "grouped" ? "flat" : "grouped")
+								}
+								className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-1.5 rounded-md border transition-colors ${
+									groupMode === "grouped"
+										? "bg-blue-600 text-white border-blue-600"
+										: "bg-card text-outline border-border hover:text-on-surface-variant"
+								}`}
+								title={
+									groupMode === "grouped"
+										? "Units are folded under their estate"
+										: "Showing every property flat"
+								}
+							>
+								{groupMode === "grouped" ? "Grouped" : "Flat"}
+							</button>
+						)}
+
 						{/* Clear filters */}
 						{hasActiveFilters && (
 							<button
@@ -1148,6 +1346,7 @@ export default function PropertiesPage() {
 									setFilterType("");
 									setFilterStatus("");
 									setSortBy("newest");
+									setContainment("all");
 								}}
 								className="text-xs text-outline hover:text-primary underline underline-offset-2"
 							>
@@ -1223,13 +1422,19 @@ export default function PropertiesPage() {
 				)}
 
 				{/* States */}
-				{loading && <PropertyGridSkeleton count={6} />}
+				{loading && showSkeleton && <PropertyGridSkeleton count={6} />}
 
 				{error && <div className="text-center py-16 text-red-500">{error}</div>}
 
 				{!loading && !error && properties.length === 0 && (
-					<div className="text-center py-16 text-outline">
-						No properties found. Add your first property to get started.
+					<div className="flex flex-col items-center justify-center py-16 gap-4 text-outline">
+						<p className="text-center">
+							No properties found. Add your first property to get started.
+						</p>
+						<PrimaryButton href="/portfolio/properties/new">
+							<Plus className="w-4 h-4" />
+							Add Property
+						</PrimaryButton>
 					</div>
 				)}
 
@@ -1247,19 +1452,28 @@ export default function PropertiesPage() {
 								className="animate-fade-in-up"
 								style={{ animationDelay: `${(i % 6) * 0.07}s` }}
 							>
-								<PropertyCard
-									property={property}
-									onSelect={setSelectedId}
-									sharedFrom={sharedPortfolioName}
-									canEdit={activePermissions.canEditProperties}
-									onStatusToggle={
-										activePermissions.canEditProperties
-											? handleStatusToggle
-											: undefined
-									}
-									statusTogglePending={pendingToggleId === property.id}
-									mediaView={mediaView}
-								/>
+								{property.isContainer ? (
+									<EstateCard estate={property} onSelect={setSelectedId} />
+								) : (
+									<PropertyCard
+										property={property}
+										onSelect={setSelectedId}
+										sharedFrom={sharedPortfolioName}
+										canEdit={activePermissions.canEditProperties}
+										onStatusToggle={
+											activePermissions.canEditProperties
+												? handleStatusToggle
+												: undefined
+										}
+										statusTogglePending={pendingToggleId === property.id}
+										mediaView={mediaView}
+										parentName={
+											property.parentPropertyId
+												? propertyNameById.get(property.parentPropertyId)
+												: undefined
+										}
+									/>
+								)}
 							</div>
 						))}
 					</MasonryGrid>
@@ -1280,32 +1494,124 @@ export default function PropertiesPage() {
 									<th className="px-4 py-3 text-right">Qty</th>
 									<th className="px-4 py-3 text-right">Docs</th>
 									<th className="px-4 py-3 w-10">
-										<span className="sr-only">Edit</span>
+										<span className="sr-only">Delete</span>
 									</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-divider">
-								{filtered.map((property) => {
+								{filtered.flatMap((property) => {
+									const rows: React.ReactNode[] = [];
+									const isEstate = !!property.isContainer;
+									const children = isEstate
+										? (childrenByParent.get(property.id) ?? [])
+										: [];
+									const expanded = expandedEstates.has(property.id);
+									// "Effective" values used for the row's metric columns.
+									// For estates, when no manual override is provided, we
+									// aggregate from children. The same zero-skip fallback
+									// (currentValue → listingPrice → purchasePrice) used by
+									// EstateCard keeps figures consistent across views.
+									const pickValue = (u: Property) =>
+										(u.currentValue && u.currentValue > 0
+											? u.currentValue
+											: undefined) ??
+										(u.listingPrice && u.listingPrice > 0
+											? u.listingPrice
+											: undefined) ??
+										(u.purchasePrice && u.purchasePrice > 0
+											? u.purchasePrice
+											: undefined);
+									const childArea = children.reduce<number | null>(
+										(s, c) => (c.area != null ? (s ?? 0) + c.area : s),
+										null,
+									);
+									const childPurchase = children.reduce<number | null>(
+										(s, c) =>
+											c.purchasePrice && c.purchasePrice > 0
+												? (s ?? 0) + c.purchasePrice
+												: s,
+										null,
+									);
+									const childWorth = children.reduce<number | null>((s, c) => {
+										const v = pickValue(c);
+										return v != null ? (s ?? 0) + v : s;
+									}, null);
+									const autoCompute =
+										property.settings?.autoComputeWorth !== false;
+									const autoComputeArea =
+										property.settings?.autoComputeArea !== false;
+									const effArea =
+										isEstate && autoComputeArea && childArea != null
+											? childArea
+											: property.area;
+									const effPurchase =
+										isEstate &&
+										(property.purchasePrice ?? 0) === 0 &&
+										childPurchase != null
+											? childPurchase
+											: property.purchasePrice;
+									const effWorth =
+										isEstate && autoCompute && childWorth != null
+											? childWorth
+											: property.currentValue;
+									const effQty =
+										isEstate && children.length > 0
+											? children.length
+											: (property.quantity ?? 1) > 1
+												? property.quantity
+												: undefined;
 									const worthChange =
-										property.currentValue != null &&
-										(property.purchasePrice ?? 0) > 0
-											? ((property.currentValue - property.purchasePrice!) /
-													property.purchasePrice!) *
-												100
+										effWorth != null && (effPurchase ?? 0) > 0
+											? ((effWorth - effPurchase!) / effPurchase!) * 100
 											: null;
-									return (
+
+									rows.push(
 										<tr
 											key={property.id}
 											onClick={() => setSelectedId(property.id)}
-											className="cursor-pointer transition-colors hover:bg-surface-container"
+											className={`cursor-pointer transition-colors hover:bg-surface-container ${
+												isEstate ? "bg-surface-container/30" : ""
+											}`}
 										>
 											<td className="px-4 py-3 font-medium text-on-surface whitespace-nowrap">
 												<span className="flex items-center gap-2">
+													{isEstate && children.length > 0 ? (
+														<button
+															type="button"
+															onClick={(e) => {
+																e.stopPropagation();
+																toggleEstateRow(property.id);
+															}}
+															className="inline-flex items-center justify-center w-5 h-5 rounded text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors"
+															title={
+																expanded ? "Collapse units" : "Expand units"
+															}
+															aria-label={
+																expanded ? "Collapse units" : "Expand units"
+															}
+														>
+															{expanded ? (
+																<ChevronDown className="w-3.5 h-3.5" />
+															) : (
+																<ChevronRight className="w-3.5 h-3.5" />
+															)}
+														</button>
+													) : (
+														<span className="inline-block w-5" />
+													)}
+													{isEstate && (
+														<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300">
+															<Layers className="w-2.5 h-2.5" />
+															<span className="text-badge font-semibold uppercase tracking-wider">
+																Estate
+															</span>
+														</span>
+													)}
 													{property.name}
 													{sharedPortfolioName && (
 														<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300">
 															<Users className="w-2.5 h-2.5" />
-															<span className="text-[10px] font-medium">
+															<span className="text-badge font-medium">
 																Shared
 															</span>
 														</span>
@@ -1348,25 +1654,31 @@ export default function PropertiesPage() {
 												)}
 											</td>
 											<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
-												{property.area != null
-													? `${property.area.toLocaleString()} sqm`
-													: "—"}
+												{effArea != null ? (
+													<AbbreviatedNumber mode="area" value={effArea} />
+												) : (
+													"—"
+												)}
 											</td>
 											<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
-												{property.purchasePrice != null
-													? formatCurrency(
-															property.purchasePrice,
-															property.country,
-														)
-													: "—"}
+												{effPurchase != null && effPurchase > 0 ? (
+													<AbbreviatedNumber
+														mode="currency"
+														country={property.country}
+														value={effPurchase}
+													/>
+												) : (
+													"—"
+												)}
 											</td>
 											<td className="px-4 py-3 text-right whitespace-nowrap">
-												{property.currentValue != null ? (
+												{effWorth != null && effWorth > 0 ? (
 													<span className="text-on-surface font-medium">
-														{formatCurrency(
-															property.currentValue,
-															property.country,
-														)}
+														<AbbreviatedNumber
+															mode="currency"
+															country={property.country}
+															value={effWorth}
+														/>
 														{worthChange !== null && (
 															<span
 																className={`ml-1.5 text-xs ${
@@ -1385,25 +1697,171 @@ export default function PropertiesPage() {
 												)}
 											</td>
 											<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
-												{(property.quantity ?? 1) > 1 ? property.quantity : "—"}
+												{effQty != null ? (
+													isEstate ? (
+														<span className="inline-flex items-center gap-1 text-on-surface-variant">
+															{effQty}
+															<span className="text-badge uppercase tracking-wider">
+																units
+															</span>
+														</span>
+													) : (
+														effQty
+													)
+												) : (
+													"—"
+												)}
 											</td>
 											<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
 												{property.documents?.length ?? 0}
 											</td>
 											<td className="px-4 py-3 text-center whitespace-nowrap">
 												{activePermissions.canEditProperties && (
-													<a
-														href={`/portfolio/properties/${property.id}`}
-														onClick={(e) => e.stopPropagation()}
-														title="Edit property"
-														className="inline-flex p-1.5 rounded-lg text-outline hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
+													<button
+														type="button"
+														onClick={(e) => {
+															e.stopPropagation();
+															handleDeleteProperty(property.id, property.name);
+														}}
+														disabled={
+															deleteProperty.isPending &&
+															deleteProperty.variables === property.id
+														}
+														title="Delete property"
+														className="inline-flex p-1.5 rounded-lg text-outline hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
 													>
-														<Pencil className="w-3.5 h-3.5" />
-													</a>
+														<Trash2 className="w-3.5 h-3.5" />
+													</button>
 												)}
 											</td>
-										</tr>
+										</tr>,
 									);
+
+									if (isEstate && expanded && children.length > 0) {
+										for (const child of children) {
+											const childWorthValue = pickValue(child);
+											const childWorthChange =
+												childWorthValue != null &&
+												(child.purchasePrice ?? 0) > 0
+													? ((childWorthValue - child.purchasePrice!) /
+															child.purchasePrice!) *
+														100
+													: null;
+											rows.push(
+												<tr
+													key={`${property.id}-${child.id}`}
+													onClick={() => setSelectedId(child.id)}
+													className="cursor-pointer transition-colors hover:bg-surface-container bg-surface-container/10"
+												>
+													<td className="px-4 py-3 text-on-surface-variant whitespace-nowrap">
+														<span className="flex items-center gap-2 pl-8">
+															<span className="text-outline">↳</span>
+															<span className="text-on-surface">
+																{child.unitLabel || child.name}
+															</span>
+														</span>
+													</td>
+													<td className="px-4 py-3 text-on-surface-variant max-w-[200px] truncate">
+														{child.address || "—"}
+													</td>
+													<td className="px-4 py-3 whitespace-nowrap">
+														{child.propertyType ? (
+															<span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+																{getTypeLabel(child.propertyType)}
+															</span>
+														) : (
+															<span className="text-outline">—</span>
+														)}
+													</td>
+													<td className="px-4 py-3 whitespace-nowrap">
+														{child.status ? (
+															<span
+																className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(child.status)}`}
+															>
+																{child.status.replace(/_/g, " ").toUpperCase()}
+															</span>
+														) : (
+															<span className="text-outline">—</span>
+														)}
+													</td>
+													<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
+														{child.area != null ? (
+															<AbbreviatedNumber
+																mode="area"
+																value={child.area}
+															/>
+														) : (
+															"—"
+														)}
+													</td>
+													<td className="px-4 py-3 text-right text-on-surface-variant whitespace-nowrap">
+														{child.purchasePrice != null &&
+														child.purchasePrice > 0 ? (
+															<AbbreviatedNumber
+																mode="currency"
+																country={child.country}
+																value={child.purchasePrice}
+															/>
+														) : (
+															"—"
+														)}
+													</td>
+													<td className="px-4 py-3 text-right whitespace-nowrap">
+														{childWorthValue != null && childWorthValue > 0 ? (
+															<span className="text-on-surface font-medium">
+																<AbbreviatedNumber
+																	mode="currency"
+																	country={child.country}
+																	value={childWorthValue}
+																/>
+																{childWorthChange !== null && (
+																	<span
+																		className={`ml-1.5 text-xs ${
+																			childWorthChange >= 0
+																				? "text-green-600"
+																				: "text-red-600"
+																		}`}
+																	>
+																		{childWorthChange >= 0 ? "+" : ""}
+																		{childWorthChange.toFixed(1)}%
+																	</span>
+																)}
+															</span>
+														) : (
+															<span className="text-outline">—</span>
+														)}
+													</td>
+													<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
+														{(child.quantity ?? 1) > 1 ? child.quantity : "—"}
+													</td>
+													<td className="px-4 py-3 text-right text-outline whitespace-nowrap">
+														{child.documents?.length ?? 0}
+													</td>
+													<td className="px-4 py-3 text-center whitespace-nowrap">
+														{activePermissions.canEditProperties && (
+															<button
+																type="button"
+																onClick={(e) => {
+																	e.stopPropagation();
+																	handleDeleteProperty(child.id, child.name);
+																}}
+																disabled={
+																	deleteProperty.isPending &&
+																	deleteProperty.variables === child.id
+																}
+																title="Delete unit"
+																className="inline-flex p-1.5 rounded-lg text-outline hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+															>
+																<Trash2 className="w-3.5 h-3.5" />
+															</button>
+														)}
+													</td>
+												</tr>,
+											);
+										}
+									}
+
+									return rows;
 								})}
 							</tbody>
 						</table>

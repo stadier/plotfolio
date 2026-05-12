@@ -7,6 +7,7 @@ import {
 } from "@/components/PortfolioContext";
 import AppShell from "@/components/layout/AppShell";
 import PrimaryButton from "@/components/ui/PrimaryButton";
+import useDelayedFlag from "@/hooks/useDelayedFlag";
 import { PortfolioAPI } from "@/lib/api";
 import {
 	Briefcase,
@@ -55,6 +56,8 @@ export default function AllPortfoliosPage() {
 		: list;
 
 	const loading = authLoading || ctxLoading;
+	// Suppress spinner flicker for fast / empty fetches (e.g. brand new accounts).
+	const showLoading = useDelayedFlag(loading, 250);
 
 	function handleSelectPortfolio(p: PortfolioWithRole) {
 		setActivePortfolioId(p.id);
@@ -120,7 +123,7 @@ export default function AllPortfoliosPage() {
 				</div>
 
 				{/* Loading */}
-				{loading && (
+				{loading && showLoading && (
 					<div className="flex items-center justify-center py-20">
 						<Loader2 className="w-6 h-6 animate-spin text-primary" />
 					</div>
@@ -222,10 +225,10 @@ function PortfolioCard({
 	return (
 		<div
 			onClick={onSelect}
-			className="rounded-xl border border-border bg-card overflow-hidden cursor-pointer transition-shadow hover:shadow-lg group"
+			className="rounded-xl border border-border bg-card cursor-pointer transition-shadow hover:shadow-lg group relative"
 		>
 			{/* Cover / avatar area */}
-			<div className="h-32 relative bg-linear-to-br from-amber-400 via-orange-400 to-pink-400 overflow-hidden">
+			<div className="h-32 relative bg-linear-to-br from-amber-400 via-orange-400 to-pink-400 overflow-hidden rounded-t-xl">
 				{portfolio.avatar && (
 					<img
 						src={portfolio.avatar}

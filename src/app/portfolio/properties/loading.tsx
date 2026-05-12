@@ -1,19 +1,8 @@
 import AppShell from "@/components/layout/AppShell";
-import { PageHero, PropertiesPageSkeleton } from "@/components/ui/skeletons";
-import { Home } from "lucide-react";
 
+// Render an empty shell during the route transition. The page itself handles
+// a delayed skeleton, so brand-new accounts with no data resolve instantly
+// without a skeleton flash.
 export default function Loading() {
-	return (
-		<AppShell>
-			<PropertiesPageSkeleton
-				header={
-					<PageHero
-						icon={Home}
-						title="My Properties"
-						description="Manage your properties — documents, valuations, and transaction records"
-					/>
-				}
-			/>
-		</AppShell>
-	);
+	return <AppShell>{null}</AppShell>;
 }

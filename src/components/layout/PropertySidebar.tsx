@@ -1,7 +1,7 @@
 "use client";
 
 import { getStatusColor } from "@/components/property/propertyDisplayHelpers";
-import { formatCurrency } from "@/lib/utils";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import { Property, PropertyStatus } from "@/types/property";
 import { Filter, Search } from "lucide-react";
 import { useState } from "react";
@@ -132,10 +132,11 @@ export default function PropertySidebar({
 										</div>
 										<div className="mt-2">
 											<div className="text-sm font-medium text-on-surface">
-												{formatCurrency(
-													property.currentValue || 0,
-													property.country,
-												)}
+												<AbbreviatedNumber
+													mode="currency"
+													country={property.country}
+													value={property.currentValue || 0}
+												/>
 											</div>
 											<div className="text-xs text-outline">Current Value</div>
 										</div>

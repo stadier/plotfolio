@@ -3,6 +3,9 @@
 import { useFavourites } from "@/components/FavouritesContext";
 import AppShell from "@/components/layout/AppShell";
 import SaleStatusBadge from "@/components/sales/SaleStatusBadge";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
+import MasonryGrid from "@/components/ui/MasonryGrid";
+import NumberInput from "@/components/ui/NumberInput";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { MarketplaceCardSkeleton } from "@/components/ui/skeletons";
 import { useMarketplaceListings } from "@/hooks/usePropertyQueries";
@@ -282,7 +285,7 @@ function ListingCard({
 				</div>
 				{property.area != null && (
 					<div className="text-xs text-outline mb-3">
-						{property.area.toLocaleString()} sqm
+						<AbbreviatedNumber mode="area" value={property.area} />
 					</div>
 				)}
 				{/* Price row */}
@@ -493,20 +496,22 @@ function FilterSidebar({
 			>
 				<div className="flex items-center gap-2 mb-3">
 					<div className="flex-1">
-						<input
-							type="number"
-							value={minPrice}
-							onChange={(e) => onMinPriceChange(e.target.value)}
+						<NumberInput
+							value={minPrice === "" ? null : Number(minPrice)}
+							onValueChange={(v) =>
+								onMinPriceChange(v == null ? "" : String(v))
+							}
 							placeholder="min"
 							className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-surface-container focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-card"
 						/>
 					</div>
 					<span className="text-outline-variant">—</span>
 					<div className="flex-1">
-						<input
-							type="number"
-							value={maxPrice}
-							onChange={(e) => onMaxPriceChange(e.target.value)}
+						<NumberInput
+							value={maxPrice === "" ? null : Number(maxPrice)}
+							onValueChange={(v) =>
+								onMaxPriceChange(v == null ? "" : String(v))
+							}
 							placeholder="max"
 							className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-surface-container focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-card"
 						/>
@@ -698,15 +703,19 @@ function MarketplacePageContent() {
 		if (search.trim()) {
 			const q = search.trim().toLowerCase();
 
-			// PlotWords code match — filter by exact cell
+			// PlotWords code match — filter by exact (sticky) code
 			if (isPlotWordsCode(q)) {
-				list = list.filter(
-					(p) =>
+				list = list.filter((p) => {
+					if (p.plotWords) return p.plotWords === q;
+					if (
 						p.coordinates &&
 						p.coordinates.lat !== 0 &&
-						p.coordinates.lng !== 0 &&
-						toPlotWords(p.coordinates.lat, p.coordinates.lng) === q,
-				);
+						p.coordinates.lng !== 0
+					) {
+						return toPlotWords(p.coordinates.lat, p.coordinates.lng) === q;
+					}
+					return false;
+				});
 			} else {
 				list = list.filter(
 					(p) =>
@@ -975,13 +984,7 @@ function MarketplacePageContent() {
 									{filtered.length !== 1 ? "s" : ""}
 									{hasActiveFilters ? " (filtered)" : ""}
 								</div>
-								<div
-									className="grid gap-3 sm:gap-4 items-start"
-									style={{
-										gridTemplateColumns:
-											"repeat(auto-fill, minmax(min(240px, 100%), 1fr))",
-									}}
-								>
+								<MasonryGrid minColWidth={240} maxColWidth={320} gap={16}>
 									{filtered.map((property) => (
 										<ListingCard
 											key={property.id}
@@ -991,7 +994,7 @@ function MarketplacePageContent() {
 											onToggleFavourite={toggleFavourite}
 										/>
 									))}
-								</div>
+								</MasonryGrid>
 							</>
 						)}
 					</div>

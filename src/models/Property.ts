@@ -1,9 +1,10 @@
-import { toPlotWords } from "@/lib/plotwords";
+import { plotWordsAt } from "@/lib/plotwords";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
 	MediaType,
 	Property,
+	PropertyContainerKind,
 	PropertyDocument,
 	PropertyOwner,
 	PropertyStatus,
@@ -34,25 +35,28 @@ async function generateUniqueShortCode(): Promise<string> {
 }
 
 // Property Owner Schema
-const PropertyOwnerSchema = new Schema<PropertyOwner>({
-	id: { type: String, required: true },
-	name: { type: String, required: true },
-	username: { type: String, required: true },
-	displayName: { type: String, required: true },
-	avatar: { type: String },
-	banner: { type: String },
-	email: { type: String, required: true },
-	phone: { type: String },
-	type: {
-		type: String,
-		enum: ["individual", "company", "trust"],
-		required: true,
+const PropertyOwnerSchema = new Schema<PropertyOwner>(
+	{
+		id: { type: String, required: true },
+		name: { type: String, required: true },
+		username: { type: String, required: true },
+		displayName: { type: String, required: true },
+		avatar: { type: String },
+		banner: { type: String },
+		email: { type: String, required: true },
+		phone: { type: String },
+		type: {
+			type: String,
+			enum: ["individual", "company", "trust"],
+			required: true,
+		},
+		joinDate: { type: String },
+		salesCount: { type: Number, default: 0 },
+		followerCount: { type: Number, default: 0 },
+		allowBookings: { type: Boolean, default: false },
 	},
-	joinDate: { type: String },
-	salesCount: { type: Number, default: 0 },
-	followerCount: { type: Number, default: 0 },
-	allowBookings: { type: Boolean, default: false },
-});
+	{ _id: false },
+);
 
 // Survey Data Schema
 const SurveyCoordinateSchema = new Schema({
@@ -125,6 +129,8 @@ const PropertyStructureSchema = new Schema(
 		},
 		yearBuilt: { type: Number },
 		notes: { type: String },
+		completionPercent: { type: Number, min: 0, max: 100 },
+		expectedHandoverDate: { type: String },
 	},
 	{ _id: false },
 );
@@ -167,7 +173,10 @@ const PropertySchema = new Schema<Property & Document>(
 			lat: { type: Number, default: 0 },
 			lng: { type: Number, default: 0 },
 		},
-		plotWords: { type: String },
+		// Unique per property. Once allocated it is sticky — we do not
+		// reassign on coordinate updates. Sparse so legacy rows without a
+		// code do not collide on the unique index.
+		plotWords: { type: String, unique: true, sparse: true, index: true },
 		shortCode: { type: String, index: true },
 		area: { type: Number, default: 0 },
 		propertyType: {
@@ -221,6 +230,14 @@ const PropertySchema = new Schema<Property & Document>(
 		},
 		quantity: { type: Number, default: 1 },
 		structure: { type: PropertyStructureSchema },
+		// Estate / multi-unit hierarchy (TODO #47)
+		parentPropertyId: { type: String, index: true },
+		unitLabel: { type: String },
+		isContainer: { type: Boolean, default: false, index: true },
+		containerKind: {
+			type: String,
+			enum: [...Object.values(PropertyContainerKind), null],
+		},
 		bedrooms: { type: Number },
 		bathrooms: { type: Number },
 		parkingSpaces: { type: Number },
@@ -247,6 +264,8 @@ const PropertySchema = new Schema<Property & Document>(
 			showContactInfo: { type: Boolean, default: true },
 			allowBookings: { type: Boolean, default: false },
 			showLocation: { type: Boolean, default: true },
+			autoComputeWorth: { type: Boolean, default: true },
+			autoComputeArea: { type: Boolean, default: true },
 		},
 	},
 	{
@@ -288,6 +307,46 @@ export const DocumentAccessRequestModel =
 	mongoose.models.DocumentAccessRequest ||
 	mongoose.model("DocumentAccessRequest", DocumentAccessRequestSchema);
 
+// Maximum collision-resolution attempts when allocating a unique PlotWords
+// code. 4096 covers extreme density (e.g. dozens of units in a single
+// estate sharing one lat/lng) while keeping the lookup bounded.
+const PLOTWORDS_MAX_ATTEMPTS = 4096;
+
+/**
+ * Allocate a unique PlotWords code for the given coordinates. Returns the
+ * natural code (offset 0) when free; otherwise walks deterministic
+ * neighbouring triplets until a free code is found. Returns `null` if the
+ * coordinates are invalid or no free code is available within the search
+ * bound.
+ *
+ * Pass `excludeId` to treat the caller's own existing code as free
+ * (used during re-backfill of the same property).
+ */
+export async function allocateUniquePlotWords(
+	lat: number | undefined,
+	lng: number | undefined,
+	excludeId?: string,
+): Promise<string | null> {
+	if (
+		typeof lat !== "number" ||
+		typeof lng !== "number" ||
+		(lat === 0 && lng === 0)
+	) {
+		return null;
+	}
+
+	for (let offset = 0; offset < PLOTWORDS_MAX_ATTEMPTS; offset++) {
+		const code = plotWordsAt(lat, lng, offset);
+		const existing = await PropertyModel.findOne({ plotWords: code })
+			.select({ id: 1 })
+			.lean();
+		if (!existing) return code;
+		if (excludeId && (existing as any).id === excludeId) return code;
+	}
+
+	return null;
+}
+
 // Ensure numeric fields always default to 0 (handles existing docs missing values)
 function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
 	prop.area = prop.area || 0;
@@ -298,15 +357,18 @@ function sanitizeProperty(prop: Record<string, any>): Record<string, any> {
 	if (prop.coordinates) {
 		prop.coordinates.lat = prop.coordinates.lat || 0;
 		prop.coordinates.lng = prop.coordinates.lng || 0;
-		if (prop.coordinates.lat !== 0 || prop.coordinates.lng !== 0) {
-			prop.plotWords = toPlotWords(prop.coordinates.lat, prop.coordinates.lng);
-		}
 	}
+	// NOTE: plotWords is intentionally NOT computed here. It is allocated
+	// (uniquely) in createProperty / the backfill route and is sticky.
 	if (prop.media) {
 		prop.media = prop.media.map((m: any) => {
 			const { _id, ...rest } = m;
 			return rest;
 		});
+	}
+	if (prop.owner) {
+		const { _id, ...ownerRest } = prop.owner;
+		prop.owner = ownerRest;
 	}
 	if (prop.surveyData) {
 		prop.surveyData.area = prop.surveyData.area || 0;
@@ -393,9 +455,16 @@ export class PropertyService {
 			portfolioId?: string | null;
 			statuses?: string[];
 			includeDocuments?: boolean;
+			parentPropertyId?: string | null;
 		} = {},
 	): Promise<Property[]> {
-		const { ownerId, portfolioId, statuses, includeDocuments = true } = filter;
+		const {
+			ownerId,
+			portfolioId,
+			statuses,
+			includeDocuments = true,
+			parentPropertyId,
+		} = filter;
 		const query: Record<string, unknown> = {};
 		// Caller may supply both ownerId and portfolioId ("my own portfolio")
 		// in which case match either condition to handle stale portfolioIds.
@@ -408,6 +477,9 @@ export class PropertyService {
 		}
 		if (statuses && statuses.length > 0) {
 			query.status = { $in: statuses };
+		}
+		if (parentPropertyId) {
+			query.parentPropertyId = parentPropertyId;
 		}
 
 		const properties = await PropertyModel.find(query).lean();
@@ -457,6 +529,13 @@ export class PropertyService {
 		if (!property.shortCode) {
 			property.shortCode = await generateUniqueShortCode();
 		}
+		if (!property.plotWords) {
+			const code = await allocateUniquePlotWords(
+				property.coordinates?.lat,
+				property.coordinates?.lng,
+			);
+			if (code) property.plotWords = code;
+		}
 		const created = await PropertyModel.create(property);
 		const obj = created.toObject();
 		const { _id, __v, ...cleanProp } = obj as any;
@@ -471,11 +550,17 @@ export class PropertyService {
 		updates: Partial<Property>,
 	): Promise<Property | null> {
 		// `documents` is not a real schema field anymore \u2014 strip it before save.
-		const { documents: _ignoredDocs, ...safeUpdates } =
-			updates as Partial<Property> & {
-				documents?: unknown;
-			};
+		// `plotWords` is sticky once assigned \u2014 callers cannot overwrite it via PUT.
+		const {
+			documents: _ignoredDocs,
+			plotWords: _ignoredPlotWords,
+			...safeUpdates
+		} = updates as Partial<Property> & {
+			documents?: unknown;
+			plotWords?: unknown;
+		};
 		void _ignoredDocs;
+		void _ignoredPlotWords;
 		// Run the update and the document join in parallel \u2014 the docs query
 		// only needs the id, not the updated property.
 		const { AIDocumentModel } = await import("@/models/AIDocument");
@@ -488,6 +573,29 @@ export class PropertyService {
 		]);
 
 		if (!updated) return null;
+
+		// `findOneAndUpdate(...).lean()` is typed too loosely (union with array);
+		// narrow it once here so the rest of the block stays type-safe.
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const updatedDoc = updated as any as Property;
+
+		// Legacy/coordinate-added rows: if the property now has valid coords
+		// but no sticky plotWords code yet, allocate one. Stays sticky after.
+		if (
+			!updatedDoc.plotWords &&
+			updatedDoc.coordinates?.lat &&
+			updatedDoc.coordinates?.lng
+		) {
+			const code = await allocateUniquePlotWords(
+				updatedDoc.coordinates.lat,
+				updatedDoc.coordinates.lng,
+				id,
+			);
+			if (code) {
+				await PropertyModel.updateOne({ id }, { $set: { plotWords: code } });
+				updatedDoc.plotWords = code;
+			}
+		}
 
 		const { _id, __v, ...cleanProp } = updated as any;
 		const sanitized = sanitizeProperty(cleanProp) as Property;

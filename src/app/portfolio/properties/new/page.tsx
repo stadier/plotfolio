@@ -3,6 +3,7 @@
 import AppShell from "@/components/layout/AppShell";
 import CreatePropertyForm from "@/components/property/CreatePropertyForm";
 import BackButton from "@/components/ui/BackButton";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 function generatePropertyName(): string {
@@ -15,6 +16,8 @@ function generatePropertyName(): string {
 
 export default function NewPropertyPage() {
 	const [propertyName, setPropertyName] = useState("");
+	const searchParams = useSearchParams();
+	const parentId = searchParams.get("parentId") ?? undefined;
 
 	useEffect(() => {
 		setPropertyName(generatePropertyName());
@@ -38,6 +41,7 @@ export default function NewPropertyPage() {
 				<CreatePropertyForm
 					initialName={propertyName}
 					onNameChange={setPropertyName}
+					initialParentId={parentId}
 				/>
 			</div>
 		</AppShell>

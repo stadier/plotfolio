@@ -6,6 +6,7 @@ import BackButton from "@/components/ui/BackButton";
 import { FormSkeleton, PageHeadingSkeleton } from "@/components/ui/skeletons";
 import { useProperty } from "@/hooks/usePropertyQueries";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { use } from "react";
 
 export default function EditPropertyPage({
@@ -15,6 +16,9 @@ export default function EditPropertyPage({
 }) {
 	const { id } = use(params);
 	const { data: property, isLoading, error } = useProperty(id);
+	const searchParams = useSearchParams();
+	const from = searchParams.get("from");
+	const redirectTo = from === "list" ? "/portfolio/properties" : undefined;
 
 	if (isLoading) {
 		return (
@@ -51,7 +55,7 @@ export default function EditPropertyPage({
 			<div className="bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 sticky top-0 z-10">
 				<div className="flex items-center gap-2 sm:gap-3 min-w-0">
 					<BackButton
-						fallbackHref={`/portfolio/properties/${id}`}
+						fallbackHref={redirectTo ?? `/portfolio/properties/${id}`}
 						label="Back"
 					/>
 					<span className="text-outline hidden sm:inline">/</span>
@@ -61,7 +65,7 @@ export default function EditPropertyPage({
 				</div>
 			</div>
 
-			<CreatePropertyForm initialProperty={property} />
+			<CreatePropertyForm initialProperty={property} redirectTo={redirectTo} />
 		</AppShell>
 	);
 }

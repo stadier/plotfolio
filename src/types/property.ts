@@ -29,6 +29,21 @@ export interface PropertyStructure {
 	occupancyStatus?: StructureOccupancyStatus;
 	yearBuilt?: number;
 	notes?: string;
+	/** Construction completion percentage (0–100). Drives off-plan vs ready badges. */
+	completionPercent?: number;
+	/** Expected handover/completion date for off-plan units. ISO string. */
+	expectedHandoverDate?: string;
+}
+
+/**
+ * What kind of "container" a Property is when it groups other Properties.
+ * Pure UX hint — used for labelling only. Data model is uniform.
+ */
+export enum PropertyContainerKind {
+	ESTATE = "estate",
+	PHASE = "phase",
+	BUILDING = "building",
+	SUBDIVISION = "subdivision",
 }
 
 export enum MediaType {
@@ -108,6 +123,15 @@ export interface Property {
 	visibility?: PropertyVisibility; // Profile/search visibility — defaults to private
 	quantity?: number; // Number of identical units (e.g. 10 plots in the same location)
 	structure?: PropertyStructure; // Existing structure details for land with improvements
+	// Estate / multi-unit hierarchy (TODO #47).
+	/** Parent property id when this property is a unit inside an estate / building / phase. */
+	parentPropertyId?: string;
+	/** Human-readable unit identifier within the parent (e.g. "Block C / Plot 14", "Apt 3B"). */
+	unitLabel?: string;
+	/** When true, this property is itself an estate / building / phase containing child units. */
+	isContainer?: boolean;
+	/** Optional UX hint for what kind of container this is. */
+	containerKind?: PropertyContainerKind;
 	// Building details
 	bedrooms?: number;
 	bathrooms?: number;
@@ -162,6 +186,20 @@ export interface PropertySettings {
 	allowBookings?: boolean;
 	/** Show exact map coordinates/location to public visitors (default: true) */
 	showLocation?: boolean;
+	/**
+	 * For container properties (estates / phases / buildings): when true,
+	 * the container's worth is automatically derived from the sum of its
+	 * child unit values. Auto-disables when the owner manually edits the
+	 * container's currentValue. Default: true.
+	 */
+	autoComputeWorth?: boolean;
+	/**
+	 * For container properties (estates / phases / buildings): when true,
+	 * the container's area is automatically derived from the sum of its
+	 * child unit areas. Auto-disables when the owner manually edits the
+	 * container's area. Default: true.
+	 */
+	autoComputeArea?: boolean;
 }
 
 export interface PropertyOwner {
@@ -252,6 +290,7 @@ export enum PropertyStatus {
 	FOR_SALE = "for_sale",
 	FOR_RENT = "for_rent",
 	FOR_LEASE = "for_lease",
+	RESERVED = "reserved",
 	UNDER_CONTRACT = "under_contract",
 	RENTED = "rented",
 	LEASED = "leased",
@@ -268,6 +307,8 @@ export const STATUS_DESCRIPTIONS: Record<PropertyStatus, string> = {
 		"Available for short-term rental (month-to-month, flexible terms).",
 	[PropertyStatus.FOR_LEASE]:
 		"Available for long-term lease (fixed contract, e.g. 1–5 years).",
+	[PropertyStatus.RESERVED]:
+		"Held by a buyer with a reservation deposit while paperwork is prepared.",
 	[PropertyStatus.UNDER_CONTRACT]:
 		"A sale, rent, or lease agreement is in progress.",
 	[PropertyStatus.RENTED]:
@@ -570,6 +611,19 @@ export interface Booking {
 	proposedTime?: string; // owner-proposed reschedule time (HH:mm)
 	createdAt?: string;
 	updatedAt?: string;
+	// Hydrated by GET /api/bookings — not stored on the document.
+	property?: {
+		id: string;
+		name: string;
+		address?: string;
+		image?: string;
+	};
+	ownerInfo?: {
+		id: string;
+		name: string;
+		email?: string;
+		avatar?: string;
+	};
 }
 
 /* ─── Ownership Transfer ──────────────────────────────────────── */

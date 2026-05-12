@@ -11,7 +11,11 @@ import {
 	type EnqueueInput,
 	useUploads,
 } from "@/components/uploads/UploadContext";
-import { queryKeys, useProviderSettings } from "@/hooks/usePropertyQueries";
+import {
+	queryKeys,
+	useProperty,
+	useProviderSettings,
+} from "@/hooks/usePropertyQueries";
 import { invalidateCachedGet } from "@/lib/clientCache";
 import {
 	extractFieldsFromDocument,
@@ -24,6 +28,7 @@ import {
 	MediaType,
 	Property,
 	PropertyCondition,
+	PropertyContainerKind,
 	PropertyDocument,
 	PropertyStatus,
 	PropertyType,
@@ -35,6 +40,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
 	Camera,
 	FileText,
+	Layers,
 	Loader2,
 	MapPin,
 	Save,
@@ -129,12 +135,20 @@ const ZONING_LABELS: Record<ZoningType, string> = {
 const STATUS_LABELS: Record<PropertyStatus, string> = {
 	[PropertyStatus.OWNED]: "Owned",
 	[PropertyStatus.UNDER_CONTRACT]: "Under Contract",
+	[PropertyStatus.RESERVED]: "Reserved",
 	[PropertyStatus.FOR_SALE]: "For Sale",
 	[PropertyStatus.FOR_RENT]: "For Rent",
 	[PropertyStatus.FOR_LEASE]: "For Lease",
 	[PropertyStatus.RENTED]: "Rented",
 	[PropertyStatus.LEASED]: "Leased",
 	[PropertyStatus.DEVELOPMENT]: "Development",
+};
+
+const CONTAINER_KIND_LABELS: Record<PropertyContainerKind, string> = {
+	[PropertyContainerKind.ESTATE]: "Estate",
+	[PropertyContainerKind.PHASE]: "Phase",
+	[PropertyContainerKind.BUILDING]: "Building",
+	[PropertyContainerKind.SUBDIVISION]: "Subdivision",
 };
 
 const OWNER_TYPES = [
@@ -438,12 +452,18 @@ interface CreatePropertyFormProps {
 	onNameChange?: (name: string) => void;
 	/** When provided, the form operates in edit mode (PUT instead of POST). */
 	initialProperty?: Property;
+	/** Pre-fill parent property (used when adding a unit from an estate page). */
+	initialParentId?: string;
+	/** Override where to navigate on successful save. */
+	redirectTo?: string;
 }
 
 export default function CreatePropertyForm({
 	initialName,
 	onNameChange,
 	initialProperty,
+	initialParentId,
+	redirectTo,
 }: CreatePropertyFormProps) {
 	const router = useRouter();
 	const { user } = useAuth();
@@ -464,6 +484,9 @@ export default function CreatePropertyForm({
 
 	/* basic info */
 	const [name, setName] = useState(initialProperty?.name || initialName || "");
+	const [nameTouched, setNameTouched] = useState(
+		Boolean(initialProperty?.name || initialName),
+	);
 	useEffect(() => {
 		if (initialName) setName(initialName);
 	}, [initialName]);
@@ -549,6 +572,67 @@ export default function CreatePropertyForm({
 	const [structureNotes, setStructureNotes] = useState(
 		initialProperty?.structure?.notes || "",
 	);
+	const [structureCompletionPercent, setStructureCompletionPercent] = useState(
+		initialProperty?.structure?.completionPercent != null
+			? String(initialProperty.structure.completionPercent)
+			: "",
+	);
+	const [structureExpectedHandoverDate, setStructureExpectedHandoverDate] =
+		useState(initialProperty?.structure?.expectedHandoverDate || "");
+
+	/* estate / multi-unit hierarchy (TODO #47) */
+	const [isContainer, setIsContainer] = useState(
+		Boolean(initialProperty?.isContainer),
+	);
+	const [containerKind, setContainerKind] = useState<
+		PropertyContainerKind | ""
+	>(initialProperty?.containerKind || "");
+	const [parentPropertyId, setParentPropertyId] = useState(
+		initialProperty?.parentPropertyId || initialParentId || "",
+	);
+	const [unitLabel, setUnitLabel] = useState(initialProperty?.unitLabel || "");
+
+	/**
+	 * Unit creation mode: when initialParentId is provided (and we're not editing
+	 * an existing property), the form behaves as a "new unit of estate X" form —
+	 * we fetch the parent and prefill blank fields from it (still editable).
+	 */
+	const isUnitMode = !isEdit && !!initialParentId && !isContainer;
+	const { data: parentProperty } = useProperty(initialParentId ?? "");
+
+	// One-shot prefill from parent: only fill fields that are still empty so
+	// we don't clobber anything the user typed before the parent loaded.
+	const prefilledFromParentRef = useRef(false);
+	useEffect(() => {
+		if (!isUnitMode || !parentProperty || prefilledFromParentRef.current)
+			return;
+		prefilledFromParentRef.current = true;
+		setAddress((v) => v || parentProperty.address || "");
+		setCountry((v) => v || parentProperty.country || "");
+		setCity((v) => v || parentProperty.city || "");
+		setOwnerName((v) => v || parentProperty.owner?.name || "");
+		if (parentProperty.coordinates?.lat != null) {
+			setLat((v) => v || String(parentProperty.coordinates!.lat));
+		}
+		if (parentProperty.coordinates?.lng != null) {
+			setLng((v) => v || String(parentProperty.coordinates!.lng));
+		}
+		setPropertyType((v) =>
+			v === PropertyType.LAND
+				? (parentProperty.propertyType ?? PropertyType.LAND)
+				: v,
+		);
+	}, [isUnitMode, parentProperty]);
+
+	// Auto-derive name from "{parent} — {unitLabel}" until the user types one.
+	useEffect(() => {
+		if (!isUnitMode || nameTouched || !parentProperty) return;
+		const derived = unitLabel.trim()
+			? `${parentProperty.name} — ${unitLabel.trim()}`
+			: parentProperty.name;
+		setName(derived);
+	}, [isUnitMode, nameTouched, parentProperty, unitLabel]);
+
 	// One-way sync: keep checkbox in sync when the user edits the
 	// conditions chip list directly. Checkbox → conditions is handled
 	// atomically in the onChange handler to avoid effect ping-pong.
@@ -617,6 +701,12 @@ export default function CreatePropertyForm({
 		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		return parts.join(".");
 	});
+	// Tracks whether the user manually edited Current Value (vs. it being
+	// auto-populated from initial data or document extraction). Used to flip
+	// `settings.autoComputeWorth` off for container properties on submit.
+	const currentValueManuallyEditedRef = useRef(false);
+	// Same idea for Area, controlling `settings.autoComputeArea`.
+	const areaManuallyEditedRef = useRef(false);
 	const [soldPrice, setSoldPrice] = useState(() => {
 		if (!initialProperty?.soldPrice) return "";
 		const raw = String(initialProperty.soldPrice);
@@ -928,6 +1018,10 @@ export default function CreatePropertyForm({
 			structureOccupancyStatus,
 			structureYearBuilt,
 			structureNotes,
+			structureCompletionPercent,
+			structureExpectedHandoverDate,
+			unitLabel,
+			parentPropertyId,
 			propertyState,
 			city,
 			country,
@@ -974,6 +1068,23 @@ export default function CreatePropertyForm({
 				currentValue: currentValue
 					? parseFloat(currentValue.replace(/,/g, ""))
 					: undefined,
+				// If this is a container and the user manually edited Current
+				// Value or Area, disable the corresponding auto-compute-from-
+				// children behaviour.
+				settings:
+					isContainer &&
+					(currentValueManuallyEditedRef.current ||
+						areaManuallyEditedRef.current)
+						? {
+								...(initialProperty?.settings ?? {}),
+								...(currentValueManuallyEditedRef.current
+									? { autoComputeWorth: false }
+									: {}),
+								...(areaManuallyEditedRef.current
+									? { autoComputeArea: false }
+									: {}),
+							}
+						: undefined,
 				soldPrice: soldPrice
 					? parseFloat(soldPrice.replace(/,/g, ""))
 					: undefined,
@@ -982,6 +1093,14 @@ export default function CreatePropertyForm({
 				conditions:
 					normalizedConditions.length > 0 ? normalizedConditions : undefined,
 				quantity: quantity ? Math.max(1, parseInt(quantity, 10)) : 1,
+				// Estate / multi-unit hierarchy (TODO #47)
+				isContainer: isContainer || undefined,
+				containerKind: isContainer ? containerKind || undefined : undefined,
+				parentPropertyId:
+					!isContainer && parentPropertyId.trim()
+						? parentPropertyId.trim()
+						: undefined,
+				unitLabel: unitLabel.trim() || undefined,
 				structure: structureEnabled
 					? {
 							name: structureName.trim() || undefined,
@@ -1005,6 +1124,14 @@ export default function CreatePropertyForm({
 								? parseInt(structureYearBuilt, 10)
 								: undefined,
 							notes: structureNotes.trim() || undefined,
+							completionPercent: structureCompletionPercent
+								? Math.min(
+										100,
+										Math.max(0, parseFloat(structureCompletionPercent)),
+									)
+								: undefined,
+							expectedHandoverDate:
+								structureExpectedHandoverDate.trim() || undefined,
 						}
 					: undefined,
 				bedrooms:
@@ -1206,7 +1333,8 @@ export default function CreatePropertyForm({
 			invalidateCachedGet(/\/api\/properties(?:\/|\?|$)/);
 
 			router.push(
-				isEdit ? `/portfolio/properties/${id}` : "/portfolio/properties",
+				redirectTo ??
+					(isEdit ? `/portfolio/properties/${id}` : "/portfolio/properties"),
 			);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Something went wrong");
@@ -1315,6 +1443,50 @@ export default function CreatePropertyForm({
 							>
 								{/* ── Basic Info ──────────────────────────── */}
 								<FormSection title="Basic Information">
+									{isUnitMode && parentProperty && (
+										<div className="mb-4 flex items-start gap-3 rounded-md border border-primary/30 bg-primary/5 p-3 max-w-xl">
+											<Layers className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+											<div className="min-w-0 flex-1">
+												<div className="text-[11px] uppercase tracking-wide font-bold text-primary">
+													Adding unit to{" "}
+													{parentProperty.containerKind
+														? CONTAINER_KIND_LABELS[
+																parentProperty.containerKind
+															]?.toLowerCase()
+														: "estate"}
+												</div>
+												<div className="font-headline font-bold text-sm text-on-surface truncate">
+													{parentProperty.name}
+												</div>
+												{parentProperty.address && (
+													<div className="text-xs text-outline truncate">
+														{parentProperty.address}
+													</div>
+												)}
+												<p className="text-[11px] text-outline mt-1">
+													Fields below are pre-filled from the parent — edit
+													anything that should differ for this unit.
+												</p>
+											</div>
+										</div>
+									)}
+									{isUnitMode && (
+										<div className="mb-4 max-w-xl">
+											<Field
+												label="Unit Label"
+												hint="How this unit is identified inside its parent (e.g. Block C / Plot 14, Apt 3B)."
+											>
+												<input
+													type="text"
+													className={inputCls}
+													placeholder="e.g. Block C / Plot 14, Apt 3B"
+													value={unitLabel}
+													onChange={(e) => setUnitLabel(e.target.value)}
+													autoFocus
+												/>
+											</Field>
+										</div>
+									)}
 									<div className="grid grid-cols-1 gap-4">
 										<Field label="Property Name">
 											<input
@@ -1323,6 +1495,7 @@ export default function CreatePropertyForm({
 												value={name}
 												onChange={(e) => {
 													setName(e.target.value);
+													setNameTouched(true);
 													onNameChange?.(e.target.value);
 												}}
 											/>
@@ -1408,7 +1581,10 @@ export default function CreatePropertyForm({
 												className={inputCls}
 												placeholder="e.g. 800"
 												value={area}
-												onChange={(e) => setArea(e.target.value)}
+												onChange={(e) => {
+													areaManuallyEditedRef.current = true;
+													setArea(e.target.value);
+												}}
 												min={0}
 												step="any"
 											/>
@@ -1471,6 +1647,184 @@ export default function CreatePropertyForm({
 											}
 											placeholder="e.g. Cleared, Fenced, Flat terrain…"
 										/>
+									</div>
+								</FormSection>
+
+								{/* ── Location ────────────────────────────── */}
+								<FormSection title="Location">
+									{/* Map preview + prompt bar */}
+									<div className="rounded-sm border border-border overflow-hidden">
+										<div
+											className="relative w-full bg-surface-container cursor-pointer"
+											style={{ height: 360 }}
+											onClick={() => setMapPickerOpen(true)}
+										>
+											{lat && lng ? (
+												<LocationPreviewComponent
+													lat={parseFloat(lat)}
+													lng={parseFloat(lng)}
+													onClick={() => setMapPickerOpen(true)}
+												/>
+											) : (
+												<div className="w-full h-full flex flex-col items-center justify-center gap-2 text-outline">
+													<MapPin className="w-8 h-8 opacity-40" />
+													<span className="text-xs">No location selected</span>
+												</div>
+											)}
+										</div>
+										<button
+											type="button"
+											onClick={() => setMapPickerOpen(true)}
+											className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-card hover:bg-surface-container-high transition-colors text-primary font-label border-t border-border"
+										>
+											<MapPin className="w-3.5 h-3.5" />
+											{lat && lng ? "Change location" : "Pick a location"}
+										</button>
+									</div>
+
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+										<Field label="Latitude">
+											<input
+												type="number"
+												className={inputCls}
+												placeholder="e.g. 40.7128"
+												value={lat}
+												onChange={(e) => setLat(e.target.value)}
+												step="any"
+											/>
+										</Field>
+
+										<Field label="Longitude">
+											<input
+												type="number"
+												className={inputCls}
+												placeholder="e.g. -74.0060"
+												value={lng}
+												onChange={(e) => setLng(e.target.value)}
+												step="any"
+											/>
+										</Field>
+									</div>
+
+									<p className="mt-2 text-xs text-outline font-body">
+										Coordinates in decimal degrees.
+									</p>
+
+									<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+										<Field label="Country">
+											<select
+												className={selectCls}
+												value={country}
+												onChange={(e) => setCountry(e.target.value)}
+											>
+												<option value="">Select country</option>
+												{COUNTRIES.map((c) => (
+													<option key={c} value={c}>
+														{c}
+													</option>
+												))}
+											</select>
+										</Field>
+
+										<Field label="State">
+											<input
+												className={inputCls}
+												placeholder="e.g. California"
+												value={propertyState}
+												onChange={(e) => setPropertyState(e.target.value)}
+											/>
+										</Field>
+
+										<Field label="City">
+											<input
+												className={inputCls}
+												placeholder="e.g. Los Angeles"
+												value={city}
+												onChange={(e) => setCity(e.target.value)}
+											/>
+										</Field>
+									</div>
+								</FormSection>
+
+								{/* ── Estate / Hierarchy (TODO #47) ───────── */}
+								<FormSection title="Estate / Hierarchy">
+									<div className="space-y-4">
+										{!isUnitMode && (
+											<label className="flex items-start gap-3 rounded-md border border-border bg-surface-container px-4 py-3 cursor-pointer max-w-xl">
+												<input
+													type="checkbox"
+													className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
+													checked={isContainer}
+													onChange={(e) => {
+														setIsContainer(e.target.checked);
+														if (e.target.checked) setParentPropertyId("");
+													}}
+												/>
+												<div className="flex flex-col gap-0.5">
+													<span className="text-sm font-medium text-on-surface">
+														This property contains other units
+													</span>
+													<span className="text-[11px] text-outline">
+														Turn on for an estate, building, phase or
+														subdivision. Individual units are added as separate
+														properties that link back here.
+													</span>
+												</div>
+											</label>
+										)}
+										{isContainer ? (
+											<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+												<Field label="Container Type">
+													<select
+														className={selectCls}
+														value={containerKind}
+														onChange={(e) =>
+															setContainerKind(
+																e.target.value as PropertyContainerKind | "",
+															)
+														}
+													>
+														<option value="">— Select —</option>
+														{Object.entries(CONTAINER_KIND_LABELS).map(
+															([value, label]) => (
+																<option key={value} value={value}>
+																	{label}
+																</option>
+															),
+														)}
+													</select>
+												</Field>
+											</div>
+										) : (
+											<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+												<Field
+													label="Parent Property ID"
+													hint="Optional. Paste the id of an estate / building this unit belongs to."
+												>
+													<input
+														type="text"
+														className={inputCls}
+														placeholder="e.g. 9b3a7e2f-…"
+														value={parentPropertyId}
+														onChange={(e) =>
+															setParentPropertyId(e.target.value)
+														}
+													/>
+												</Field>
+												<Field
+													label="Unit Label"
+													hint="How this unit is identified inside its parent."
+												>
+													<input
+														type="text"
+														className={inputCls}
+														placeholder="e.g. Block C / Plot 14, Apt 3B"
+														value={unitLabel}
+														onChange={(e) => setUnitLabel(e.target.value)}
+													/>
+												</Field>
+											</div>
+										)}
 									</div>
 								</FormSection>
 
@@ -1648,243 +2002,44 @@ export default function CreatePropertyForm({
 															}
 														/>
 													</Field>
+
+													{/* Off-plan progress (TODO #50) */}
+													<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+														<Field
+															label="Completion %"
+															hint="0–100. Drives the off-plan vs ready badge on the marketplace."
+														>
+															<input
+																type="number"
+																className={inputCls}
+																placeholder="e.g. 65"
+																value={structureCompletionPercent}
+																onChange={(e) =>
+																	setStructureCompletionPercent(e.target.value)
+																}
+																min={0}
+																max={100}
+																step="1"
+															/>
+														</Field>
+														<Field label="Expected Handover Date">
+															<input
+																type="date"
+																className={inputCls}
+																value={structureExpectedHandoverDate}
+																onChange={(e) =>
+																	setStructureExpectedHandoverDate(
+																		e.target.value,
+																	)
+																}
+															/>
+														</Field>
+													</div>
 												</>
 											)}
 										</div>
 									</FormSection>
 								)}
-
-								{/* ── Location ────────────────────────────── */}
-								<FormSection title="Location">
-									{/* Map preview + prompt bar */}
-									<div className="rounded-sm border border-border overflow-hidden max-w-md">
-										<div
-											className="relative w-full bg-surface-container cursor-pointer"
-											style={{ height: 180 }}
-											onClick={() => setMapPickerOpen(true)}
-										>
-											{lat && lng ? (
-												<LocationPreviewComponent
-													lat={parseFloat(lat)}
-													lng={parseFloat(lng)}
-													onClick={() => setMapPickerOpen(true)}
-												/>
-											) : (
-												<div className="w-full h-full flex flex-col items-center justify-center gap-2 text-outline">
-													<MapPin className="w-8 h-8 opacity-40" />
-													<span className="text-xs">No location selected</span>
-												</div>
-											)}
-										</div>
-										<button
-											type="button"
-											onClick={() => setMapPickerOpen(true)}
-											className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-card hover:bg-surface-container-high transition-colors text-primary font-label border-t border-border"
-										>
-											<MapPin className="w-3.5 h-3.5" />
-											{lat && lng ? "Change location" : "Pick a location"}
-										</button>
-									</div>
-
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-										<Field label="Latitude">
-											<input
-												type="number"
-												className={inputCls}
-												placeholder="e.g. 40.7128"
-												value={lat}
-												onChange={(e) => setLat(e.target.value)}
-												step="any"
-											/>
-										</Field>
-
-										<Field label="Longitude">
-											<input
-												type="number"
-												className={inputCls}
-												placeholder="e.g. -74.0060"
-												value={lng}
-												onChange={(e) => setLng(e.target.value)}
-												step="any"
-											/>
-										</Field>
-									</div>
-
-									<p className="mt-2 text-xs text-outline font-body">
-										Coordinates in decimal degrees.
-									</p>
-
-									<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-										<Field label="Country">
-											<select
-												className={selectCls}
-												value={country}
-												onChange={(e) => setCountry(e.target.value)}
-											>
-												<option value="">Select country</option>
-												{COUNTRIES.map((c) => (
-													<option key={c} value={c}>
-														{c}
-													</option>
-												))}
-											</select>
-										</Field>
-
-										<Field label="State">
-											<input
-												className={inputCls}
-												placeholder="e.g. California"
-												value={propertyState}
-												onChange={(e) => setPropertyState(e.target.value)}
-											/>
-										</Field>
-
-										<Field label="City">
-											<input
-												className={inputCls}
-												placeholder="e.g. Los Angeles"
-												value={city}
-												onChange={(e) => setCity(e.target.value)}
-											/>
-										</Field>
-									</div>
-								</FormSection>
-
-								{/* ── Financial ───────────────────────────── */}
-								<FormSection title="Financial">
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-										<Field label="Purchase Date">
-											<input
-												type="date"
-												className={inputCls}
-												value={purchaseDate}
-												onChange={(e) => setPurchaseDate(e.target.value)}
-											/>
-										</Field>
-
-										<Field label="Purchase Price">
-											<input
-												type="text"
-												inputMode="numeric"
-												className={inputCls}
-												placeholder="e.g. 50,000,000"
-												value={purchasePrice}
-												onChange={(e) => {
-													const raw = e.target.value.replace(/[^0-9.]/g, "");
-													const parts = raw.split(".");
-													parts[0] = parts[0].replace(
-														/\B(?=(\d{3})+(?!\d))/g,
-														",",
-													);
-													setPurchasePrice(parts.join("."));
-												}}
-											/>
-										</Field>
-
-										<Field label="Current Value">
-											<input
-												type="text"
-												inputMode="numeric"
-												className={inputCls}
-												placeholder="e.g. 65,000,000"
-												value={currentValue}
-												onChange={(e) => {
-													const raw = e.target.value.replace(/[^0-9.]/g, "");
-													const parts = raw.split(".");
-													parts[0] = parts[0].replace(
-														/\B(?=(\d{3})+(?!\d))/g,
-														",",
-													);
-													setCurrentValue(parts.join("."));
-												}}
-											/>
-										</Field>
-
-										<Field
-											label="Listing Price"
-											hint="Asking price when listed for sale or rent"
-										>
-											<input
-												type="text"
-												inputMode="numeric"
-												className={inputCls}
-												placeholder="e.g. 70,000,000"
-												value={listingPrice}
-												onChange={(e) => {
-													const raw = e.target.value.replace(/[^0-9.]/g, "");
-													const parts = raw.split(".");
-													parts[0] = parts[0].replace(
-														/\B(?=(\d{3})+(?!\d))/g,
-														",",
-													);
-													setListingPrice(parts.join("."));
-												}}
-											/>
-										</Field>
-									</div>
-								</FormSection>
-
-								{/* ── Transaction Details ─────────────────── */}
-								<FormSection title="Transaction Details">
-									<div className="grid grid-cols-1 gap-4">
-										<Field label="Purchased From">
-											<input
-												className={inputCls}
-												placeholder="Seller or previous owner name"
-												value={boughtFrom}
-												onChange={(e) => setBoughtFrom(e.target.value)}
-											/>
-										</Field>
-
-										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-											<Field
-												label="Sold / Transacted Price"
-												hint="What it actually sold or leased for — the true market value"
-											>
-												<input
-													type="text"
-													inputMode="numeric"
-													className={inputCls}
-													placeholder="e.g. 68,500,000"
-													value={soldPrice}
-													onChange={(e) => {
-														const raw = e.target.value.replace(/[^0-9.]/g, "");
-														const parts = raw.split(".");
-														parts[0] = parts[0].replace(
-															/\B(?=(\d{3})+(?!\d))/g,
-															",",
-														);
-														setSoldPrice(parts.join("."));
-													}}
-												/>
-											</Field>
-
-											<Field label="Sale / Transaction Date">
-												<input
-													type="date"
-													className={inputCls}
-													value={soldDate}
-													onChange={(e) => setSoldDate(e.target.value)}
-												/>
-											</Field>
-										</div>
-
-										<Field label="Witnesses">
-											<WitnessTagInput
-												value={witnesses}
-												onChange={setWitnesses}
-											/>
-										</Field>
-
-										<Field label="Signatories">
-											<WitnessTagInput
-												value={signatures}
-												onChange={setSignatures}
-												placeholder="Type signatory name, press Enter"
-											/>
-										</Field>
-									</div>
-								</FormSection>
 
 								{/* ── Owner ───────────────────────────────── */}
 								<FormSection title="Owner Information">
@@ -2006,6 +2161,143 @@ export default function CreatePropertyForm({
 											</Field>
 										</div>
 									)}
+								</FormSection>
+
+								{/* ── Financial ───────────────────────────── */}
+								<FormSection title="Financial">
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+										<Field label="Purchase Date">
+											<input
+												type="date"
+												className={inputCls}
+												value={purchaseDate}
+												onChange={(e) => setPurchaseDate(e.target.value)}
+											/>
+										</Field>
+
+										<Field label="Purchase Price">
+											<input
+												type="text"
+												inputMode="numeric"
+												className={inputCls}
+												placeholder="e.g. 50,000,000"
+												value={purchasePrice}
+												onChange={(e) => {
+													const raw = e.target.value.replace(/[^0-9.]/g, "");
+													const parts = raw.split(".");
+													parts[0] = parts[0].replace(
+														/\B(?=(\d{3})+(?!\d))/g,
+														",",
+													);
+													setPurchasePrice(parts.join("."));
+												}}
+											/>
+										</Field>
+
+										<Field label="Current Value">
+											<input
+												type="text"
+												inputMode="numeric"
+												className={inputCls}
+												placeholder="e.g. 65,000,000"
+												value={currentValue}
+												onChange={(e) => {
+													currentValueManuallyEditedRef.current = true;
+													const raw = e.target.value.replace(/[^0-9.]/g, "");
+													const parts = raw.split(".");
+													parts[0] = parts[0].replace(
+														/\B(?=(\d{3})+(?!\d))/g,
+														",",
+													);
+													setCurrentValue(parts.join("."));
+												}}
+											/>
+										</Field>
+
+										<Field
+											label="Listing Price"
+											hint="Asking price when listed for sale or rent"
+										>
+											<input
+												type="text"
+												inputMode="numeric"
+												className={inputCls}
+												placeholder="e.g. 70,000,000"
+												value={listingPrice}
+												onChange={(e) => {
+													const raw = e.target.value.replace(/[^0-9.]/g, "");
+													const parts = raw.split(".");
+													parts[0] = parts[0].replace(
+														/\B(?=(\d{3})+(?!\d))/g,
+														",",
+													);
+													setListingPrice(parts.join("."));
+												}}
+											/>
+										</Field>
+									</div>
+								</FormSection>
+
+								{/* ── Transaction Details ─────────────────── */}
+								<FormSection title="Transaction Details">
+									<div className="grid grid-cols-1 gap-4">
+										<Field label="Purchased From">
+											<input
+												className={inputCls}
+												placeholder="Seller or previous owner name"
+												value={boughtFrom}
+												onChange={(e) => setBoughtFrom(e.target.value)}
+											/>
+										</Field>
+
+										<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+											<Field
+												label="Sold / Transacted Price"
+												hint="What it actually sold or leased for — the true market value"
+											>
+												<input
+													type="text"
+													inputMode="numeric"
+													className={inputCls}
+													placeholder="e.g. 68,500,000"
+													value={soldPrice}
+													onChange={(e) => {
+														const raw = e.target.value.replace(/[^0-9.]/g, "");
+														const parts = raw.split(".");
+														parts[0] = parts[0].replace(
+															/\B(?=(\d{3})+(?!\d))/g,
+															",",
+														);
+														setSoldPrice(parts.join("."));
+													}}
+												/>
+											</Field>
+
+											<Field label="Sale / Transaction Date">
+												<input
+													type="date"
+													className={inputCls}
+													value={soldDate}
+													onChange={(e) => setSoldDate(e.target.value)}
+												/>
+											</Field>
+										</div>
+
+										<Field label="Witnesses">
+											<WitnessTagInput
+												value={witnesses}
+												onChange={setWitnesses}
+											/>
+										</Field>
+
+										<Field label="Signatories">
+											<WitnessTagInput
+												value={signatures}
+												onChange={setSignatures}
+												placeholder="Type signatory name, press Enter"
+											/>
+										</Field>
+									</div>
 								</FormSection>
 							</MasonryGrid>
 						</div>

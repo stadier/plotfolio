@@ -1,8 +1,10 @@
-import { type ElementType } from "react";
+import { type ElementType, type ReactNode } from "react";
 
 interface SummaryStatCardProps {
 	label: string;
-	value: string;
+	value: ReactNode;
+	/** Optional plain-text full value displayed as a tooltip on hover. */
+	fullValue?: string;
 	icon: ElementType;
 	subtitle?: string;
 	/** Icon accent colour — Tailwind bg + text classes for the circle and icon. */
@@ -14,6 +16,7 @@ interface SummaryStatCardProps {
 export default function SummaryStatCard({
 	label,
 	value,
+	fullValue,
 	icon: Icon,
 	subtitle,
 	iconColor,
@@ -28,7 +31,10 @@ export default function SummaryStatCard({
 						{label}
 					</span>
 				</div>
-				<div className="font-headline typo-stat font-extrabold text-primary">
+				<div
+					className="font-headline typo-stat font-extrabold text-primary"
+					title={fullValue}
+				>
 					{value}
 				</div>
 			</div>
@@ -49,7 +55,10 @@ export default function SummaryStatCard({
 				<div className="typo-caption text-on-surface-variant uppercase tracking-wider font-semibold">
 					{label}
 				</div>
-				<div className="typo-section-title font-bold text-on-surface">
+				<div
+					className="typo-section-title font-bold text-on-surface"
+					title={fullValue}
+				>
 					{value}
 				</div>
 				{subtitle && (

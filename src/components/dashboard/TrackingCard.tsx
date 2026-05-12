@@ -1,4 +1,4 @@
-import { formatCurrencyFull } from "@/lib/utils";
+import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import { Property } from "@/types/property";
 import { ArrowUpRight, Eye, MapPin } from "lucide-react";
 
@@ -40,7 +40,11 @@ export default function TrackingCard({
 					</p>
 				</div>
 				<p className="typo-body-sm font-semibold text-on-surface-variant">
-					{formatCurrencyFull(worth, property.country)}
+					<AbbreviatedNumber
+						mode="currency"
+						country={property.country}
+						value={worth}
+					/>
 				</p>
 				<div className="flex items-center gap-2 mt-1">
 					<span
@@ -53,7 +57,7 @@ export default function TrackingCard({
 						{isOwn ? "Your listing" : "Marketplace"}
 					</span>
 					<span className="typo-badge text-on-surface-variant">
-						{(property.area || 0).toLocaleString()} sqm
+						<AbbreviatedNumber mode="area" value={property.area || 0} />
 					</span>
 				</div>
 			</div>

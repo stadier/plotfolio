@@ -63,10 +63,10 @@ export default function FileUploader({
 				onDragOver={onDragOver}
 				onDragLeave={onDragLeave}
 				onDrop={onDrop}
-				className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center h-56 cursor-pointer transition-colors w-full max-w-3xl ${
+				className={`flex flex-col items-center justify-center h-56 cursor-pointer transition-colors w-full ${
 					dragging
-						? "border-primary bg-primary/10"
-						: "border-border bg-surface-container hover:border-primary/40"
+						? "bg-primary/10"
+						: "bg-surface-container hover:bg-surface-container-high"
 				}`}
 			>
 				<input

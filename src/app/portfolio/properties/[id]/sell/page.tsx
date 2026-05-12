@@ -4,26 +4,27 @@ import { useAuth } from "@/components/AuthContext";
 import AppShell from "@/components/layout/AppShell";
 import OffersPanel from "@/components/sales/OffersPanel";
 import BackButton from "@/components/ui/BackButton";
+import NumberInput from "@/components/ui/NumberInput";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SignaturePad from "@/components/ui/SignaturePad";
 import { useProperty } from "@/hooks/usePropertyQueries";
 import { SaleAPI } from "@/lib/salesApi";
 import { cn } from "@/lib/utils";
 import {
-	PaymentMethod,
-	Sale,
-	SaleStatus,
-	SaleStep,
-	SaleType,
+    PaymentMethod,
+    Sale,
+    SaleStatus,
+    SaleStep,
+    SaleType,
 } from "@/types/sale";
 import {
-	ArrowRight,
-	Check,
-	FileText,
-	Gavel,
-	Handshake,
-	Loader2,
-	Stamp,
+    ArrowRight,
+    Check,
+    FileText,
+    Gavel,
+    Handshake,
+    Loader2,
+    Stamp,
 } from "lucide-react";
 import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
@@ -314,10 +315,11 @@ export default function SellPropertyPage({
 										? "Starting price"
 										: "Asking price"}
 								</label>
-								<input
-									type="number"
-									value={askingPrice}
-									onChange={(e) => setAskingPrice(e.target.value)}
+								<NumberInput
+									value={askingPrice === "" ? null : Number(askingPrice)}
+									onValueChange={(v) =>
+										setAskingPrice(v == null ? "" : String(v))
+									}
 									className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body"
 								/>
 							</div>
@@ -326,10 +328,11 @@ export default function SellPropertyPage({
 									<label className="block text-xs font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-1">
 										Reserve (optional)
 									</label>
-									<input
-										type="number"
-										value={reservePrice}
-										onChange={(e) => setReservePrice(e.target.value)}
+									<NumberInput
+										value={reservePrice === "" ? null : Number(reservePrice)}
+										onValueChange={(v) =>
+											setReservePrice(v == null ? "" : String(v))
+										}
 										className="w-full bg-card border border-border rounded-md px-3 py-2 text-on-surface font-body"
 									/>
 								</div>
