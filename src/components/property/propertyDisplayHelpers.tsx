@@ -1,11 +1,12 @@
 "use client";
 
+import { useUploads } from "@/components/uploads/UploadContext";
 import { queryKeys } from "@/hooks/usePropertyQueries";
 import { useQueryClient } from "@tanstack/react-query";
 
 import FileUploader from "@/components/ui/FileUploader";
 import UnifiedMediaViewer from "@/components/ui/UnifiedMediaViewer";
-import { cachePatterns, invalidateCachedGet } from "@/lib/clientCache";
+import { cachePatterns } from "@/lib/clientCache";
 import {
 	AccessRequestStatus,
 	DocumentAccessLevel,
@@ -763,57 +764,52 @@ export function DocumentsGrid({
 	accessRequests?: DocumentAccessRequest[];
 	onAccessRequested?: (req: DocumentAccessRequest) => void;
 }) {
-	const queryClient = useQueryClient();
-	const [pendingDocs, setPendingDocs] = useState<PendingDoc[]>([]);
-	const pendingIdRef = useRef(0);
+	const { enqueue } = useUploads();
 	const hasDocuments = documents.length > 0;
 	const [previewDoc, setPreviewDoc] = useState<PropertyDocument | null>(null);
-	const showEmptyUpload = isOwner && !hasDocuments && pendingDocs.length === 0;
+	const showEmptyUpload = isOwner && !hasDocuments;
 
-	if (!hasDocuments && !isOwner && pendingDocs.length === 0) return null;
-
-	async function uploadDoc(id: number, file: File) {
-		try {
-			const formData = new FormData();
-			formData.append("file", file);
-			formData.append("type", DocumentType.OTHER);
-			formData.append("name", file.name);
-			const res = await fetch(
-				`${API_BASE}/properties/${propertyId}/documents`,
-				{
-					method: "POST",
-					body: formData,
-				},
-			);
-			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.error ?? "Upload failed");
-			}
-			const { document } = await res.json();
-			onUploaded(document);
-			setPendingDocs((prev) => prev.filter((p) => p.id !== id));
-			invalidateCachedGet(cachePatterns.properties);
-			invalidateCachedGet(cachePatterns.documents);
-			await queryClient.invalidateQueries({
-				queryKey: queryKeys.properties.detail(propertyId),
-			});
-			await queryClient.invalidateQueries({
-				queryKey: queryKeys.properties.all,
-			});
-		} catch (err) {
-			const error = err instanceof Error ? err.message : "Upload failed";
-			setPendingDocs((prev) =>
-				prev.map((p) => (p.id === id ? { ...p, status: "failed", error } : p)),
-			);
-		}
-	}
+	if (!hasDocuments && !isOwner) return null;
 
 	function handleFilesPicked(files: File[]) {
-		for (const file of files) {
-			const id = ++pendingIdRef.current;
-			setPendingDocs((prev) => [...prev, { id, file, status: "uploading" }]);
-			uploadDoc(id, file);
-		}
+		enqueue(
+			files.map((file) => ({
+				file,
+				scope: "property-document" as const,
+				propertyId,
+				label: file.name,
+				attach: async ({ key }: { key: string }) => {
+					const res = await fetch(
+						`${API_BASE}/properties/${propertyId}/documents/attach`,
+						{
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								key,
+								name: file.name,
+								type: DocumentType.OTHER,
+								size: file.size,
+								mime: file.type || "application/octet-stream",
+							}),
+						},
+					);
+					if (!res.ok) {
+						const err = await res.json().catch(() => ({}));
+						throw new Error(err.error ?? "Failed to attach document");
+					}
+					const { document } = await res.json();
+					onUploaded(document);
+				},
+				invalidateKeys: [
+					queryKeys.properties.detail(propertyId),
+					queryKeys.properties.all,
+				],
+				invalidateUrlPatterns: [
+					cachePatterns.properties,
+					cachePatterns.documents,
+				],
+			})),
+		);
 	}
 
 	return (
@@ -852,26 +848,6 @@ export function DocumentsGrid({
 							viewerAvatar={viewerAvatar}
 							accessRequests={accessRequests}
 							onAccessRequested={onAccessRequested}
-						/>
-					))}
-					{/* Upload placeholders — one card per pending file */}
-					{pendingDocs.map((item) => (
-						<DocUploadPlaceholder
-							key={item.id}
-							item={item}
-							onRetry={() => {
-								setPendingDocs((prev) =>
-									prev.map((p) =>
-										p.id === item.id
-											? { ...p, status: "uploading", error: undefined }
-											: p,
-									),
-								);
-								uploadDoc(item.id, item.file);
-							}}
-							onDismiss={() =>
-								setPendingDocs((prev) => prev.filter((p) => p.id !== item.id))
-							}
 						/>
 					))}
 					{isOwner && <FileUploader onFiles={handleFilesPicked} />}

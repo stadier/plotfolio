@@ -323,7 +323,7 @@ export default function MapLocationPicker({
 				</div>
 
 				{/* Map */}
-				<div className="relative h-[60vh]">
+				<div className="relative h-[60vh] isolate z-0">
 					<MapContainer
 						center={center}
 						zoom={hasInitial ? 15 : 3}

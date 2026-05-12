@@ -14,7 +14,6 @@ import { PROVIDER_DEFAULTS } from "@/types/providers";
 import { useQueryClient } from "@tanstack/react-query";
 import {
 	ChevronDown,
-	ChevronUp,
 	Edit3,
 	Layers,
 	List,
@@ -68,8 +67,7 @@ export default function Home() {
 	const [isDrawingBoundary, setIsDrawingBoundary] = useState(false);
 	const [isSelectingGrid, setIsSelectingGrid] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
-	const [isPropertyCardExpanded, setIsPropertyCardExpanded] = useState(true);
-	const [isPropertyCardVisible, setIsPropertyCardVisible] = useState(true);
+
 	const { data: providerSettings } = useProviderSettings();
 	const [mapType, setMapType] = useState<"leaflet" | "mapbox" | "google">(
 		PROVIDER_DEFAULTS.mapRenderer as "leaflet" | "mapbox" | "google",
@@ -188,8 +186,6 @@ export default function Home() {
 
 	const handlePropertySelect = (property: Property) => {
 		setSelectedProperty(property);
-		setIsPropertyCardVisible(true);
-		setIsPropertyCardExpanded(true);
 		// Center map on the selected property
 		setViewport({
 			center: [property.coordinates.lat, property.coordinates.lng],
@@ -418,20 +414,78 @@ export default function Home() {
 						onSearch={handleSearch}
 					/>
 				</div>
+
+				{/* Property Details column — sits to the right of the list, swaps with selection */}
+				{selectedProperty && (
+					<div className="hidden md:block shrink-0 w-md h-full">
+						<div className="h-full flex flex-col bg-card border-r border-border m-2 mx-1 overflow-hidden">
+							<div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border">
+								<h2 className="text-sm font-semibold text-on-surface truncate flex-1">
+									{selectedProperty.name}
+								</h2>
+								<button
+									onClick={() => setSelectedProperty(null)}
+									className="w-8 h-8 rounded-md hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant"
+									title="Close"
+								>
+									<X className="w-4 h-4" />
+								</button>
+							</div>
+							<div className="flex-1 overflow-y-auto">
+								<PropertyFullView
+									key={selectedProperty.id}
+									property={selectedProperty}
+									isOwner
+									singleColumn
+									hideHeader
+								/>
+							</div>
+						</div>
+					</div>
+				)}
 				{/* Mobile sidebar overlay */}
 				{showMobileSidebar && (
 					<div className="md:hidden absolute inset-0 z-layer-overlay flex">
-						<div className="w-80 max-w-[85vw] h-full bg-card shadow-xl">
-							<MapPropertySidebar
-								properties={filteredProperties}
-								selectedPropertyId={selectedProperty?.id ?? null}
-								onPropertySelect={(p) => {
-									handlePropertySelect(p);
-									setShowMobileSidebar(false);
-								}}
-								searchQuery={searchQuery}
-								onSearch={handleSearch}
-							/>
+						<div className="w-96 max-w-[90vw] h-full bg-card shadow-xl">
+							{selectedProperty ? (
+								<div className="h-full flex flex-col bg-card overflow-hidden">
+									<div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border">
+										<h2 className="text-sm font-semibold text-on-surface truncate flex-1">
+											{selectedProperty.name}
+										</h2>
+										<button
+											onClick={() => {
+												setSelectedProperty(null);
+												setShowMobileSidebar(false);
+											}}
+											className="w-8 h-8 rounded-md hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant"
+											title="Close"
+										>
+											<X className="w-4 h-4" />
+										</button>
+									</div>
+									<div className="flex-1 overflow-y-auto">
+										<PropertyFullView
+											key={selectedProperty.id}
+											property={selectedProperty}
+											isOwner
+											singleColumn
+											hideHeader
+										/>
+									</div>
+								</div>
+							) : (
+								<MapPropertySidebar
+									properties={filteredProperties}
+									selectedPropertyId={null}
+									onPropertySelect={(p) => {
+										handlePropertySelect(p);
+										setShowMobileSidebar(false);
+									}}
+									searchQuery={searchQuery}
+									onSearch={handleSearch}
+								/>
+							)}
 						</div>
 						<div
 							className="flex-1 bg-black/40"
@@ -779,80 +833,7 @@ export default function Home() {
 						</div>
 					</div>
 
-					{/* Property Details Overlay */}
-					{selectedProperty && isPropertyCardVisible && (
-						<div className="absolute top-2 left-2 right-2 sm:right-auto sm:w-80 max-h-[calc(100%-1rem)] bg-card backdrop-blur-sm rounded-2xl shadow-lg border border-border/50 z-layer-map transition-all duration-300 flex flex-col">
-							{/* Header with Controls */}
-							<div className="flex items-center justify-between p-4 pb-0 shrink-0">
-								<h2 className="text-lg font-semibold text-on-surface truncate flex-1 mr-3">
-									{selectedProperty.name}
-								</h2>
-								<div className="flex items-center space-x-1">
-									<button
-										onClick={() =>
-											setIsPropertyCardExpanded(!isPropertyCardExpanded)
-										}
-										className="w-6 h-6 bg-surface-container-high hover:bg-surface-container-highest rounded flex items-center justify-center transition-colors"
-									>
-										{isPropertyCardExpanded ? (
-											<ChevronUp className="w-3 h-3 text-on-surface-variant" />
-										) : (
-											<ChevronDown className="w-3 h-3 text-on-surface-variant" />
-										)}
-									</button>
-									<button
-										onClick={() => setIsPropertyCardVisible(false)}
-										className="w-6 h-6 bg-surface-container-high hover:bg-surface-container-highest rounded flex items-center justify-center transition-colors"
-									>
-										<X className="w-3 h-3 text-on-surface-variant" />
-									</button>
-								</div>
-							</div>
-
-							{/* Collapsed State - Only show basic info */}
-							{!isPropertyCardExpanded && (
-								<div className="px-4 pb-4">
-									<p className="text-on-surface-variant text-sm">
-										{selectedProperty.address}
-									</p>
-									<div className="flex items-center justify-between mt-3">
-										<span className="text-xs text-outline">
-											{selectedProperty.area.toLocaleString()} m²
-										</span>
-										<span className="text-xs font-medium text-green-600">
-											{selectedProperty.currentValue &&
-												`$${selectedProperty.currentValue.toLocaleString()}`}
-										</span>
-									</div>
-								</div>
-							)}
-
-							{/* Expanded State - PropertyFullView */}
-							{isPropertyCardExpanded && (
-								<div className="overflow-y-auto p-0">
-									<PropertyFullView
-										property={selectedProperty}
-										isOwner
-										singleColumn
-										hideHeader
-									/>
-								</div>
-							)}
-						</div>
-					)}
-
-					{/* Minimized Property Indicator */}
-					{selectedProperty && !isPropertyCardVisible && (
-						<div className="absolute top-6 left-2 z-layer-map">
-							<button
-								onClick={() => setIsPropertyCardVisible(true)}
-								className="bg-black/80 backdrop-blur text-white px-3 py-1.5 rounded-full text-xs font-medium hover:bg-black/90 transition-colors flex items-center space-x-1"
-							>
-								<span>{selectedProperty.name}</span>
-								<ChevronUp className="w-3 h-3" />
-							</button>
-						</div>
-					)}
+					{/* Property Details now render inside the left sidebar column */}
 				</div>
 			</div>
 		</AppShell>

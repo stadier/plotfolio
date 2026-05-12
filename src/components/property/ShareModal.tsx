@@ -17,7 +17,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface ShareModalProps {
 	property: Pick<
 		Property,
-		"id" | "name" | "address" | "propertyType" | "coordinates" | "shortCode" | "plotWords"
+		| "id"
+		| "name"
+		| "address"
+		| "propertyType"
+		| "coordinates"
+		| "shortCode"
+		| "plotWords"
 	>;
 	open: boolean;
 	onClose: () => void;

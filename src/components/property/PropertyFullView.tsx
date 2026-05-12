@@ -4,93 +4,94 @@ import BookingModal from "@/components/property/BookingModal";
 import LinkedDocumentsSection from "@/components/property/LinkedDocumentsSection";
 import MediaLightbox from "@/components/property/MediaLightbox";
 import OwnershipPanel from "@/components/property/OwnershipPanel";
+import { DocumentsGrid } from "@/components/property/propertyDisplayHelpers";
 import PropertyQuickActions, {
-    type PropertyQuickAction,
+	type PropertyQuickAction,
 } from "@/components/property/PropertyQuickActions";
 import PropertySettingsPanel from "@/components/property/PropertySettingsPanel";
 import UnitsPanel from "@/components/property/UnitsPanel";
-import { DocumentsGrid } from "@/components/property/propertyDisplayHelpers";
 import ActiveSalePanel from "@/components/sales/ActiveSalePanel";
 import AbbreviatedNumber from "@/components/ui/AbbreviatedNumber";
 import FileUploader from "@/components/ui/FileUploader";
 import MasonryGrid from "@/components/ui/MasonryGrid";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { useUploads } from "@/components/uploads/UploadContext";
 import {
-    queryKeys,
-    useChildProperties,
-    useUpdateProperty,
+	queryKeys,
+	useChildProperties,
+	useUpdateProperty,
 } from "@/hooks/usePropertyQueries";
 import { usePropertyViewLayout } from "@/hooks/usePropertyViewLayout";
 import { cachePatterns, invalidateCachedGet } from "@/lib/clientCache";
 import { countryFlag } from "@/lib/locale";
 import { toPlotWords } from "@/lib/plotwords";
+import { uploadDirect } from "@/lib/uploadClient";
 import { formatCurrency, getPropertyMedia } from "@/lib/utils";
 import { generateVideoThumbnail } from "@/lib/videoThumbnail";
 import {
-    DocumentAccessRequest,
-    MediaType,
-    Property,
-    PropertyMedia,
-    PropertySettings,
-    PropertyStatus,
+	DocumentAccessRequest,
+	MediaType,
+	Property,
+	PropertyMedia,
+	PropertySettings,
+	PropertyStatus,
 } from "@/types/property";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-    Bath,
-    BedDouble,
-    Building2,
-    Car,
-    Check,
-    ChevronDown,
-    ChevronLeft,
-    ChevronRight,
-    ChevronUp,
-    Expand,
-    Eye,
-    Fence,
-    GripVertical,
-    Home,
-    ImagePlus,
-    Landmark,
-    Mail,
-    MapPin,
-    MessageCircle,
-    Mic,
-    Phone,
-    Play,
-    Ruler,
-    Shield,
-    Sparkles,
-    Star,
-    Tag,
-    Trash2,
-    TreePine,
-    Upload,
-    X,
+	Bath,
+	BedDouble,
+	Building2,
+	Car,
+	Check,
+	ChevronDown,
+	ChevronLeft,
+	ChevronRight,
+	ChevronUp,
+	Expand,
+	Eye,
+	Fence,
+	GripVertical,
+	Home,
+	ImagePlus,
+	Landmark,
+	Mail,
+	MapPin,
+	MessageCircle,
+	Mic,
+	Phone,
+	Play,
+	Ruler,
+	Shield,
+	Sparkles,
+	Star,
+	Tag,
+	Trash2,
+	TreePine,
+	X,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import {
-    Children,
-    cloneElement,
-    isValidElement,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+	Children,
+	cloneElement,
+	isValidElement,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
 } from "react";
 import {
-    Bar,
-    BarChart,
-    Cell,
-    RadialBar,
-    RadialBarChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
+	Bar,
+	BarChart,
+	Cell,
+	RadialBar,
+	RadialBarChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
 } from "recharts";
 import { formatDate, getStatusColor } from "./PropertyDetailContent";
 import StatusToggle from "./StatusToggle";
@@ -154,9 +155,8 @@ function MediaGallery({
 	}
 
 	const queryClient = useQueryClient();
+	const { enqueue } = useUploads();
 	const [lightbox, setLightbox] = useState<number | null>(null);
-	const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
-	const pendingIdRef = useRef(0);
 
 	// ── Reorder state ──────────────────────────────────────────
 	const [reorderMode, setReorderMode] = useState(false);
@@ -316,168 +316,103 @@ function MediaGallery({
 		}
 	}
 
-	async function uploadSingle(id: number, file: File, thumbnailFile?: File) {
-		if (!propertyId) return;
-		try {
-			// Direct-to-storage upload: bytes go browser → B2, then we record
-			// the metadata server-side. Avoids the previous double-hop where
-			// every byte was buffered in the Next.js server first.
-			const { uploadDirect } = await import("@/lib/uploadClient");
-			const mediaType = detectMediaType(file);
-
-			const uploaded = await uploadDirect(file, {
-				scope: "property-media",
-				propertyId,
-				onProgress: (percent) => {
-					setPendingMedia((prev) =>
-						prev.map((p) => (p.id === id ? { ...p, progress: percent } : p)),
-					);
-				},
-			});
-
-			// Optional caller-provided thumbnail (e.g. from a video frame
-			// captured client-side). The server also auto-generates one for
-			// images, but uploading the supplied one is faster than re-rendering.
-			let thumbKey: string | undefined;
-			if (thumbnailFile) {
-				const thumbResult = await uploadDirect(thumbnailFile, {
-					scope: "property-thumb",
-					propertyId,
-				});
-				thumbKey = thumbResult.key;
-			}
-
-			const attachRes = await fetch(
-				`/api/properties/${propertyId}/media/attach`,
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						key: uploaded.key,
-						type: mediaType,
-						mime: file.type || undefined,
-						thumbKey,
-					}),
-				},
-			);
-			if (!attachRes.ok) {
-				const err = await attachRes.json().catch(() => ({}));
-				throw new Error(err.error ?? "Upload failed");
-			}
-			const data = (await attachRes.json()) as { media?: PropertyMedia };
-			if (!data.media) {
-				throw new Error("Upload response missing media payload");
-			}
-			const uploadedMedia = data.media;
-
-			// Proxy the B2 URL the same way getPropertyMedia does so the gallery
-			// can render it and the filter comparison uses consistent URL formats.
-			const toProxy = (url: string) => {
-				if (/\.backblazeb2\.com($|\/)/.test(url)) {
-					try {
-						const parsed = new URL(url);
-						return `/api/media/view/${decodeURIComponent(parsed.pathname.slice(1))}`;
-					} catch {
-						/* malformed — fall through */
-					}
-				}
-				return url;
-			};
-			const proxiedMedia: PropertyMedia = {
-				...uploadedMedia,
-				url: toProxy(uploadedMedia.url),
-				...(uploadedMedia.thumbnail
-					? { thumbnail: toProxy(uploadedMedia.thumbnail) }
-					: {}),
-			};
-
-			setOrderedMedia((prev) =>
-				prev.some((item) => item.url === proxiedMedia.url)
-					? prev
-					: [...prev, proxiedMedia],
-			);
-
-			queryClient.setQueryData<Property | null>(
-				queryKeys.properties.detail(propertyId),
-				(current) => {
-					if (!current) return current;
-					const nextMedia = [
-						...(current.media ?? []),
-						...((current.media ?? []).some(
-							(item) => item.url === uploadedMedia.url,
-						)
-							? []
-							: [uploadedMedia]),
-					];
-					const nextImages =
-						uploadedMedia.type === MediaType.IMAGE &&
-						!(current.images ?? []).includes(uploadedMedia.url)
-							? [...(current.images ?? []), uploadedMedia.url]
-							: current.images;
-
-					return {
-						...current,
-						media: nextMedia,
-						images: nextImages,
-					};
-				},
-			);
-			invalidateCachedGet(cachePatterns.properties);
-			setPendingMedia((prev) =>
-				prev.map((p) =>
-					p.id === id
-						? {
-								...p,
-								status: "uploaded",
-								error: undefined,
-								uploadedMedia: proxiedMedia,
-							}
-						: p,
-				),
-			);
-			await queryClient.invalidateQueries({
-				queryKey: queryKeys.properties.detail(propertyId),
-			});
-			await queryClient.invalidateQueries({
-				queryKey: queryKeys.properties.all,
-			});
-		} catch (err) {
-			const error = err instanceof Error ? err.message : "Upload failed";
-			setPendingMedia((prev) =>
-				prev.map((p) =>
-					p.id === id
-						? { ...p, status: "failed", error, uploadedMedia: undefined }
-						: p,
-				),
-			);
-		}
-	}
-
 	async function queueUploads(files: File[]) {
 		if (!propertyId) return;
-		const newPending: PendingMedia[] = await Promise.all(
-			files.map(async (file) => {
-				const isImage = file.type.startsWith("image/");
-				const isVideo = file.type.startsWith("video/");
-				const thumbnailFile = isVideo
-					? ((await generateVideoThumbnail(file)) ?? undefined)
-					: undefined;
-				return {
-					id: ++pendingIdRef.current,
+		for (const file of files) {
+			const isVideo = file.type.startsWith("video/");
+			const thumbnailFile = isVideo
+				? ((await generateVideoThumbnail(file)) ?? undefined)
+				: undefined;
+			const mediaType = detectMediaType(file);
+			enqueue([
+				{
 					file,
-					thumbnailFile,
-					previewUrl: isImage
-						? URL.createObjectURL(file)
-						: thumbnailFile
-							? URL.createObjectURL(thumbnailFile)
-							: "",
-					status: "uploading" as const,
-				};
-			}),
-		);
-		setPendingMedia((prev) => [...prev, ...newPending]);
-		for (const item of newPending) {
-			uploadSingle(item.id, item.file, item.thumbnailFile);
+					scope: "property-media",
+					propertyId,
+					label: file.name,
+					attach: async ({ key }: { key: string }) => {
+						let thumbKey: string | undefined;
+						if (thumbnailFile) {
+							const thumbResult = await uploadDirect(thumbnailFile, {
+								scope: "property-thumb",
+								propertyId,
+							});
+							thumbKey = thumbResult.key;
+						}
+						const attachRes = await fetch(
+							`/api/properties/${propertyId}/media/attach`,
+							{
+								method: "POST",
+								headers: { "Content-Type": "application/json" },
+								body: JSON.stringify({
+									key,
+									type: mediaType,
+									mime: file.type || undefined,
+									thumbKey,
+								}),
+							},
+						);
+						if (!attachRes.ok) {
+							const err = await attachRes.json().catch(() => ({}));
+							throw new Error(err.error ?? "Upload failed");
+						}
+						const data = (await attachRes.json()) as { media?: PropertyMedia };
+						if (!data.media) {
+							throw new Error("Upload response missing media payload");
+						}
+						const uploadedMedia = data.media;
+						const toProxy = (url: string) => {
+							if (/\.backblazeb2\.com($|\/)/.test(url)) {
+								try {
+									const parsed = new URL(url);
+									return `/api/media/view/${decodeURIComponent(parsed.pathname.slice(1))}`;
+								} catch {
+									/* malformed — fall through */
+								}
+							}
+							return url;
+						};
+						const proxiedMedia: PropertyMedia = {
+							...uploadedMedia,
+							url: toProxy(uploadedMedia.url),
+							...(uploadedMedia.thumbnail
+								? { thumbnail: toProxy(uploadedMedia.thumbnail) }
+								: {}),
+						};
+						setOrderedMedia((prev) =>
+							prev.some((item) => item.url === proxiedMedia.url)
+								? prev
+								: [...prev, proxiedMedia],
+						);
+						queryClient.setQueryData<Property | null>(
+							queryKeys.properties.detail(propertyId),
+							(current) => {
+								if (!current) return current;
+								const nextMedia = [
+									...(current.media ?? []),
+									...((current.media ?? []).some(
+										(item) => item.url === uploadedMedia.url,
+									)
+										? []
+										: [uploadedMedia]),
+								];
+								const nextImages =
+									uploadedMedia.type === MediaType.IMAGE &&
+									!(current.images ?? []).includes(uploadedMedia.url)
+										? [...(current.images ?? []), uploadedMedia.url]
+										: current.images;
+								return { ...current, media: nextMedia, images: nextImages };
+							},
+						);
+						invalidateCachedGet(cachePatterns.properties);
+					},
+					invalidateKeys: [
+						queryKeys.properties.detail(propertyId),
+						queryKeys.properties.all,
+					],
+					invalidateUrlPatterns: [cachePatterns.properties],
+				},
+			]);
 		}
 	}
 
@@ -531,8 +466,8 @@ function MediaGallery({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [onToolbarChange, isOwner, orderedMedia.length, reorderMode, savingOrder]);
 
-	/* show empty-state only when nothing is pending either */
-	if (media.length === 0 && pendingMedia.length === 0) {
+	/* show empty-state only when there are no media items */
+	if (media.length === 0) {
 		if (isOwner) {
 			return (
 				<FileUploader
@@ -754,115 +689,6 @@ function MediaGallery({
 						</div>
 					),
 				)}
-
-				{/* Upload placeholders — one card per pending file */}
-				{!reorderMode &&
-					pendingMedia
-						.filter(
-							(item) =>
-								item.status !== "uploaded" ||
-								!item.uploadedMedia ||
-								!orderedMedia.some((serverItem) =>
-									mediaUrlsMatch(serverItem.url, item.uploadedMedia!.url),
-								),
-						)
-						.map((item) => (
-							<div
-								key={item.id}
-								className="relative w-32 h-32 shrink-0 rounded-xl overflow-hidden border border-border bg-surface-container"
-							>
-								{item.previewUrl ? (
-									/* eslint-disable-next-line @next/next/no-img-element */
-									<img
-										src={item.previewUrl}
-										alt={item.file.name}
-										className="w-full h-full object-cover opacity-60"
-									/>
-								) : item.file.type.startsWith("video/") ? (
-									<div className="w-full h-full flex items-center justify-center">
-										<Play className="w-8 h-8 text-outline" />
-									</div>
-								) : (
-									<div className="w-full h-full flex items-center justify-center">
-										<Mic className="w-8 h-8 text-outline" />
-									</div>
-								)}
-								<div className="absolute bottom-0 left-0 right-0 bg-card/90 backdrop-blur-sm px-2 py-1.5">
-									<p className="text-badge font-medium text-on-surface truncate leading-tight">
-										{item.file.name}
-									</p>
-									{item.status === "uploading" ? (
-										<div className="flex items-center gap-1.5 mt-1">
-											<div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-												<div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
-											</div>
-											<button
-												type="button"
-												onClick={() =>
-													setPendingMedia((prev) =>
-														prev.filter((p) => p.id !== item.id),
-													)
-												}
-												className="text-[9px] text-red-500 hover:text-red-600 font-medium shrink-0"
-											>
-												Cancel
-											</button>
-										</div>
-									) : item.status === "uploaded" ? (
-										<div className="flex items-center justify-between gap-2 mt-1">
-											<span className="text-[9px] text-green-600 font-medium uppercase tracking-wide">
-												Uploaded
-											</span>
-											<span className="text-[9px] text-outline">Syncing…</span>
-										</div>
-									) : (
-										<>
-											<p className="text-[9px] text-red-500 leading-tight mt-0.5 truncate">
-												{item.error}
-											</p>
-											<div className="flex items-center gap-2 mt-0.5">
-												<button
-													type="button"
-													onClick={() => {
-														setPendingMedia((prev) =>
-															prev.map((p) =>
-																p.id === item.id
-																	? {
-																			...p,
-																			status: "uploading",
-																			error: undefined,
-																		}
-																	: p,
-															),
-														);
-														uploadSingle(
-															item.id,
-															item.file,
-															item.thumbnailFile,
-														);
-													}}
-													className="text-[9px] text-primary font-medium hover:underline flex items-center gap-0.5 shrink-0"
-												>
-													<Upload className="w-2.5 h-2.5" />
-													Retry
-												</button>
-												<button
-													type="button"
-													onClick={() =>
-														setPendingMedia((prev) =>
-															prev.filter((p) => p.id !== item.id),
-														)
-													}
-													className="text-[9px] text-outline hover:text-on-surface-variant shrink-0"
-												>
-													Dismiss
-												</button>
-											</div>
-										</>
-									)}
-								</div>
-							</div>
-						))}
 
 				{/* Add media button — always visible for owner (hidden in reorder mode) */}
 				{isOwner && propertyId && !reorderMode && (
@@ -1866,6 +1692,15 @@ function DocumentsSection({
 	const [documents, setDocuments] = useState<
 		NonNullable<Property["documents"]>
 	>(property.documents ?? []);
+
+	// Sync local state when property.documents changes externally (e.g. a
+	// background upload completes and React Query refetches the property while
+	// the user is already viewing the details page).
+	const propDocs = property.documents;
+	useEffect(() => {
+		setDocuments(propDocs ?? []);
+	}, [propDocs]);
+
 	const docCount = documents.length;
 	if (docCount === 0 && !isOwner) return null;
 
@@ -2089,7 +1924,7 @@ export default function PropertyFullView({
 	]
 		.filter(Boolean)
 		.join(", ");
-	const detailsInitiallyOpen = !singleColumn;
+	const detailsInitiallyOpen = true;
 
 	const [mediaOpen, setMediaOpen] = useState(detailsInitiallyOpen);
 	const [docsOpen, setDocsOpen] = useState(detailsInitiallyOpen);

@@ -301,7 +301,7 @@ export default function GoogleMapLocationPicker({
 					/>
 				</div>
 
-				<div className="relative h-[60vh] bg-surface-container">
+				<div className="relative h-[60vh] bg-surface-container isolate z-0">
 					{GOOGLE_MAPS_API_KEY ? (
 						<APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
 							<Map

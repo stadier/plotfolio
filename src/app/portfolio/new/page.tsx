@@ -100,7 +100,7 @@ export default function NewPortfolioPage() {
 							type="text"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
-							placeholder='e.g. "Emekoba Realty" or "Lagos Properties"'
+							placeholder='e.g. "Meridian Properties" or "Atlas Real Estate"'
 							maxLength={80}
 							className="w-full px-4 py-3 rounded-lg border border-border bg-card text-on-surface placeholder:text-outline text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
 							autoFocus

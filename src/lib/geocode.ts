@@ -1,10 +1,16 @@
 /**
  * Geocode provider abstraction.
  *
- * Set GEOCODE_PROVIDER in .env.local to one of: "photon" | "nominatim" | "google"
+ * Set GEOCODE_PROVIDER in .env.local to one of:
+ *   "photon" | "nominatim" | "google" | "googleAutocomplete"
  * For Google, also set GOOGLE_MAPS_API_KEY.
  *
- * Default: "photon" (free, no key needed, good fuzzy matching)
+ * - "google": Places Text Search (single-shot lookup, fewer predictions)
+ * - "googleAutocomplete": Place Autocomplete + Place Details (typeahead-style,
+ *   matches what google.com/maps shows; costs 1 autocomplete + N details calls
+ *   per query, where N is the number of returned predictions, capped at 5)
+ *
+ * Default: "google"
  */
 
 export interface GeocodeResult {
@@ -15,7 +21,11 @@ export interface GeocodeResult {
 }
 
 type GeocodeProvider = (q: string) => Promise<GeocodeResult[]>;
-type GeocodeProviderName = "google" | "photon" | "nominatim";
+type GeocodeProviderName =
+	| "google"
+	| "googleAutocomplete"
+	| "photon"
+	| "nominatim";
 
 const HEADERS = {
 	"User-Agent": "Plotfolio/1.0 (property management app)",
@@ -112,26 +122,104 @@ const google: GeocodeProvider = async (q) => {
 	}));
 };
 
+// ─── Google Place Autocomplete + Details ─────────────────────────
+
+interface GoogleAutocompletePrediction {
+	place_id: string;
+	description: string;
+	structured_formatting?: {
+		main_text: string;
+		secondary_text?: string;
+	};
+}
+
+interface GooglePlaceDetailsResult {
+	formatted_address?: string;
+	name?: string;
+	geometry?: { location: { lat: number; lng: number } };
+}
+
+async function googlePlaceDetails(
+	placeId: string,
+	key: string,
+): Promise<{ lat: number; lng: number; address: string } | null> {
+	const res = await fetch(
+		`https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
+			placeId,
+		)}&fields=geometry,formatted_address,name&key=${encodeURIComponent(key)}`,
+	);
+	if (!res.ok) return null;
+	const data: { result?: GooglePlaceDetailsResult } = await res.json();
+	const r = data.result;
+	if (!r?.geometry) return null;
+	return {
+		lat: r.geometry.location.lat,
+		lng: r.geometry.location.lng,
+		address: r.formatted_address || r.name || "",
+	};
+}
+
+const googleAutocomplete: GeocodeProvider = async (q) => {
+	const key = process.env.GOOGLE_MAPS_API_KEY;
+	if (!key) return [];
+	const res = await fetch(
+		`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+			q,
+		)}&key=${encodeURIComponent(key)}`,
+	);
+	if (!res.ok) return [];
+	const data: { predictions: GoogleAutocompletePrediction[] } =
+		await res.json();
+	const predictions = data.predictions.slice(0, 5);
+
+	// Resolve lat/lng for each prediction in parallel via Place Details.
+	const detailed: (GeocodeResult | null)[] = await Promise.all(
+		predictions.map(async (p) => {
+			const details = await googlePlaceDetails(p.place_id, key);
+			if (!details) return null;
+			return {
+				place_id: p.place_id,
+				display_name: details.address || p.description,
+				lat: String(details.lat),
+				lon: String(details.lng),
+			} satisfies GeocodeResult;
+		}),
+	);
+
+	return detailed.filter((r): r is GeocodeResult => r !== null);
+};
+
 // ─── Provider map ────────────────────────────────────────────────
 
 const providers: Record<string, GeocodeProvider> = {
 	photon,
 	nominatim,
 	google,
+	googleAutocomplete,
 };
 
 export function getGeocodeProvider(): GeocodeProvider {
 	const name = (process.env.GEOCODE_PROVIDER || "google").toLowerCase();
-	return providers[name] || google;
+	// case-insensitive lookup
+	const match = Object.keys(providers).find((k) => k.toLowerCase() === name);
+	return match ? providers[match] : google;
 }
 
 /**
  * Returns a geocode function that tries Google first, then falls back
  * to Photon → Nominatim if Google fails or returns no results.
+ *
+ * If GEOCODE_PROVIDER=googleAutocomplete, autocomplete is used instead
+ * of text search at the head of the chain.
  */
 export function getGeocodeWithFallback(): GeocodeProvider {
+	const primary =
+		(process.env.GEOCODE_PROVIDER || "google").toLowerCase() ===
+		"googleautocomplete"
+			? googleAutocomplete
+			: google;
 	return async (q: string) => {
-		const chain: GeocodeProvider[] = [google, photon, nominatim];
+		const chain: GeocodeProvider[] = [primary, photon, nominatim];
 		for (const provider of chain) {
 			try {
 				const results = await provider(q);
@@ -152,9 +240,14 @@ export async function geocodeWithFallbackAndSource(q: string): Promise<{
 	results: GeocodeResult[];
 	provider: GeocodeProviderName | "none";
 }> {
+	const useAutocomplete =
+		(process.env.GEOCODE_PROVIDER || "google").toLowerCase() ===
+		"googleautocomplete";
 	const chain: Array<{ name: GeocodeProviderName; provider: GeocodeProvider }> =
 		[
-			{ name: "google", provider: google },
+			useAutocomplete
+				? { name: "googleAutocomplete", provider: googleAutocomplete }
+				: { name: "google", provider: google },
 			{ name: "photon", provider: photon },
 			{ name: "nominatim", provider: nominatim },
 		];

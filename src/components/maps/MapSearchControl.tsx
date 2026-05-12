@@ -140,7 +140,7 @@ export default function MapSearchControl({
 
 				{/* Results dropdown */}
 				{isExpanded && results.length > 0 && (
-					<div className="absolute top-full left-0 right-0 mt-1 bg-glass backdrop-blur-sm rounded-xl shadow-lg border border-border/50 max-h-60 overflow-y-auto z-10">
+					<div className="absolute top-full left-0 right-0 mt-1 bg-glass backdrop-blur-sm rounded-xl shadow-lg border border-border/50 max-h-60 overflow-y-auto z-50">
 						{results.map((result, i) => (
 							<button
 								key={`${result.place_id}-${i}`}

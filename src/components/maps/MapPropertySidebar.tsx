@@ -82,6 +82,10 @@ export default function MapPropertySidebar({
 			? properties
 			: properties.filter((p) => p.status === statusFilter);
 
+	// Build a quick lookup so we can resolve the parent property for chips
+	// and fall back to parent imagery when a unit has no media of its own.
+	const parentById = new Map(properties.map((p) => [p.id, p]));
+
 	return (
 		<div className="h-full flex flex-col bg-card border-r border-border m-2 mx-1">
 			{/* Header */}
@@ -144,10 +148,23 @@ export default function MapPropertySidebar({
 				) : (
 					filtered.map((property) => {
 						const isSelected = property.id === selectedPropertyId;
+						const parent = property.parentPropertyId
+							? parentById.get(property.parentPropertyId)
+							: undefined;
+						// Strip "Parent Name — " prefix so the title isn't redundant
+						// when we render the parent as a chip below.
+						let displayName = property.name;
+						if (parent && displayName.startsWith(`${parent.name} — `)) {
+							displayName = displayName.slice(parent.name.length + 3).trim();
+						}
+						if (!displayName) displayName = property.unitLabel || property.name;
 						const thumb =
 							property.media?.[0]?.thumbnail ||
 							property.media?.[0]?.url ||
-							property.images?.[0];
+							property.images?.[0] ||
+							parent?.media?.[0]?.thumbnail ||
+							parent?.media?.[0]?.url ||
+							parent?.images?.[0];
 
 						return (
 							<button
@@ -161,31 +178,46 @@ export default function MapPropertySidebar({
 							>
 								<div className="flex gap-3">
 									{/* Thumbnail */}
-									<div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-surface-container-highest">
+									<div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-surface-container-highest flex items-center justify-center">
 										{thumb ? (
 											<img
 												src={thumb}
 												alt=""
 												className="w-full h-full object-cover"
+												onError={(e) => {
+													// Hide broken-image icon and let the placeholder show
+													const img = e.currentTarget;
+													img.style.display = "none";
+													const fallback =
+														img.nextElementSibling as HTMLElement | null;
+													if (fallback) fallback.style.display = "flex";
+												}}
 											/>
-										) : (
-											<div className="w-full h-full flex items-center justify-center">
-												<MapPin className="w-5 h-5 text-outline" />
-											</div>
-										)}
+										) : null}
+										<div
+											className="w-full h-full items-center justify-center"
+											style={{ display: thumb ? "none" : "flex" }}
+										>
+											<MapPin className="w-5 h-5 text-outline" />
+										</div>
 									</div>
 
 									{/* Info */}
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-medium text-on-surface truncate">
-												{property.name}
+												{displayName}
 											</span>
 											<span
 												className={`shrink-0 w-2 h-2 rounded-full ${getStatusDot(property.status)}`}
 												title={property.status}
 											/>
 										</div>
+										{parent && (
+											<span className="inline-block mt-1 px-1.5 py-0.5 text-badge font-medium uppercase tracking-wide rounded-md bg-surface-container-high text-on-surface-variant truncate max-w-full">
+												{parent.name}
+											</span>
+										)}
 										<p className="text-xs text-on-surface-variant truncate mt-0.5">
 											{property.address}
 										</p>

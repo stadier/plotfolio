@@ -5,6 +5,7 @@ import PrimaryButton from "@/components/ui/PrimaryButton";
 import { Property, PropertyStatus } from "@/types/property";
 import { ArrowLeftRight, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface StatusToggleProps {
 	property: Property;
@@ -65,64 +66,66 @@ export default function StatusToggle({
 				{currentLabel}
 			</button>
 
-			{confirmOpen && (
-				<div
-					className="fixed inset-0 z-70 bg-black/45 p-4 sm:p-6 flex items-center justify-center"
-					onClick={() => setConfirmOpen(false)}
-				>
+			{confirmOpen &&
+				createPortal(
 					<div
-						role="dialog"
-						aria-modal="true"
-						aria-labelledby="status-toggle-confirmation-title"
-						className="w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl p-5 sm:p-6"
-						onClick={(e) => e.stopPropagation()}
+						className="fixed inset-0 z-70 bg-black/45 p-4 sm:p-6 flex items-center justify-center"
+						onClick={() => setConfirmOpen(false)}
 					>
-						<h3
-							id="status-toggle-confirmation-title"
-							className="text-base sm:text-lg font-semibold text-on-surface font-headline"
+						<div
+							role="dialog"
+							aria-modal="true"
+							aria-labelledby="status-toggle-confirmation-title"
+							className="w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl p-5 sm:p-6"
+							onClick={(e) => e.stopPropagation()}
 						>
-							Confirm status change
-						</h3>
-						<p className="mt-2 text-sm text-on-surface-variant">
-							You are changing this property from
-							<span className="font-semibold text-on-surface">
-								{" "}
-								{currentLabel}{" "}
-							</span>
-							to
-							<span className="font-semibold text-on-surface">
-								{" "}
-								{nextLabel}
-							</span>
-							.
-						</p>
-						<p className="mt-2 text-sm text-on-surface-variant">
-							{consequenceText}
-						</p>
+							<h3
+								id="status-toggle-confirmation-title"
+								className="text-base sm:text-lg font-semibold text-on-surface font-headline"
+							>
+								Confirm status change
+							</h3>
+							<p className="mt-2 text-sm text-on-surface-variant">
+								You are changing this property from
+								<span className="font-semibold text-on-surface">
+									{" "}
+									{currentLabel}{" "}
+								</span>
+								to
+								<span className="font-semibold text-on-surface">
+									{" "}
+									{nextLabel}
+								</span>
+								.
+							</p>
+							<p className="mt-2 text-sm text-on-surface-variant">
+								{consequenceText}
+							</p>
 
-						<div className="mt-5 flex flex-wrap items-center gap-2 justify-end">
-							<button
-								type="button"
-								onClick={() => setConfirmOpen(false)}
-								className="px-3 py-2 rounded-md border border-border text-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors"
-							>
-								Cancel
-							</button>
-							<PrimaryButton
-								type="button"
-								disabled={isPending}
-								onClick={() => {
-									onToggle(nextStatus);
-									setConfirmOpen(false);
-								}}
-								className="px-4 py-2"
-							>
-								Confirm change
-							</PrimaryButton>
+							<div className="mt-5 flex flex-wrap items-center gap-2 justify-end">
+								<button
+									type="button"
+									onClick={() => setConfirmOpen(false)}
+									className="px-3 py-2 rounded-md border border-border text-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors"
+								>
+									Cancel
+								</button>
+								<PrimaryButton
+									type="button"
+									disabled={isPending}
+									onClick={() => {
+										onToggle(nextStatus);
+										setConfirmOpen(false);
+									}}
+									className="px-4 py-2"
+								>
+									Confirm change
+								</PrimaryButton>
+							</div>
 						</div>
-					</div>
-				</div>
-			)}
+					</div>,
+					document.body,
+				)}
 		</>
 	);
 }
