@@ -1,6 +1,6 @@
 import AppShell from "@/components/layout/AppShell";
 import { MarketplaceCardSkeleton } from "@/components/ui/skeletons";
-import { Heart } from "lucide-react";
+import { Bookmark } from "lucide-react";
 
 export default function Loading() {
 	return (
@@ -8,7 +8,7 @@ export default function Loading() {
 			<div className="sz-page max-w-6xl space-y-5">
 				<div className="mb-2">
 					<div className="flex items-center gap-3 mb-2">
-						<Heart className="w-6 h-6 text-red-500" />
+						<Bookmark className="w-6 h-6 text-blue-600" />
 						<h1 className="text-2xl font-bold font-headline text-on-surface">
 							Favourites
 						</h1>

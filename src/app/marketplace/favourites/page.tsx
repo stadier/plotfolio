@@ -8,7 +8,7 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import { MarketplaceCardSkeleton } from "@/components/ui/skeletons";
 import { useAllProperties } from "@/hooks/usePropertyQueries";
 import { getPropertyImageUrls } from "@/lib/utils";
-import { Bookmark, Heart, MapPin, ShoppingBag, Tag } from "lucide-react";
+import { Bookmark, MapPin, ShoppingBag, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -39,7 +39,7 @@ export default function FavouritesPage() {
 				{/* Header */}
 				<div className="mb-8">
 					<div className="flex items-center gap-3 mb-2">
-						<Heart className="w-6 h-6 text-red-500" />
+						<Bookmark className="w-6 h-6 text-blue-600" />
 						<h1 className="text-2xl font-bold font-headline text-on-surface">
 							Favourites
 						</h1>

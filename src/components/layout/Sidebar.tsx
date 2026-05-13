@@ -11,7 +11,6 @@ import {
 	ChevronDown,
 	FileText,
 	Grid,
-	Heart,
 	HelpCircle,
 	LayoutDashboard,
 	MapPin,
@@ -60,7 +59,7 @@ const portfolioNav: NavItem[] = [
 
 const marketplaceNav: NavItem[] = [
 	{ name: "Browse", href: "/marketplace", icon: ShoppingBag },
-	{ name: "Favourites", href: "/marketplace/favourites", icon: Heart },
+	{ name: "Favourites", href: "/marketplace/favourites", icon: Bookmark },
 	{ name: "Categories", href: "/marketplace/categories", icon: Tag },
 	{ name: "Map Search", href: "/marketplace/map", icon: MapPin },
 	{ name: "Saved Searches", href: "/marketplace/saved", icon: Bookmark },
