@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
 			requesterId,
 			requesterName,
 			requesterEmail,
+			requesterPhone,
 			type,
 			date,
 			time,
@@ -135,7 +136,6 @@ export async function POST(request: NextRequest) {
 		// Validate required fields
 		if (
 			!rawOwnerId ||
-			!requesterId ||
 			!requesterName ||
 			!requesterEmail ||
 			!type ||
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json(
 				{
 					error:
-						"Missing required fields: ownerId, requesterId, requesterName, requesterEmail, type, date, time",
+						"Missing required fields: ownerId, requesterName, requesterEmail, type, date, time",
 				},
 				{ status: 400 },
 			);
@@ -221,9 +221,10 @@ export async function POST(request: NextRequest) {
 		const booking = await BookingModel.create({
 			id: crypto.randomUUID(),
 			ownerId,
-			requesterId,
+			requesterId: requesterId || undefined,
 			requesterName,
 			requesterEmail,
+			requesterPhone: requesterPhone || undefined,
 			type,
 			date,
 			time,

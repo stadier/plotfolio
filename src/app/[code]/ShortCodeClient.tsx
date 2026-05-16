@@ -5,6 +5,7 @@ import PropertyFullView from "@/components/property/PropertyFullView";
 import ShareModal from "@/components/property/ShareModal";
 import { PropertyDetailSkeleton } from "@/components/ui/skeletons";
 import { useProperty } from "@/hooks/usePropertyQueries";
+import usePublicViewer from "@/hooks/usePublicViewer";
 import { PropertyAPI } from "@/lib/api";
 import { isPlotWordsCode } from "@/lib/plotwords";
 import { DocumentAccessRequest } from "@/types/property";
@@ -19,12 +20,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-
-const MOCK_VIEWER: { id: string; name: string; email: string } = {
-	id: "viewer_1",
-	name: "Marketplace Viewer",
-	email: "viewer@example.com",
-};
 
 export default function ShortCodeClient({
 	code,
@@ -86,22 +81,28 @@ export default function ShortCodeClient({
 	const [accessRequests, setAccessRequests] = useState<DocumentAccessRequest[]>(
 		[],
 	);
+	const viewer = usePublicViewer();
 	const { isFavourite, toggleFavourite } = useFavourites();
 	const [shareOpen, setShareOpen] = useState(false);
 	const [lookupCode, setLookupCode] = useState("");
 	const [lookupLoading, setLookupLoading] = useState(false);
 	const [lookupError, setLookupError] = useState("");
 
-	const loadAccessRequests = useCallback(async (pid: string) => {
-		const reqs = await PropertyAPI.getDocumentAccessRequests(pid, {
-			requesterId: MOCK_VIEWER.id,
-		});
-		setAccessRequests(reqs);
-	}, []);
+	const loadAccessRequests = useCallback(
+		async (pid: string, requesterId: string) => {
+			const reqs = await PropertyAPI.getDocumentAccessRequests(pid, {
+				requesterId,
+			});
+			setAccessRequests(reqs);
+		},
+		[],
+	);
 
 	useEffect(() => {
-		if (property && propertyId) loadAccessRequests(propertyId);
-	}, [propertyId, property, loadAccessRequests]);
+		if (property && propertyId && viewer?.id) {
+			loadAccessRequests(propertyId, viewer.id);
+		}
+	}, [propertyId, property, viewer?.id, loadAccessRequests]);
 
 	function handleAccessRequested(req: DocumentAccessRequest) {
 		setAccessRequests((prev) => [...prev, req]);
@@ -273,7 +274,7 @@ export default function ShortCodeClient({
 					property={property}
 					accessRequests={accessRequests}
 					onAccessRequested={handleAccessRequested}
-					viewer={MOCK_VIEWER}
+					viewer={viewer ?? undefined}
 					actions={
 						<>
 							<button

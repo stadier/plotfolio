@@ -540,28 +540,32 @@ export default function DocumentSidebar({
 	);
 
 	useEffect(() => {
+		const timers: NodeJS.Timeout[] = [];
 		files.forEach((_, i) => {
 			if (!readyDocIndices.has(i)) {
 				const timer = setTimeout(
 					() => setReadyDocIndices((prev) => new Set(prev).add(i)),
 					800 + Math.random() * 600,
 				);
-				return () => clearTimeout(timer);
+				timers.push(timer);
 			}
 		});
-	}, [files, readyDocIndices]);
+		return () => timers.forEach(clearTimeout);
+	}, [files]);
 
 	useEffect(() => {
+		const timers: NodeJS.Timeout[] = [];
 		mediaFiles.forEach((_, i) => {
 			if (!readyMediaIndices.has(i)) {
 				const timer = setTimeout(
 					() => setReadyMediaIndices((prev) => new Set(prev).add(i)),
 					800 + Math.random() * 600,
 				);
-				return () => clearTimeout(timer);
+				timers.push(timer);
 			}
 		});
-	}, [mediaFiles, readyMediaIndices]);
+		return () => timers.forEach(clearTimeout);
+	}, [mediaFiles]);
 
 	if (totalCount === 0) return null;
 

@@ -11,6 +11,7 @@ import {
 	Home,
 	Loader2,
 	MessageSquare,
+	Phone,
 	RefreshCw,
 	RotateCcw,
 	User,
@@ -264,28 +265,23 @@ function BookingCard({
 						)}
 					</>
 				) : (
-					<>
+				<div className="flex flex-col gap-0.5">
+					<div className="flex flex-wrap items-center gap-2">
 						<span className="font-medium text-on-surface">
 							{booking.requesterName}
 						</span>
-						<span className="text-outline">({booking.requesterEmail})</span>
-					</>
-				)}
-			</div>
-
-			{/* Date & time */}
-			<div className="flex items-center gap-4 text-sm text-on-surface-variant">
-				<span className="inline-flex items-center gap-1.5">
-					<Calendar className="w-3.5 h-3.5" />
-					{displayDate}
-				</span>
-				<span className="inline-flex items-center gap-1.5">
-					<Clock className="w-3.5 h-3.5" />
-					{booking.time}
-				</span>
-			</div>
-
-			{/* Message from requester */}
+						{booking.requesterPhone && (
+							<span className="inline-flex items-center gap-1 text-outline">
+								<Phone className="w-3.5 h-3.5 shrink-0" />
+								{booking.requesterPhone}
+							</span>
+						)}
+					</div>
+					<span className="text-outline">({booking.requesterEmail})</span>
+				</div>
+			)}
+		</div>
+		{/* Message from requester */}
 			{booking.message && (
 				<div className="flex items-start gap-2 text-sm">
 					<MessageSquare className="w-3.5 h-3.5 mt-0.5 shrink-0 text-on-surface-variant" />

@@ -5,9 +5,10 @@ const BookingSchema = new Schema<Booking & Document>(
 	{
 		id: { type: String, required: true, unique: true },
 		ownerId: { type: String, required: true, index: true },
-		requesterId: { type: String, required: true, index: true },
+		requesterId: { type: String, index: true }, // optional for anonymous bookings
 		requesterName: { type: String, required: true },
 		requesterEmail: { type: String, required: true },
+		requesterPhone: { type: String }, // optional phone for anonymous bookings
 		type: {
 			type: String,
 			enum: Object.values(BookingType),

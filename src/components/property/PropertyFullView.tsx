@@ -108,17 +108,6 @@ const DocumentGenerator = dynamic(
 
 /* ─── Media Gallery (masonry, natural aspect ratios) ─────────── */
 
-interface PendingMedia {
-	id: number;
-	file: File;
-	previewUrl: string;
-	thumbnailFile?: File;
-	uploadedMedia?: PropertyMedia;
-	status: "uploading" | "uploaded" | "failed";
-	progress?: number;
-	error?: string;
-}
-
 function MediaGallery({
 	media,
 	name,
@@ -134,26 +123,6 @@ function MediaGallery({
 	 *  (e.g. an accordion header) instead of inline above the grid. */
 	onToolbarChange?: (toolbar: React.ReactNode) => void;
 }) {
-	function normalizeMediaUrl(url: string): string {
-		try {
-			if (url.startsWith("/api/media/view/")) {
-				return decodeURIComponent(url.replace("/api/media/view/", ""));
-			}
-			if (/\.backblazeb2\.com/i.test(url)) {
-				const parsed = new URL(url);
-				return decodeURIComponent(parsed.pathname.replace(/^\//, ""));
-			}
-			const parsed = new URL(url, "http://localhost");
-			return decodeURIComponent(`${parsed.pathname}${parsed.search}`);
-		} catch {
-			return url;
-		}
-	}
-
-	function mediaUrlsMatch(left: string, right: string): boolean {
-		return normalizeMediaUrl(left) === normalizeMediaUrl(right);
-	}
-
 	const queryClient = useQueryClient();
 	const { enqueue } = useUploads();
 	const [lightbox, setLightbox] = useState<number | null>(null);
@@ -1689,17 +1658,7 @@ function DocumentsSection({
 	const queryClient = useQueryClient();
 	// Own local state so uploads/deletes show immediately regardless of whether
 	// the parent uses React Query (detail page) or cachedGetJSON (PropertyDrawer).
-	const [documents, setDocuments] = useState<
-		NonNullable<Property["documents"]>
-	>(property.documents ?? []);
-
-	// Sync local state when property.documents changes externally (e.g. a
-	// background upload completes and React Query refetches the property while
-	// the user is already viewing the details page).
-	const propDocs = property.documents;
-	useEffect(() => {
-		setDocuments(propDocs ?? []);
-	}, [propDocs]);
+	const documents = property.documents ?? [];
 
 	const docCount = documents.length;
 	if (docCount === 0 && !isOwner) return null;
@@ -1709,9 +1668,6 @@ function DocumentsSection({
 			documents: NonNullable<Property["documents"]>,
 		) => Property["documents"],
 	) {
-		// Update local state immediately so the UI reflects the change
-		// regardless of the parent's data source.
-		setDocuments((prev) => updater(prev) ?? []);
 		queryClient.setQueryData<Property | undefined>(
 			queryKeys.properties.detail(property.id),
 			(current) => {
@@ -2012,9 +1968,11 @@ export default function PropertyFullView({
 		}
 	}, []);
 
-	if (showContractGenerator && !sealsFetched.current) {
-		fetchSeals();
-	}
+	useEffect(() => {
+		if (showContractGenerator && !sealsFetched.current) {
+			fetchSeals();
+		}
+	}, [showContractGenerator, fetchSeals]);
 
 	const twoCol = singleColumn ? "" : "lg:flex-row";
 	const tabsMode = leftLayout === "tabs" && !singleColumn;

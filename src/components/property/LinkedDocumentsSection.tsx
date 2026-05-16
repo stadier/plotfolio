@@ -1,11 +1,11 @@
 "use client";
 
 import { PropertyAPI } from "@/lib/api";
-import type { AIDocument } from "@/types/document";
+import { AIDocument } from "@/types/document";
 import { ExternalLink, FileText, Link2, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-const DOC_TYPE_LABELS: Record<string, string> = {
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 	survey_plan: "Survey Plan",
 	certificate_of_occupancy: "Certificate of Occupancy",
 	contract_of_sale: "Contract of Sale",
@@ -17,28 +17,30 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 	other: "Other",
 };
 
-function docTypeLabel(type: string) {
+function getDocTypeLabel(type: string): string {
 	return (
-		DOC_TYPE_LABELS[type] ??
+		DOCUMENT_TYPE_LABELS[type] ??
 		type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 	);
 }
 
-function fileSize(bytes: number) {
+function formatFileSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;
 	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+interface LinkedDocumentsSectionProps {
+	propertyId: string;
+	userId: string;
+	isOwner?: boolean;
 }
 
 export default function LinkedDocumentsSection({
 	propertyId,
 	userId,
 	isOwner,
-}: {
-	propertyId: string;
-	userId: string;
-	isOwner?: boolean;
-}) {
+}: LinkedDocumentsSectionProps) {
 	const [docs, setDocs] = useState<AIDocument[]>([]);
 	const [allDocs, setAllDocs] = useState<AIDocument[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -47,13 +49,10 @@ export default function LinkedDocumentsSection({
 	const fetchLinked = useCallback(async () => {
 		setLoading(true);
 		try {
-			const list = await PropertyAPI.listDocuments({
-				propertyId,
-				userId,
-			});
+			const list = await PropertyAPI.listDocuments({ propertyId, userId });
 			setDocs(list);
 		} catch {
-			// ignore
+			// ignore network errors for linked documents section
 		} finally {
 			setLoading(false);
 		}
@@ -74,12 +73,18 @@ export default function LinkedDocumentsSection({
 		const ok = await PropertyAPI.updateDocument(doc.id, {
 			propertyIds: ids,
 		});
-		if (ok) {
-			setDocs((prev) => [...prev, { ...doc, propertyIds: ids }]);
-			setAllDocs((prev) =>
-				prev.map((d) => (d.id === doc.id ? { ...d, propertyIds: ids } : d)),
-			);
-		}
+		if (!ok) return;
+
+		setDocs((prev) => [
+			...prev,
+			{
+				...doc,
+				propertyIds: ids,
+			},
+		]);
+		setAllDocs((prev) =>
+			prev.map((d) => (d.id === doc.id ? { ...d, propertyIds: ids } : d)),
+		);
 	}
 
 	async function unlinkDoc(doc: AIDocument) {
@@ -87,16 +92,16 @@ export default function LinkedDocumentsSection({
 		const ok = await PropertyAPI.updateDocument(doc.id, {
 			propertyIds: ids,
 		});
-		if (ok) {
-			setDocs((prev) => prev.filter((d) => d.id !== doc.id));
-			setAllDocs((prev) =>
-				prev.map((d) => (d.id === doc.id ? { ...d, propertyIds: ids } : d)),
-			);
-		}
+		if (!ok) return;
+
+		setDocs((prev) => prev.filter((d) => d.id !== doc.id));
+		setAllDocs((prev) =>
+			prev.map((d) => (d.id === doc.id ? { ...d, propertyIds: ids } : d)),
+		);
 	}
 
-	const linkedIds = new Set(docs.map((d) => d.id));
-	const unlinked = allDocs.filter((d) => !linkedIds.has(d.id));
+	const linkedIds = new Set(docs.map((doc) => doc.id));
+	const unlinked = allDocs.filter((doc) => !linkedIds.has(doc.id));
 
 	if (loading) return null;
 	if (docs.length === 0 && !isOwner) return null;
@@ -127,7 +132,6 @@ export default function LinkedDocumentsSection({
 				)}
 			</div>
 
-			{/* Picker: all unlinked docs */}
 			{showPicker && (
 				<div className="border border-border rounded-md bg-card max-h-48 overflow-y-auto">
 					{unlinked.length === 0 ? (
@@ -137,8 +141,8 @@ export default function LinkedDocumentsSection({
 					) : (
 						unlinked.map((doc) => (
 							<button
-								key={doc.id}
 								type="button"
+								key={doc.id}
 								onClick={() => linkDoc(doc)}
 								className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-container-high transition-colors border-b border-border last:border-b-0"
 							>
@@ -147,7 +151,7 @@ export default function LinkedDocumentsSection({
 									{doc.fileName}
 								</span>
 								<span className="text-badge text-outline shrink-0">
-									{docTypeLabel(doc.documentType)}
+									{getDocTypeLabel(doc.documentType)}
 								</span>
 								<Plus className="w-3.5 h-3.5 text-primary shrink-0" />
 							</button>
@@ -156,7 +160,6 @@ export default function LinkedDocumentsSection({
 				</div>
 			)}
 
-			{/* Linked docs list */}
 			{docs.length > 0 ? (
 				<div className="space-y-1.5">
 					{docs.map((doc) => (
@@ -166,7 +169,6 @@ export default function LinkedDocumentsSection({
 						>
 							<FileText className="w-4 h-4 text-outline shrink-0" />
 							<div className="flex-1 min-w-0">
-								{/* Use same-origin proxy for private B2 files */}
 								<a
 									href={`/api/documents/${doc.id}/view`}
 									target="_blank"
@@ -177,9 +179,9 @@ export default function LinkedDocumentsSection({
 									<ExternalLink className="w-3 h-3 inline ml-1 opacity-0 group-hover:opacity-100" />
 								</a>
 								<div className="flex items-center gap-2 text-badge text-outline">
-									<span>{docTypeLabel(doc.documentType)}</span>
-									<span>&middot;</span>
-									<span>{fileSize(doc.fileSize)}</span>
+									<span>{getDocTypeLabel(doc.documentType)}</span>
+									<span>·</span>
+									<span>{formatFileSize(doc.fileSize)}</span>
 								</div>
 							</div>
 							{isOwner && (
@@ -195,14 +197,12 @@ export default function LinkedDocumentsSection({
 						</div>
 					))}
 				</div>
-			) : (
-				isOwner && (
-					<p className="text-xs text-outline">
-						No documents linked yet. Click &ldquo;Attach document&rdquo; to link
-						existing documents to this property.
-					</p>
-				)
-			)}
+			) : isOwner ? (
+				<p className="text-xs text-outline">
+					No documents linked yet. Click “Attach document” to link existing
+					documents to this property.
+				</p>
+			) : null}
 		</section>
 	);
 }

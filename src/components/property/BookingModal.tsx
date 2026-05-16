@@ -57,6 +57,11 @@ export default function BookingModal({
 		text: string;
 	} | null>(null);
 
+	// Anonymous user contact info
+	const [contactName, setContactName] = useState("");
+	const [contactEmail, setContactEmail] = useState("");
+	const [contactPhone, setContactPhone] = useState("");
+
 	// Reset form when modal opens
 	useEffect(() => {
 		if (open) {
@@ -64,6 +69,9 @@ export default function BookingModal({
 			setTime("10:00");
 			setMessage("");
 			setResult(null);
+			setContactName("");
+			setContactEmail("");
+			setContactPhone("");
 		}
 	}, [open]);
 
@@ -78,21 +86,42 @@ export default function BookingModal({
 	}, [open, onClose]);
 
 	const handleSubmit = useCallback(async () => {
-		if (!user || !property.owner) return;
+		if (!property.owner) return;
+
+		// For anonymous users, validate contact info
+		if (!user) {
+			if (!contactName.trim() || !contactEmail.trim()) {
+				setResult({
+					ok: false,
+					text: "Please provide your name and email address.",
+				});
+				return;
+			}
+			// Basic email validation
+			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+			if (!emailRegex.test(contactEmail.trim())) {
+				setResult({ ok: false, text: "Please enter a valid email address." });
+				return;
+			}
+		}
+
 		setSubmitting(true);
 		setResult(null);
 
-		const { error } = await BookingAPI.createBooking({
+		const bookingData = {
 			ownerId: property.owner.id,
-			requesterId: user.id,
-			requesterName: user.name,
-			requesterEmail: user.email,
+			requesterId: user?.id,
+			requesterName: user?.name || contactName.trim(),
+			requesterEmail: user?.email || contactEmail.trim(),
+			requesterPhone: user?.phone || contactPhone.trim() || undefined,
 			type,
 			date: selectedDate,
 			time,
 			message: message.trim() || undefined,
 			propertyId: property.id,
-		});
+		};
+
+		const { error } = await BookingAPI.createBooking(bookingData);
 
 		setSubmitting(false);
 		if (error) {
@@ -103,7 +132,17 @@ export default function BookingModal({
 				text: "Booking request sent! The owner will confirm shortly.",
 			});
 		}
-	}, [user, property, type, selectedDate, time, message]);
+	}, [
+		user,
+		property,
+		type,
+		selectedDate,
+		time,
+		message,
+		contactName,
+		contactEmail,
+		contactPhone,
+	]);
 
 	if (!open) return null;
 
@@ -118,7 +157,7 @@ export default function BookingModal({
 			onClick={(e) => e.target === backdropRef.current && onClose()}
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
 		>
-			<div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+			<div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-xl overflow-hidden">
 				{/* Header */}
 				<div className="flex items-center justify-between px-5 py-4 border-b border-border">
 					<h2 className="font-headline text-base font-semibold text-on-surface">
@@ -143,6 +182,70 @@ export default function BookingModal({
 							{displayDate}
 						</span>
 					</div>
+
+					{/* Contact info for anonymous users */}
+					{!user && (
+						<fieldset className="space-y-3">
+							<legend className="text-sm font-semibold text-on-surface mb-2">
+								Your Contact Information
+							</legend>
+							<div className="grid gap-3">
+								<div className="space-y-1.5">
+									<label
+										htmlFor="contact-name"
+										className="text-sm font-medium text-on-surface"
+									>
+										Full Name *
+									</label>
+									<input
+										id="contact-name"
+										type="text"
+										value={contactName}
+										onChange={(e) => setContactName(e.target.value)}
+										placeholder="Enter your full name"
+										className="w-full border border-border rounded-lg px-3 py-2 text-sm text-on-surface bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+										required
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<label
+										htmlFor="contact-email"
+										className="text-sm font-medium text-on-surface"
+									>
+										Email Address *
+									</label>
+									<input
+										id="contact-email"
+										type="email"
+										value={contactEmail}
+										onChange={(e) => setContactEmail(e.target.value)}
+										placeholder="Enter your email address"
+										className="w-full border border-border rounded-lg px-3 py-2 text-sm text-on-surface bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+										required
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<label
+										htmlFor="contact-phone"
+										className="text-sm font-medium text-on-surface"
+									>
+										Phone Number
+										<span className="text-xs font-normal text-outline ml-1">
+											(optional)
+										</span>
+									</label>
+									<input
+										id="contact-phone"
+										type="tel"
+										value={contactPhone}
+										onChange={(e) => setContactPhone(e.target.value)}
+										placeholder="Enter your phone number"
+										className="w-full border border-border rounded-lg px-3 py-2 text-sm text-on-surface bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+									/>
+								</div>
+							</div>
+						</fieldset>
+					)}
 
 					{/* Booking type */}
 					<fieldset className="space-y-2">
@@ -256,7 +359,7 @@ export default function BookingModal({
 						<button
 							type="button"
 							onClick={handleSubmit}
-							disabled={submitting || !user}
+							disabled={submitting}
 							className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
 						>
 							{submitting ? (

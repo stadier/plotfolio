@@ -166,6 +166,7 @@ export function RequestAccessButton({
 	viewerAvatar,
 	existingRequests,
 	onRequested,
+	className,
 }: {
 	propertyId: string;
 	documentId: string;
@@ -176,6 +177,7 @@ export function RequestAccessButton({
 	viewerAvatar?: string;
 	existingRequests: DocumentAccessRequest[];
 	onRequested: (req: DocumentAccessRequest) => void;
+	className?: string;
 }) {
 	const [showForm, setShowForm] = useState(false);
 	const [message, setMessage] = useState("");
@@ -270,7 +272,7 @@ export function RequestAccessButton({
 	return (
 		<button
 			onClick={() => setShowForm(true)}
-			className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
+			className={`flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors ${className ?? ""}`}
 		>
 			<Lock className="w-3.5 h-3.5" />
 			Request Access
@@ -279,6 +281,12 @@ export function RequestAccessButton({
 }
 
 /* ─── Restricted doc placeholder (viewer sees when access is required) ── */
+
+function getLockedDocumentExtension(name: string) {
+	const chunks = name.split(".");
+	if (chunks.length < 2) return "FILE";
+	return chunks[chunks.length - 1].toUpperCase().slice(0, 5);
+}
 
 export function RestrictedDocumentRow({
 	doc,
@@ -299,34 +307,39 @@ export function RestrictedDocumentRow({
 	existingRequests: DocumentAccessRequest[];
 	onRequested: (req: DocumentAccessRequest) => void;
 }) {
-	const approvedRequest = existingRequests.find(
-		(r) =>
-			r.documentId === doc.id &&
-			r.requesterId === viewerId &&
-			r.status === AccessRequestStatus.APPROVED,
-	);
-
-	// If approved, show the document normally
-	if (approvedRequest) {
-		return null; // Signal to parent to render normally
-	}
+	const extensionLabel = getLockedDocumentExtension(doc.name);
 
 	return (
-		<div className="flex items-start justify-between px-5 py-3 gap-3">
-			<div className="flex items-start gap-3 min-w-0">
-				<div className="h-14 w-14 rounded-lg border border-border overflow-hidden shrink-0 bg-gray-50 dark:bg-surface-container flex items-center justify-center">
-					<Lock className="w-5 h-5 text-gray-400 dark:text-on-surface-variant" />
+		<div className="w-44 flex flex-col rounded-xl bg-card border border-border group relative shrink-0 hover:shadow-md transition-all">
+			<div className="relative rounded-t-xl overflow-hidden bg-surface-container-high h-36 flex items-center justify-center">
+				<div className="absolute inset-0 bg-slate-950/20" />
+				<div className="relative z-10 flex flex-col items-center gap-2 text-center text-on-surface-variant">
+					<Lock className="w-5 h-5" />
+					<span className="text-xs font-semibold">Access required</span>
 				</div>
-				<div className="min-w-0">
-					<div className="text-sm font-medium text-gray-800 dark:text-on-surface truncate">
-						{doc.name}
-					</div>
-					<div className="mt-1 text-xs text-gray-500 dark:text-on-surface-variant">
-						Access required to view this document
-					</div>
+				<div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/60 text-white text-badge font-semibold px-2 py-1 rounded">
+					<FileText className="w-3 h-3" />
+					{extensionLabel}
 				</div>
 			</div>
-			<div className="shrink-0 mt-1">
+
+			<div className="px-2.5 py-2 min-h-14">
+				<p
+					className="text-[11px] font-medium text-on-surface truncate font-body leading-tight"
+					title={doc.name}
+				>
+					{doc.name}
+				</p>
+				<p className="text-badge text-on-surface-variant mt-0.5 font-body">
+					{extensionLabel} &middot;{" "}
+					{new Date(doc.uploadDate).toLocaleDateString("en-US", {
+						month: "short",
+						day: "numeric",
+					})}
+				</p>
+			</div>
+
+			<div className="px-2.5 pb-3">
 				<RequestAccessButton
 					propertyId={propertyId}
 					documentId={doc.id}
@@ -337,6 +350,7 @@ export function RestrictedDocumentRow({
 					viewerAvatar={viewerAvatar}
 					existingRequests={existingRequests}
 					onRequested={onRequested}
+					className="w-full justify-center"
 				/>
 			</div>
 		</div>

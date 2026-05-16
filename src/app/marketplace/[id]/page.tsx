@@ -8,17 +8,12 @@ import ShareModal from "@/components/property/ShareModal";
 import BackButton from "@/components/ui/BackButton";
 import { PropertyDetailSkeleton } from "@/components/ui/skeletons";
 import { useProperty } from "@/hooks/usePropertyQueries";
+import usePublicViewer from "@/hooks/usePublicViewer";
 import { PropertyAPI } from "@/lib/api";
 import { DocumentAccessRequest } from "@/types/property";
 import { Bookmark, Share2 } from "lucide-react";
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
-
-const MOCK_VIEWER: { id: string; name: string; email: string } = {
-	id: "viewer_1",
-	name: "Marketplace Viewer",
-	email: "viewer@example.com",
-};
 
 /* ─── Page ───────────────────────────────────────────────────── */
 
@@ -41,19 +36,25 @@ export default function MarketplaceListingPage({
 	const [accessRequests, setAccessRequests] = useState<DocumentAccessRequest[]>(
 		[],
 	);
+	const viewer = usePublicViewer();
 	const { isFavourite, toggleFavourite } = useFavourites();
 	const [shareOpen, setShareOpen] = useState(false);
 
-	const loadAccessRequests = useCallback(async (propertyId: string) => {
-		const reqs = await PropertyAPI.getDocumentAccessRequests(propertyId, {
-			requesterId: MOCK_VIEWER.id,
-		});
-		setAccessRequests(reqs);
-	}, []);
+	const loadAccessRequests = useCallback(
+		async (propertyId: string, requesterId: string) => {
+			const reqs = await PropertyAPI.getDocumentAccessRequests(propertyId, {
+				requesterId,
+			});
+			setAccessRequests(reqs);
+		},
+		[],
+	);
 
 	useEffect(() => {
-		if (property) loadAccessRequests(id);
-	}, [id, property, loadAccessRequests]);
+		if (property && viewer?.id) {
+			loadAccessRequests(id, viewer.id);
+		}
+	}, [id, property, viewer?.id, loadAccessRequests]);
 
 	function handleAccessRequested(req: DocumentAccessRequest) {
 		setAccessRequests((prev) => [...prev, req]);
@@ -106,7 +107,7 @@ export default function MarketplaceListingPage({
 					property={property}
 					accessRequests={accessRequests}
 					onAccessRequested={handleAccessRequested}
-					viewer={MOCK_VIEWER}
+					viewer={viewer ?? undefined}
 					actions={
 						<>
 							<button

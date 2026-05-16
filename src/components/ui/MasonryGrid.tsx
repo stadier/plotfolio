@@ -22,6 +22,11 @@ interface MasonryGridProps {
 	 */
 	maxColWidth?: number;
 	/**
+	 * When true, items flow through CSS columns in upload order rather than
+	 * being distributed round-robin into independent column stacks.
+	 */
+	preserveOrder?: boolean;
+	/**
 	 * Optional explicit responsive breakpoints. Each entry caps the column
 	 * count when the container is at most `maxWidth` px wide. The smallest
 	 * matching breakpoint wins. Example:
@@ -48,6 +53,7 @@ export default function MasonryGrid({
 	maxCols,
 	gap = 20,
 	maxColWidth,
+	preserveOrder,
 	breakpoints,
 	children,
 }: MasonryGridProps) {
@@ -90,6 +96,34 @@ export default function MasonryGrid({
 		if (containerRef.current) ro.observe(containerRef.current);
 		return () => ro.disconnect();
 	}, [updateCols]);
+
+	if (preserveOrder) {
+		return (
+			<div
+				ref={containerRef}
+				className="w-full"
+				style={{
+					columnCount: numCols,
+					columnGap: `${gap}px`,
+				}}
+			>
+				{items.map((child, idx) => (
+					<div
+						key={idx}
+						style={
+							{
+								breakInside: "avoid",
+								WebkitColumnBreakInside: "avoid",
+								marginBottom: `${gap}px`,
+							} as any
+						}
+					>
+						{child}
+					</div>
+				))}
+			</div>
+		);
+	}
 
 	// Round-robin distribute items into columns
 	const columns: ReactNode[][] = Array.from({ length: numCols }, () => []);

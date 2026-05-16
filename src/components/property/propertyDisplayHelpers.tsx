@@ -20,13 +20,17 @@ import {
 	Droplets,
 	Eye,
 	FileText,
+	LayoutGrid,
+	List,
 	MoreVertical,
 	Trash2,
 	Upload,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
+	DocumentAccessLevelBadge,
 	DocumentAccessLevelPicker,
+	RequestAccessButton,
 	RestrictedDocumentRow,
 } from "./DocumentAccessControl";
 
@@ -730,6 +734,195 @@ function DocUploadPlaceholder({
 					</>
 				)}
 			</div>
+		</div>
+	);
+}
+
+type DocumentViewMode = "card" | "table";
+
+interface ViewModeToggleProps {
+	value: DocumentViewMode;
+	onChange: (mode: DocumentViewMode) => void;
+}
+
+function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
+	const baseBtn =
+		"flex items-center justify-center w-8 h-8 transition-colors rounded-md";
+	return (
+		<div
+			className="inline-flex items-center gap-1 rounded-md border border-border bg-card p-1"
+			role="group"
+			aria-label="Document view mode"
+		>
+			<button
+				type="button"
+				onClick={() => onChange("card")}
+				aria-pressed={value === "card"}
+				className={`${baseBtn} ${
+					value === "card"
+						? "bg-primary text-white"
+						: "text-on-surface-variant hover:bg-surface-container-high"
+				}`}
+				aria-label="Card view"
+			>
+				<LayoutGrid className="w-4 h-4" />
+			</button>
+			<button
+				type="button"
+				onClick={() => onChange("table")}
+				aria-pressed={value === "table"}
+				className={`${baseBtn} ${
+					value === "table"
+						? "bg-primary text-white"
+						: "text-on-surface-variant hover:bg-surface-container-high"
+				}`}
+				aria-label="Table view"
+			>
+				<List className="w-4 h-4" />
+			</button>
+		</div>
+	);
+}
+
+function DocumentsTable({
+	documents,
+	propertyId,
+	onDeleted,
+	onPreview,
+	onAccessLevelChanged,
+	viewerId,
+	viewerName,
+	viewerEmail,
+	viewerAvatar,
+	accessRequests,
+	onAccessRequested,
+	isOwner,
+}: {
+	documents: PropertyDocument[];
+	propertyId: string;
+	onDeleted: (docId: string) => void;
+	onPreview: (doc: PropertyDocument) => void;
+	onAccessLevelChanged?: (docId: string, level: DocumentAccessLevel) => void;
+	viewerId?: string;
+	viewerName?: string;
+	viewerEmail?: string;
+	viewerAvatar?: string;
+	accessRequests?: DocumentAccessRequest[];
+	onAccessRequested?: (req: DocumentAccessRequest) => void;
+	isOwner: boolean;
+}) {
+	const visibleDocuments = documents.filter((doc) => {
+		const accessLevel = doc.accessLevel ?? DocumentAccessLevel.PUBLIC;
+		return isOwner || accessLevel !== DocumentAccessLevel.PRIVATE;
+	});
+
+	return (
+		<div className="overflow-x-auto rounded-xl border border-border bg-card">
+			<table className="w-full text-sm">
+				<thead className="bg-surface-container-high text-on-surface-variant">
+					<tr className="text-left">
+						<th className="px-4 py-3">Document</th>
+						<th className="px-4 py-3">Type</th>
+						<th className="px-4 py-3">Access</th>
+						<th className="px-4 py-3">Uploaded</th>
+						<th className="px-4 py-3 text-right">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{visibleDocuments.map((doc) => {
+						const accessLevel = doc.accessLevel ?? DocumentAccessLevel.PUBLIC;
+						const hasApproved =
+							accessRequests?.some(
+								(r) =>
+									r.documentId === doc.id &&
+									r.requesterId === viewerId &&
+									r.status === AccessRequestStatus.APPROVED,
+							) ?? false;
+						const restricted =
+							!isOwner &&
+							accessLevel === DocumentAccessLevel.REQUEST_REQUIRED &&
+							!hasApproved;
+
+						return (
+							<tr
+								key={doc.id}
+								className="border-t border-border hover:bg-surface-container transition-colors"
+							>
+								<td className="px-4 py-3 align-top min-w-[220px]">
+									<div className="min-w-0">
+										<div className="text-sm font-medium text-on-surface truncate">
+											{doc.name}
+										</div>
+										<div className="text-xs text-on-surface-variant mt-0.5 truncate">
+											{doc.size ? `${Math.round(doc.size / 1024)} KB` : ""}
+										</div>
+									</div>
+								</td>
+								<td className="px-4 py-3 align-top text-on-surface-variant">
+									{getDocumentTypeLabel(doc.type)}
+								</td>
+								<td className="px-4 py-3 align-top">
+									<div className="flex flex-wrap items-center gap-2">
+										<DocumentAccessLevelBadge accessLevel={accessLevel} />
+										{isOwner && onAccessLevelChanged && (
+											<DocumentAccessLevelPicker
+												docId={doc.id}
+												propertyId={propertyId}
+												currentLevel={accessLevel}
+												onChanged={onAccessLevelChanged}
+											/>
+										)}
+									</div>
+								</td>
+								<td className="px-4 py-3 align-top text-on-surface-variant">
+									{new Date(doc.uploadDate).toLocaleDateString("en-US", {
+										year: "numeric",
+										month: "short",
+										day: "numeric",
+									})}
+								</td>
+								<td className="px-4 py-3 align-top text-right">
+									{restricted ? (
+										<RequestAccessButton
+											propertyId={propertyId}
+											documentId={doc.id}
+											documentName={doc.name}
+											viewerId={viewerId ?? ""}
+											viewerName={viewerName ?? ""}
+											viewerEmail={viewerEmail ?? ""}
+											viewerAvatar={viewerAvatar}
+											existingRequests={accessRequests ?? []}
+											onRequested={onAccessRequested ?? (() => {})}
+											className="w-full justify-center"
+										/>
+									) : (
+										<div className="flex items-center justify-end gap-2 flex-wrap">
+											<button
+												type="button"
+												onClick={() => onPreview(doc)}
+												className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-md bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors"
+											>
+												<Eye className="w-3.5 h-3.5" />
+												View
+											</button>
+											{isOwner && (
+												<button
+													type="button"
+													onClick={() => onDeleted(doc.id)}
+													className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-md bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+												>
+													<Trash2 className="w-3.5 h-3.5" />
+													Delete
+												</button>
+											)}
+										</div>
+									)}
+								</td>
+							</tr>
+						);
+					})}
+				</tbody>
+			</table>
 		</div>
 	);
 }

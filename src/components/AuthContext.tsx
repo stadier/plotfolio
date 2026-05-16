@@ -83,7 +83,6 @@ export function AuthProvider({
 	const clearAuthScopedCaches = useCallback(
 		(previousScope: string, removeActivePortfolio = false) => {
 			invalidateCachedGet();
-			queryClient.clear();
 			if (typeof window !== "undefined") {
 				localStorage.removeItem(getReactQueryCacheStorageKey(previousScope));
 				if (removeActivePortfolio) {
@@ -91,7 +90,7 @@ export function AuthProvider({
 				}
 			}
 		},
-		[queryClient],
+		[],
 	);
 
 	const transitionAuthCacheScope = useCallback(

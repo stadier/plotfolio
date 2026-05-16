@@ -10,6 +10,7 @@ import {
 	FileText,
 	Grid,
 	Heart,
+	Inbox,
 	LayoutDashboard,
 	MapPin,
 	Menu,
@@ -45,6 +46,7 @@ const portfolioNav: NavItem[] = [
 
 const portfolioMore: NavItem[] = [
 	{ name: "Transfers", href: "/portfolio/transfers", icon: Send },
+	{ name: "Requests", href: "/portfolio/requests", icon: Inbox },
 	{ name: "Documents", href: "/portfolio/documents", icon: FileText },
 	{ name: "Bookings", href: "/portfolio/bookings", icon: MessageSquare },
 	{ name: "Team", href: "/portfolio/team", icon: Users },

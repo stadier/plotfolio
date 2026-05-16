@@ -39,6 +39,7 @@ export function formatCurrencyCompact(
 		style: "currency",
 		currency: resolvedCurrency,
 		minimumFractionDigits: 0,
+		maximumFractionDigits: 1,
 		notation: "compact",
 		compactDisplay: "short",
 	}).format(amount);

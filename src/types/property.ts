@@ -597,9 +597,10 @@ export enum BookingStatus {
 export interface Booking {
 	id: string;
 	ownerId: string; // the property owner being booked
-	requesterId: string; // user requesting the booking
+	requesterId?: string; // user requesting the booking (optional for anonymous)
 	requesterName: string;
 	requesterEmail: string;
+	requesterPhone?: string; // optional phone for anonymous bookings
 	type: BookingType;
 	date: string; // ISO date string (YYYY-MM-DD)
 	time: string; // HH:mm
