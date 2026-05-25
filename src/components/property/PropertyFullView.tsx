@@ -2017,9 +2017,9 @@ export default function PropertyFullView({
 	};
 
 	return (
-		<div className={`flex flex-col ${twoCol} h-full ${className}`}>
+		<div className={`flex flex-col ${twoCol} h-full min-h-0 ${className}`}>
 			{/* ─── Left column: Media + Docs (desktop only) ──────── */}
-			<div className={`${leftCol} overflow-y-auto p-0 space-y-0`}>
+			<div className={`${leftCol} overflow-y-auto p-0 space-y-0 min-h-0`}>
 				{showContractGenerator ? (
 					<div className="p-4">
 						<DocumentGenerator
@@ -2114,7 +2114,7 @@ export default function PropertyFullView({
 
 			{/* ─── Single column (mobile) / Right column (desktop) ── */}
 			<div
-				className={`${rightCol} overflow-y-auto p-0 space-y-0 border-border`}
+				className={`${rightCol} overflow-y-auto p-0 space-y-0 border-border min-h-0`}
 			>
 				<StickyBottomStack>
 					{/* Overview (mobile accordion) — always first */}
