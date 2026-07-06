@@ -92,10 +92,13 @@ export async function PUT(
 		}
 
 		const updates: Record<string, any> = {};
+		// Mongoose strips undefined values from $set, so clearing a field
+		// requires $unset
+		const unsets: Record<string, 1> = {};
 		if (body.role && Object.values(PortfolioRole).includes(body.role)) {
 			updates.role = body.role;
 			// Reset custom permissions when role changes
-			updates.permissions = undefined;
+			unsets.permissions = 1;
 		}
 		if (
 			body.status &&
@@ -126,13 +129,23 @@ export async function PUT(
 					sanitized[key] = body.permissions[key];
 				}
 			}
-			updates.permissions =
-				Object.keys(sanitized).length > 0 ? sanitized : undefined;
+			if (Object.keys(sanitized).length > 0) {
+				updates.permissions = sanitized;
+				// $set and $unset cannot target the same field
+				delete unsets.permissions;
+			} else {
+				unsets.permissions = 1;
+			}
+		}
+
+		const updateOp: Record<string, any> = { $set: updates };
+		if (Object.keys(unsets).length > 0) {
+			updateOp.$unset = unsets;
 		}
 
 		const updated = await PortfolioMemberModel.findOneAndUpdate(
 			{ id: memberId },
-			{ $set: updates },
+			updateOp,
 			{ new: true },
 		).lean();
 

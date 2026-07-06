@@ -85,21 +85,38 @@ export async function PUT(
 
 		const body = await request.json();
 		const updates: Record<string, any> = {};
+		// Mongoose strips undefined values from $set, so clearing a field
+		// requires $unset
+		const unsets: Record<string, 1> = {};
 
 		if (body.name && typeof body.name === "string") {
 			updates.name = body.name.trim();
 			updates.slug = await generateUniqueSlug(body.name.trim(), id);
 		}
 		if (body.description !== undefined) {
-			updates.description = body.description?.trim() || undefined;
+			const description = body.description?.trim();
+			if (description) {
+				updates.description = description;
+			} else {
+				unsets.description = 1;
+			}
 		}
 		if (body.avatar !== undefined) {
-			updates.avatar = body.avatar ?? undefined;
+			if (body.avatar === null) {
+				unsets.avatar = 1;
+			} else {
+				updates.avatar = body.avatar;
+			}
+		}
+
+		const updateOp: Record<string, any> = { $set: updates };
+		if (Object.keys(unsets).length > 0) {
+			updateOp.$unset = unsets;
 		}
 
 		const updated = await PortfolioModel.findOneAndUpdate(
 			{ id },
-			{ $set: updates },
+			updateOp,
 			{ new: true },
 		).lean();
 
