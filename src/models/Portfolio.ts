@@ -1,5 +1,6 @@
 import {
 	DEFAULT_ROLE_PERMISSIONS,
+	PORTFOLIO_ROLE_LEVELS,
 	PortfolioMemberStatus,
 	PortfolioRole,
 	type Portfolio,
@@ -177,13 +178,6 @@ export async function checkPortfolioAccess(
 	portfolioId: string,
 	requiredRole: PortfolioRole,
 ): Promise<boolean> {
-	const roleHierarchy: Record<PortfolioRole, number> = {
-		[PortfolioRole.ADMIN]: 4,
-		[PortfolioRole.MANAGER]: 3,
-		[PortfolioRole.AGENT]: 2,
-		[PortfolioRole.VIEWER]: 1,
-	};
-
 	const membership = await PortfolioMemberModel.findOne({
 		portfolioId,
 		userId,
@@ -193,9 +187,31 @@ export async function checkPortfolioAccess(
 	if (!membership) return false;
 
 	const userLevel =
-		roleHierarchy[(membership as any).role as PortfolioRole] ?? 0;
-	const requiredLevel = roleHierarchy[requiredRole] ?? 0;
+		PORTFOLIO_ROLE_LEVELS[(membership as any).role as PortfolioRole] ?? 0;
+	const requiredLevel = PORTFOLIO_ROLE_LEVELS[requiredRole] ?? 0;
 	return userLevel >= requiredLevel;
+}
+
+/** Get a user's active membership in a portfolio with resolved permissions
+ *  (role defaults + per-member overrides), or null if not an active member */
+export async function getMemberAccess(
+	userId: string,
+	portfolioId: string,
+): Promise<{ role: PortfolioRole; permissions: PortfolioPermissions } | null> {
+	const membership = await PortfolioMemberModel.findOne({
+		portfolioId,
+		userId,
+		status: PortfolioMemberStatus.ACTIVE,
+	}).lean();
+
+	if (!membership) return null;
+
+	const role =
+		((membership as any).role as PortfolioRole) ?? PortfolioRole.VIEWER;
+	return {
+		role,
+		permissions: resolvePermissions(role, (membership as any).permissions),
+	};
 }
 
 /** Resolve effective permissions for a member (role defaults + overrides) */

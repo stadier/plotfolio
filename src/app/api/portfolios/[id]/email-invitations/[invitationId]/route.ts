@@ -1,7 +1,6 @@
 import connectDB from "@/lib/mongoose";
 import { InvitationModel } from "@/models/Invitation";
-import { checkPortfolioAccess } from "@/models/Portfolio";
-import { PortfolioRole } from "@/types/property";
+import { getMemberAccess } from "@/models/Portfolio";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -29,12 +28,9 @@ export async function DELETE(
 		const { id: portfolioId, invitationId } = await params;
 		await connectDB();
 
-		const isAdmin = await checkPortfolioAccess(
-			userId,
-			portfolioId,
-			PortfolioRole.ADMIN,
-		);
-		if (!isAdmin) {
+		// Anyone who can send invites can also cancel pending ones
+		const access = await getMemberAccess(userId, portfolioId);
+		if (!access?.permissions.canInviteMembers) {
 			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		}
 

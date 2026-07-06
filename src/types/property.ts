@@ -363,6 +363,14 @@ export enum PortfolioRole {
 	VIEWER = "viewer",
 }
 
+/** Numeric role hierarchy — a member can only assign roles at or below their own level */
+export const PORTFOLIO_ROLE_LEVELS: Record<PortfolioRole, number> = {
+	[PortfolioRole.ADMIN]: 4,
+	[PortfolioRole.MANAGER]: 3,
+	[PortfolioRole.AGENT]: 2,
+	[PortfolioRole.VIEWER]: 1,
+};
+
 export enum PortfolioMemberStatus {
 	PENDING = "pending",
 	ACTIVE = "active",
