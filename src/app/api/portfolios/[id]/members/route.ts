@@ -3,12 +3,17 @@ import connectDB from "@/lib/mongoose";
 import { InvitationModel } from "@/models/Invitation";
 import {
 	checkPortfolioAccess,
+	getMemberAccess,
 	PortfolioMemberModel,
 	PortfolioModel,
 	resolvePermissions,
 } from "@/models/Portfolio";
 import { UserModel } from "@/models/User";
-import { PortfolioMemberStatus, PortfolioRole } from "@/types/property";
+import {
+	PORTFOLIO_ROLE_LEVELS,
+	PortfolioMemberStatus,
+	PortfolioRole,
+} from "@/types/property";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -115,13 +120,10 @@ export async function POST(
 		const { id: portfolioId } = await params;
 		await connectDB();
 
-		// Only admins can invite
-		const isAdmin = await checkPortfolioAccess(
-			userId,
-			portfolioId,
-			PortfolioRole.ADMIN,
-		);
-		if (!isAdmin) {
+		// Anyone with the invite permission can invite — admins have it by
+		// default; other roles can be granted it via per-member overrides
+		const access = await getMemberAccess(userId, portfolioId);
+		if (!access?.permissions.canInviteMembers) {
 			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		}
 
@@ -137,14 +139,22 @@ export async function POST(
 			);
 		}
 
-		const validRoles = [
-			PortfolioRole.MANAGER,
-			PortfolioRole.AGENT,
-			PortfolioRole.VIEWER,
-		];
-		const assignedRole = validRoles.includes(role)
+		const assignedRole: PortfolioRole = Object.values(PortfolioRole).includes(
+			role,
+		)
 			? role
 			: PortfolioRole.VIEWER;
+
+		// An inviter can only assign roles at or below their own level
+		// (so only admins can invite new admins)
+		if (
+			PORTFOLIO_ROLE_LEVELS[assignedRole] > PORTFOLIO_ROLE_LEVELS[access.role]
+		) {
+			return NextResponse.json(
+				{ error: "You cannot invite someone with a higher role than your own" },
+				{ status: 403 },
+			);
+		}
 
 		// Find user by email or username
 		const isEmail = lookup.includes("@");
@@ -200,6 +210,7 @@ export async function POST(
 			]);
 
 			const ROLE_LABELS: Record<string, string> = {
+				[PortfolioRole.ADMIN]: "Admin",
 				[PortfolioRole.MANAGER]: "Manager",
 				[PortfolioRole.AGENT]: "Agent",
 				[PortfolioRole.VIEWER]: "Viewer",
@@ -268,6 +279,7 @@ export async function POST(
 		]);
 
 		const ROLE_LABELS: Record<string, string> = {
+			[PortfolioRole.ADMIN]: "Admin",
 			[PortfolioRole.MANAGER]: "Manager",
 			[PortfolioRole.AGENT]: "Agent",
 			[PortfolioRole.VIEWER]: "Viewer",

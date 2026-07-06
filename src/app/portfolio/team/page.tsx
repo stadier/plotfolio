@@ -14,6 +14,7 @@ import UserLookupField, {
 import { PortfolioAPI, type PortfolioMemberWithUser } from "@/lib/api";
 import {
 	DEFAULT_ROLE_PERMISSIONS,
+	PORTFOLIO_ROLE_LEVELS,
 	PortfolioMemberStatus,
 	PortfolioPermissions,
 	PortfolioRole,
@@ -67,23 +68,33 @@ const ROLE_META: Record<
 };
 
 const ASSIGNABLE_ROLES = [
+	PortfolioRole.ADMIN,
 	PortfolioRole.MANAGER,
 	PortfolioRole.AGENT,
 	PortfolioRole.VIEWER,
 ] as const;
+
+/** Roles the inviter is allowed to assign — at or below their own level */
+function assignableRolesFor(inviterRole: PortfolioRole): PortfolioRole[] {
+	return ASSIGNABLE_ROLES.filter(
+		(r) => PORTFOLIO_ROLE_LEVELS[r] <= PORTFOLIO_ROLE_LEVELS[inviterRole],
+	);
+}
 
 /* ── Main page ─────────────────────────────────────────────────────────────── */
 
 export default function TeamPage() {
 	const { loading: authLoading } = useRequireAuth();
 	const { user } = useAuth();
-	const { activePortfolio, pendingInvites, refresh } = usePortfolio();
+	const { activePortfolio, activePermissions, pendingInvites, refresh } =
+		usePortfolio();
 
 	const [members, setMembers] = useState<PortfolioMemberWithUser[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
 	const isAdmin = activePortfolio?.role === PortfolioRole.ADMIN;
+	const canInvite = activePermissions.canInviteMembers;
 
 	const fetchMembers = useCallback(async () => {
 		if (!activePortfolio) return;
@@ -167,10 +178,11 @@ export default function TeamPage() {
 					</div>
 				</div>
 
-				{/* Invite section (admin only) */}
-				{isAdmin && (
+				{/* Invite section — admins by default, or anyone granted the permission */}
+				{canInvite && (
 					<InviteSection
 						portfolioId={activePortfolio.id}
+						inviterRole={activePortfolio.role}
 						onInvited={fetchMembers}
 					/>
 				)}
@@ -194,7 +206,7 @@ export default function TeamPage() {
 									<EmailInviteRow
 										key={m.id}
 										invitation={m}
-										isAdmin={isAdmin}
+										canManage={canInvite}
 										portfolioId={activePortfolio.id}
 										onUpdated={fetchMembers}
 										onError={setError}
@@ -255,13 +267,20 @@ export default function TeamPage() {
 
 function InviteSection({
 	portfolioId,
+	inviterRole,
 	onInvited,
 }: {
 	portfolioId: string;
+	inviterRole: PortfolioRole;
 	onInvited: () => void;
 }) {
+	const assignableRoles = assignableRolesFor(inviterRole);
 	const [identifier, setIdentifier] = useState("");
-	const [role, setRole] = useState<PortfolioRole>(PortfolioRole.AGENT);
+	const [role, setRole] = useState<PortfolioRole>(
+		assignableRoles.includes(PortfolioRole.AGENT)
+			? PortfolioRole.AGENT
+			: (assignableRoles[assignableRoles.length - 1] ?? PortfolioRole.VIEWER),
+	);
 	const [sending, setSending] = useState(false);
 	const [lookupStatus, setLookupStatus] = useState<LookupStatus>("idle");
 	const [resolvedUser, setResolvedUser] = useState<LookedUpUser | null>(null);
@@ -344,7 +363,7 @@ function InviteSection({
 					onChange={(e) => setRole(e.target.value as PortfolioRole)}
 					className="h-[42px] px-3 rounded-lg border border-border bg-card text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
 				>
-					{ASSIGNABLE_ROLES.map((r) => (
+					{assignableRoles.map((r) => (
 						<option key={r} value={r}>
 							{ROLE_META[r].label}
 						</option>
@@ -480,13 +499,13 @@ function IncomingInvites({
 
 function EmailInviteRow({
 	invitation,
-	isAdmin,
+	canManage,
 	portfolioId,
 	onUpdated,
 	onError,
 }: {
 	invitation: PortfolioMemberWithUser;
-	isAdmin: boolean;
+	canManage: boolean;
 	portfolioId: string;
 	onUpdated: () => void;
 	onError: (msg: string) => void;
@@ -535,7 +554,7 @@ function EmailInviteRow({
 				</div>
 
 				{/* Cancel button */}
-				{isAdmin && (
+				{canManage && (
 					<button
 						onClick={handleCancel}
 						disabled={busy}
@@ -784,12 +803,8 @@ function MemberRow({
 										</button>
 										{rolePickerOpen && (
 											<div className="border-t border-border py-1">
-												{(
-													[
-														PortfolioRole.ADMIN,
-														...ASSIGNABLE_ROLES,
-													] as PortfolioRole[]
-												).map((r) => {
+												{([...ASSIGNABLE_ROLES] as PortfolioRole[]).map(
+													(r) => {
 													const rm = ROLE_META[r];
 													const Icon = rm.icon;
 													return (
